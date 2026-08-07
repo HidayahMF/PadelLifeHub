@@ -1,0 +1,194 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ */
+/*  Design tokens — Neo-Brutalism, single source of truth             */
+/* ------------------------------------------------------------------ */
+@theme {
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Archivo Black', 'Space Grotesk', ui-sans-serif, sans-serif;
+
+  /* Brand colors (fixed, never change) */
+  --color-primary: #ffd600;
+  --color-primary-strong: #e8b400;
+  --color-primary-soft: #fff3b3;
+  --color-secondary: #ff5da2;
+  --color-accent: #1a1a1a;
+  --color-success: #00c2a8;
+  --color-warning: #ff9f1c;
+  --color-danger: #ff4d4d;
+
+  /* Semantic colors (variable — switch for dark mode) */
+  --color-bg: #faf6ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0ead9;
+  --color-line: #1a1a1a;
+  --color-line-strong: #000000;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #57534a;
+  --color-ink-faint: #9c9687;
+
+  /* Radius — chunky, never fully round */
+  --radius-button: 10px;
+  --radius-card: 14px;
+  --radius-field: 10px;
+  --radius-dialog: 16px;
+
+  /* Shadows — hard offset, zero blur. Brutal. */
+  --shadow-soft: 3px 3px 0 0 var(--color-ink);
+  --shadow-card: 5px 5px 0 0 var(--color-ink);
+  --shadow-pop: 8px 8px 0 0 var(--color-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Dark mode variable overrides                                       */
+/* ------------------------------------------------------------------ */
+.dark {
+  --color-bg: #17150f;
+  --color-surface: #211d15;
+  --color-surface-2: #2d281d;
+  --color-line: #f5f0e4;
+  --color-line-strong: #ffffff;
+  --color-ink: #f5f0e4;
+  --color-ink-soft: #b8b09d;
+  --color-ink-faint: #7d7668;
+  --color-primary-soft: #40360a;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, h4, h5 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-faint) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-ink-faint);
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Neo-brutalist helper classes                                       */
+/* ------------------------------------------------------------------ */
+
+/* Dotted grid background */
+.neo-dots {
+  background-image: radial-gradient(var(--color-ink) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+/* Diagonal stripes */
+.neo-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-ink) 0,
+    var(--color-ink) 6px,
+    transparent 6px,
+    transparent 14px
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared animation primitives                                        */
+/* ------------------------------------------------------------------ */
+@theme {
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-scale-in: scale-in 0.18s ease-out;
+  --animate-slide-up: slide-up 0.25s ease-out;
+  --animate-slide-in-right: slide-in-right 0.25s ease-out;
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-float-slow: float 7s ease-in-out infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(var(--tilt, 0deg));
+    }
+    50% {
+      transform: translateY(-12px) rotate(var(--tilt, 0deg));
+    }
+  }
+}
