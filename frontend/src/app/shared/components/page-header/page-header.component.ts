@@ -21,7 +21,7 @@ import { ButtonComponent } from '../button/button.component';
       <div class="flex items-center gap-2">
         <ng-content></ng-content>
         @if (actionLabel()) {
-          <app-button [icon]="actionIcon()" (click)="action()"> {{ actionLabel() }} </app-button>
+          <app-button [icon]="actionIcon()" (click)="action()()"> {{ actionLabel() }} </app-button>
         }
       </div>
     </div>

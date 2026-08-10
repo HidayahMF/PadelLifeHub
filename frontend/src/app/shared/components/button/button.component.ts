@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { NgClass, NgIf } from '@angular/common';
 import { IconComponent } from '../icon/icon.component';
 import { SpinnerComponent } from '../spinner/spinner.component';
 
@@ -9,7 +9,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 @Component({
   selector: 'app-button',
   standalone: true,
-  imports: [NgClass, IconComponent, SpinnerComponent],
+  imports: [NgClass, NgIf, IconComponent, SpinnerComponent],
   template: `
     <button
       [type]="type()"

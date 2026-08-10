@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgIf } from '@angular/common';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -15,6 +16,7 @@ import { formatDateTime, toDate } from '../../core/utils/format';
   standalone: true,
   imports: [
     FormsModule,
+    NgIf,
     ButtonComponent,
     IconComponent,
     ModalComponent,

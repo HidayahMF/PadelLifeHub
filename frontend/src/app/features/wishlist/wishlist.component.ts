@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgIf } from '@angular/common';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
@@ -21,6 +22,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
   standalone: true,
   imports: [
     FormsModule,
+    NgIf,
     CardComponent,
     PageHeaderComponent,
     ButtonComponent,

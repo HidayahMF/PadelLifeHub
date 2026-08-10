@@ -17,7 +17,7 @@ import { ButtonComponent } from '../button/button.component';
         <p class="font-display text-lg text-ink">Something went wrong</p>
         <p class="mx-auto max-w-xs text-sm font-medium text-ink-soft">{{ message() }}</p>
       </div>
-      <app-button class="mt-2" size="sm" variant="secondary" icon="refresh-cw" (click)="retry()">
+      <app-button class="mt-2" size="sm" variant="secondary" icon="refresh-cw" (click)="retry()()">
         Try again
       </app-button>
     </div>

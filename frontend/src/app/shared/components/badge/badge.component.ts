@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { NgClass, NgIf } from '@angular/common';
 import { IconComponent } from '../icon/icon.component';
 
 export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'primary' | 'info';
@@ -7,7 +7,7 @@ export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'primary'
 @Component({
   selector: 'app-badge',
   standalone: true,
-  imports: [NgClass, IconComponent],
+  imports: [NgClass, NgIf, IconComponent],
   template: `
     <span
       class="inline-flex items-center gap-1 rounded-md border-2 border-ink px-2 py-0.5 text-xs font-bold whitespace-nowrap shadow-[2px_2px_0_0_var(--color-ink)]"
