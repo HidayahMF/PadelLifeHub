@@ -113,19 +113,22 @@ export class PomodoroComponent implements OnDestroy {
   protected readonly session = signal(1);
   protected readonly completedFocus = signal(0);
 
-  private remaining = DURATIONS.focus;
+  // Remaining seconds is a signal so the computed display + progress ring react
+  // to every tick (a plain property would leave the timer looking frozen).
+  private readonly remaining = signal(DURATIONS.focus);
   private timer: ReturnType<typeof setInterval> | null = null;
 
   protected readonly circumference = 2 * Math.PI * 86;
 
   protected readonly dashOffset = computed(() => {
     const total = DURATIONS[this.mode()];
-    return this.circumference * (1 - this.remaining / total);
+    return this.circumference * (1 - this.remaining() / total);
   });
 
   protected readonly timeDisplay = computed(() => {
-    const m = Math.floor(this.remaining / 60);
-    const s = this.remaining % 60;
+    const remaining = this.remaining();
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   });
 
@@ -140,7 +143,7 @@ export class PomodoroComponent implements OnDestroy {
   setMode(mode: Mode): void {
     this.stopTimer();
     this.mode.set(mode);
-    this.remaining = DURATIONS[mode];
+    this.remaining.set(DURATIONS[mode]);
     this.running.set(false);
   }
 
@@ -151,9 +154,11 @@ export class PomodoroComponent implements OnDestroy {
       return;
     }
     this.running.set(true);
+    // Guard: only one interval may ever exist at a time.
+    this.stopTimer();
     this.timer = setInterval(() => {
-      this.remaining -= 1;
-      if (this.remaining <= 0) {
+      this.remaining.update((r) => r - 1);
+      if (this.remaining() <= 0) {
         this.onComplete();
       }
     }, 1000);
@@ -161,7 +166,7 @@ export class PomodoroComponent implements OnDestroy {
 
   reset(): void {
     this.stopTimer();
-    this.remaining = DURATIONS[this.mode()];
+    this.remaining.set(DURATIONS[this.mode()]);
     this.running.set(false);
   }
 
@@ -188,7 +193,7 @@ export class PomodoroComponent implements OnDestroy {
       this.toast.success('Break over — back to focus!');
       this.mode.set('focus');
     }
-    this.remaining = DURATIONS[this.mode()];
+    this.remaining.set(DURATIONS[this.mode()]);
   }
 
   ngOnDestroy(): void {

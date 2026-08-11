@@ -1,13 +1,13 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+const connectDB = require('../config/db');
 const User = require('../models/User');
 const Setting = require('../models/Setting');
 const Task = require('../models/Task');
 const generateToken = require('../utils/generateToken');
 
 (async () => {
-  await mongoose.connect(process.env.MONGODB_URI);
-  console.log('DB connected');
+  await connectDB();
 
   const user = await User.create({
     name: 'Test User',

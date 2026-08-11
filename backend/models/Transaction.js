@@ -40,9 +40,22 @@ const transactionSchema = new mongoose.Schema(
       isRecurring: { type: Boolean, default: false },
       frequency: {
         type: String,
-        enum: ['daily', 'weekly', 'monthly', 'yearly'],
+        enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
         default: 'monthly',
       },
+    },
+    nextRunAt: {
+      type: Date,
+      default: null,
+    },
+    lastRunAt: {
+      type: Date,
+      default: null,
+    },
+    parentRecurringId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Transaction',
+      default: null,
     },
   },
   { timestamps: true }

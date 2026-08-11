@@ -39,7 +39,19 @@ const updateNeed = async (req, res, next) => {
       throw new Error('Need item not found');
     }
 
+    const wasPurchased = need.purchased;
     Object.assign(need, req.body);
+
+    // Record purchase history when an item transitions to purchased.
+    // History is intentionally preserved when un-purchasing (audit trail).
+    if (need.purchased && !wasPurchased) {
+      need.purchaseHistory.push({
+        date: new Date(),
+        quantity: need.quantity || 1,
+        price: need.price || 0,
+      });
+    }
+
     const updated = await need.save();
     res.json(updated);
   } catch (err) {

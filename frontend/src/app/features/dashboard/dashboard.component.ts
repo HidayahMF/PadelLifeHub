@@ -26,6 +26,7 @@ import {
   relativeDay,
   toDate,
 } from '../../core/utils/format';
+import { getTodayLocalDate } from '../../core/utils/date';
 
 @Component({
   selector: 'app-dashboard',
@@ -443,14 +444,15 @@ export class DashboardComponent implements OnInit {
       d.setMonth(d.getMonth() - i);
       const key = monthKey(d);
       const label = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d);
-      const income = this.cashFlow[key]?.income ?? 0;
-      const expense = this.cashFlow[key]?.expense ?? 0;
+      const income = this.cashFlow()[key]?.income ?? 0;
+      const expense = this.cashFlow()[key]?.expense ?? 0;
       list.push({ label, value: income - expense });
     }
     return list;
   });
 
-  private cashFlow: Record<string, { income: number; expense: number }> = {};
+  // Signal so the chart computed reacts when transactions reload.
+  private readonly cashFlow = signal<Record<string, { income: number; expense: number }>>({});
 
   ngOnInit(): void {
     this.loadAll();
@@ -476,13 +478,12 @@ export class DashboardComponent implements OnInit {
         if (t.type === 'income') map[key].income += t.amount;
         else map[key].expense += t.amount;
       }
-      this.cashFlow = map;
+      this.cashFlow.set(map);
     });
   }
 
   protected doneToday(habit: Habit): boolean {
-    const today = new Date().toISOString().slice(0, 10);
-    return habit.completedDates.includes(today);
+    return habit.completedDates.includes(getTodayLocalDate());
   }
 
   protected categoryName(value: unknown): string {

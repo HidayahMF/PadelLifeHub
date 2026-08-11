@@ -33,10 +33,10 @@ import type { Setting } from '../../core/models/misc.model';
       <div class="max-w-2xl space-y-6">
         <app-card>
           <h2 class="text-base font-semibold text-ink">Appearance</h2>
-          <div class="mt-5 flex items-center justify-between">
-            <div>
+          <div class="mt-5 flex items-center justify-between gap-4">
+            <div class="min-w-0">
               <p class="text-sm font-medium text-ink">Dark mode</p>
-              <p class="text-sm text-ink-soft">Reduce eye strain in low light.</p>
+              <p class="mt-0.5 text-sm text-ink-soft">Reduce eye strain in low light.</p>
             </div>
             <app-toggle [model]="dark()" label="Toggle dark mode" (change)="toggleDark($event)" />
           </div>
@@ -48,41 +48,43 @@ import type { Setting } from '../../core/models/misc.model';
             <app-select label="Currency" [options]="currencyOptions()" [(ngModel)]="form.currency"></app-select>
           </div>
           <div class="mt-5">
-            <app-select label="Language" [options]="languageOptions()" [(ngModel)]="form.language"></app-select>
+            <app-select label="Language" [options]="languageOptions()" [disabled]="true"
+              [hint]="'Language switching is coming soon.'"
+              [(ngModel)]="form.language"></app-select>
           </div>
         </app-card>
 
         <app-card>
           <h2 class="text-base font-semibold text-ink">Notifications</h2>
           <div class="mt-5 space-y-5">
-            <div class="flex items-center justify-between">
-              <div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="min-w-0">
                 <p class="text-sm font-medium text-ink">Task reminders</p>
-                <p class="text-sm text-ink-soft">Notify before tasks are due.</p>
+                <p class="mt-0.5 text-sm text-ink-soft">Notify before tasks are due.</p>
               </div>
               <app-toggle [model]="form.notifications.taskReminders" label="Task reminders"
                 (change)="setNotif('taskReminders', $event)" />
             </div>
-            <div class="flex items-center justify-between">
-              <div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="min-w-0">
                 <p class="text-sm font-medium text-ink">Bill reminders</p>
-                <p class="text-sm text-ink-soft">Remind me about recurring bills.</p>
+                <p class="mt-0.5 text-sm text-ink-soft">Remind me about recurring bills.</p>
               </div>
               <app-toggle [model]="form.notifications.billReminders" label="Bill reminders"
                 (change)="setNotif('billReminders', $event)" />
             </div>
-            <div class="flex items-center justify-between">
-              <div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="min-w-0">
                 <p class="text-sm font-medium text-ink">Habit reminders</p>
-                <p class="text-sm text-ink-soft">Keep your streaks going.</p>
+                <p class="mt-0.5 text-sm text-ink-soft">Keep your streaks going.</p>
               </div>
               <app-toggle [model]="form.notifications.habitReminders" label="Habit reminders"
                 (change)="setNotif('habitReminders', $event)" />
             </div>
-            <div class="flex items-center justify-between">
-              <div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="min-w-0">
                 <p class="text-sm font-medium text-ink">Email updates</p>
-                <p class="text-sm text-ink-soft">Occasional product news.</p>
+                <p class="mt-0.5 text-sm text-ink-soft">Occasional product news.</p>
               </div>
               <app-toggle [model]="form.notifications.emailUpdates" label="Email updates"
                 (change)="setNotif('emailUpdates', $event)" />

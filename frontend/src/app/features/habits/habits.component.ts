@@ -10,10 +10,16 @@ import { FieldComponent } from '../../layout/components/field.component';
 import { SelectComponent } from '../../layout/components/select.component';
 import { ModalComponent } from '../../layout/components/modal.component';
 import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { HabitService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Habit } from '../../core/models/lifestyle.model';
 import { addDays, startOfDay } from '../../core/utils/format';
+import {
+  formatDateToLocalYYYYMMDD,
+  getTodayLocalDate,
+  normalizeHabitDate,
+} from '../../core/utils/date';
 
 @Component({
   selector: 'app-habits',
@@ -30,6 +36,7 @@ import { addDays, startOfDay } from '../../core/utils/format';
     SelectComponent,
     ModalComponent,
     SkeletonComponent,
+    SegmentedComponent,
   ],
   template: `
     <app-page-header
@@ -40,21 +47,28 @@ import { addDays, startOfDay } from '../../core/utils/format';
       [action]="openCreate"
     ></app-page-header>
 
+    <app-segmented
+      class="mb-6"
+      [options]="[ { value: 'active', label: 'Active' }, { value: 'archived', label: 'Archived' } ]"
+      [model]="view()"
+      (change)="setView($event)"
+    ></app-segmented>
+
     @if (loading()) {
       <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
         @for (_ of [1, 2]; track $index) { <app-card [padding]="'none'"><div class="p-4"><app-skeleton size="button" /></div></app-card> }
       </div>
-    } @else if (activeHabits().length === 0) {
+    } @else if (visibleHabits().length === 0) {
       <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="flame" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
-          <p class="mt-3 text-sm font-semibold text-ink">No habits yet</p>
-          <p class="mt-1 text-sm text-ink-soft">Start with one small habit today.</p>
+          <p class="mt-3 text-sm font-semibold text-ink">{{ view() === 'archived' ? 'No archived habits' : 'No habits yet' }}</p>
+          <p class="mt-1 text-sm text-ink-soft">{{ view() === 'archived' ? 'Archived habits will appear here.' : 'Start with one small habit today.' }}</p>
         </div>
       </app-card>
     } @else {
       <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        @for (habit of activeHabits(); track habit._id) {
+        @for (habit of visibleHabits(); track habit._id) {
           <app-card>
             <div class="flex h-full flex-col">
               <div class="flex flex-wrap items-start justify-between gap-3">
@@ -75,15 +89,24 @@ import { addDays, startOfDay } from '../../core/utils/format';
                   </p>
                 </div>
               </div>
+              @if (view() === 'active') {
               <app-badge class="shrink-0" [tone]="doneToday(habit) ? 'success' : 'neutral'" [icon]="doneToday(habit) ? 'check' : ''">
                 {{ doneToday(habit) ? 'Done today' : 'Not yet' }}
               </app-badge>
+              } @else {
+              <app-badge class="shrink-0" tone="neutral" icon="archive">
+                Archived
+              </app-badge>
+              }
             </div>
 
+            @if (view() === 'active') {
             <div class="mt-5 flex items-center justify-between gap-2">
               @for (day of weekDays(); track day.label) {
                 <button
                   class="flex flex-col items-center gap-1.5"
+                  [class.cursor-not-allowed]="!day.today"
+                  [disabled]="!day.today"
                   [attr.aria-label]="'Toggle ' + habit.name + ' on ' + day.label"
                   (click)="toggleDate(habit, day)"
                 >
@@ -93,7 +116,7 @@ import { addDays, startOfDay } from '../../core/utils/format';
                     [ngClass]="
                       isDateDone(habit, day)
                         ? 'border-primary bg-primary text-ink'
-                        : 'border-line-strong text-transparent hover:border-primary'
+                        : 'border-line-strong text-transparent' + (day.today ? ' hover:border-primary' : '')
                     "
                   >
                     <app-icon name="check" [size]="15" [strokeWidth]="3" />
@@ -101,19 +124,27 @@ import { addDays, startOfDay } from '../../core/utils/format';
                 </button>
               }
             </div>
+            }
 
               <div class="mt-auto">
                 <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
-                  <app-button size="sm" icon="check" (click)="toggleToday(habit)">
-                {{ doneToday(habit) ? 'Undo today' : 'Mark done' }}
-              </app-button>
-              <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(habit)">Edit</app-button>
-              <app-button size="icon" variant="ghost" icon="archive"
-                [attr.aria-label]="'Archive ' + habit.name"
-                (click)="archive(habit)"></app-button>
-                  <app-button size="icon" variant="ghost" icon="trash-2"
-                    [attr.aria-label]="'Delete ' + habit.name"
-                    (click)="remove(habit)"></app-button>
+                  @if (view() === 'archived') {
+                    <app-button size="sm" icon="archive-restore" (click)="restore(habit)">Restore</app-button>
+                    <app-button size="icon" variant="ghost" icon="trash-2"
+                      [attr.aria-label]="'Delete ' + habit.name"
+                      (click)="remove(habit)"></app-button>
+                  } @else {
+                    <app-button size="sm" icon="check" (click)="toggleToday(habit)">
+                  {{ doneToday(habit) ? 'Undo today' : 'Mark done' }}
+                </app-button>
+                <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(habit)">Edit</app-button>
+                <app-button size="icon" variant="ghost" icon="archive"
+                  [attr.aria-label]="'Archive ' + habit.name"
+                  (click)="archive(habit)"></app-button>
+                    <app-button size="icon" variant="ghost" icon="trash-2"
+                      [attr.aria-label]="'Delete ' + habit.name"
+                      (click)="remove(habit)"></app-button>
+                  }
                 </div>
               </div>
             </div>
@@ -153,6 +184,14 @@ export class HabitsComponent implements OnInit {
   protected readonly editing = signal<Habit | null>(null);
   protected readonly saving = signal(false);
 
+  protected readonly view = signal<'active' | 'archived'>('active');
+
+  protected setView(value: string): void {
+    if (value === 'active' || value === 'archived') {
+      this.view.set(value);
+    }
+  }
+
   protected form: Partial<Habit> = {};
 
   protected readonly frequencyOptions = computed(() => [
@@ -163,17 +202,23 @@ export class HabitsComponent implements OnInit {
 
   protected readonly activeHabits = computed(() => this.habits().filter((h) => !h.archived));
 
+  protected readonly archivedHabits = computed(() => this.habits().filter((h) => h.archived));
+
+  protected readonly visibleHabits = computed(() =>
+    this.view() === 'archived' ? this.archivedHabits() : this.activeHabits()
+  );
+
   protected readonly weekDays = computed(() => {
     const today = startOfDay();
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const todayKey = getTodayLocalDate();
     const result: { label: string; date: string; today: boolean }[] = [];
     for (let i = 6; i >= 0; i--) {
       const date = addDays(today, -i);
-      const iso = date.toISOString().slice(0, 10);
       result.push({
         label: days[date.getDay()],
-        date: iso,
-        today: iso === new Date().toISOString().slice(0, 10),
+        date: formatDateToLocalYYYYMMDD(date),
+        today: formatDateToLocalYYYYMMDD(date) === todayKey,
       });
     }
     return result;
@@ -224,27 +269,33 @@ export class HabitsComponent implements OnInit {
   }
 
   protected doneToday(habit: Habit): boolean {
-    return habit.completedDates.includes(new Date().toISOString().slice(0, 10));
+    const today = getTodayLocalDate();
+    return habit.completedDates.some((d) => normalizeHabitDate(d) === today);
   }
 
   protected isDateDone(habit: Habit, day: { date: string }): boolean {
-    return habit.completedDates.includes(day.date);
+    return habit.completedDates.some((d) => normalizeHabitDate(d) === day.date);
   }
 
   protected toggleToday(habit: Habit): void {
-    this.toggleDate(habit, { date: new Date().toISOString().slice(0, 10) });
+    this.toggleDate(habit, { date: getTodayLocalDate(), today: true });
   }
 
-  protected toggleDate(habit: Habit, day: { date: string }): void {
-    const dates = habit.completedDates.includes(day.date)
-      ? habit.completedDates.filter((d) => d !== day.date)
-      : [...habit.completedDates, day.date];
-    this.service.update(habit._id, { completedDates: dates }).subscribe({
-      next: () => {
-        if (habit.completedDates.includes(day.date)) {
-          this.toast.info('Day unmarked');
-        }
-        this.service.load();
+  /**
+   * The backend /toggle endpoint is the single source of truth for marking a
+   * habit — only today can be toggled (past days are history, display-only).
+   */
+  protected toggleDate(habit: Habit, day: { date: string; today?: boolean }): void {
+    if (!day.today) return; // disabled button — only today is toggleable
+    const today = getTodayLocalDate();
+    const wasDone = this.doneToday(habit);
+    this.service.toggle(habit._id).subscribe({
+      next: (updated) => {
+        // Update the shared signal in place — no skeleton flash, instant UI.
+        this.service.habits.update((list) =>
+          list.map((h) => (h._id === updated._id ? updated : h))
+        );
+        this.toast.success(wasDone ? 'Habit unmarked' : 'Habit done — keep it up! 🔥');
       },
       error: (err: Error) => this.toast.error(err.message),
     });
@@ -254,6 +305,16 @@ export class HabitsComponent implements OnInit {
     this.service.update(habit._id, { archived: true }).subscribe({
       next: () => {
         this.toast.success('Habit archived');
+        this.service.load();
+      },
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
+  protected restore(habit: Habit): void {
+    this.service.update(habit._id, { archived: false }).subscribe({
+      next: () => {
+        this.toast.success('Habit restored');
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),

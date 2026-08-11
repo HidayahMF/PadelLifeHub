@@ -23,6 +23,7 @@ import { ToastService } from '../../core/services/toast.service';
 import type {
   Account,
   Budget,
+  RecurringFrequency,
   Transaction,
   TransactionPayload,
   TransactionType,
@@ -36,6 +37,7 @@ import {
   percent,
   toDate,
 } from '../../core/utils/format';
+import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/date';
 
 @Component({
   selector: 'app-finance',
@@ -75,8 +77,8 @@ import {
 
     <!-- Accounts -->
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <app-card>
-        <div class="flex items-center gap-4">
+      <app-card class="h-full">
+        <div class="flex h-full items-center gap-4">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
             <app-icon name="circle-plus" [size]="20" />
           </span>
@@ -89,18 +91,36 @@ import {
         </div>
       </app-card>
       @for (account of accounts(); track account._id) {
-        <app-card>
-          <div class="flex items-center gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
-              <app-icon [name]="accountIcon(account.type)" [size]="20" />
-            </span>
+        @let logo = accountLogo(account.name);
+        <app-card class="h-full">
+          <div class="flex h-full items-center gap-3">
+            @if (logo && !failedLogos().includes(account._id)) {
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-line">
+                <img
+                  [src]="logo"
+                  [alt]="account.name"
+                  loading="lazy"
+                  class="h-full w-full object-contain"
+                  (error)="onLogoError(account)"
+                />
+              </span>
+            } @else {
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+                <app-icon [name]="accountIcon(account.type)" [size]="20" />
+              </span>
+            }
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
               <p class="truncate text-sm text-ink-soft">{{ formatCurrency(account.balance) }}</p>
             </div>
-            <app-button size="icon" variant="ghost" icon="pencil"
-              [attr.aria-label]="'Edit ' + account.name"
-              (click)="openEditAccount(account)"></app-button>
+            <div class="flex shrink-0 items-center gap-0.5">
+              <app-button size="icon" variant="ghost" icon="pencil"
+                [attr.aria-label]="'Edit ' + account.name"
+                (click)="openEditAccount(account)"></app-button>
+              <app-button size="icon" variant="ghost" icon="trash-2"
+                [attr.aria-label]="'Delete ' + account.name"
+                (click)="removeAccount(account)"></app-button>
+            </div>
           </div>
         </app-card>
       }
@@ -119,12 +139,14 @@ import {
             <app-select
               placeholder="Account"
               [options]="accountOptions()"
-              [(ngModel)]="accountFilter"
+              [ngModel]="accountFilter()"
+              (ngModelChange)="accountFilter.set($event)"
             ></app-select>
             <app-select
               placeholder="Category"
               [options]="categoryOptions()"
-              [(ngModel)]="categoryFilter"
+              [ngModel]="categoryFilter()"
+              (ngModelChange)="categoryFilter.set($event)"
             ></app-select>
           </div>
         </div>
@@ -302,6 +324,13 @@ import {
           [(ngModel)]="txnForm.date"
           name="date"
         />
+        <app-select
+          label="Repeat"
+          [options]="recurringOptions()"
+          [hint]="'Generates a new transaction on schedule.'"
+          [(ngModel)]="txnRecurring"
+          name="recurring"
+        />
         <div class="flex justify-end gap-2 pt-2">
           <app-button type="button" variant="secondary" (click)="txnModalOpen.set(false)">Cancel</app-button>
           <app-button type="submit" [loading]="savingTxn()">Save</app-button>
@@ -362,10 +391,11 @@ export class FinanceComponent implements OnInit {
   protected readonly budgets = this.budgetService.budgets;
   protected readonly budgetsLoading = this.budgetService.loading;
   protected readonly categories = this.categoryService.categories;
+  protected readonly failedLogos = signal<string[]>([]);
 
   protected readonly typeFilter = signal<TransactionType | 'all'>('all');
-  protected accountFilter = '';
-  protected categoryFilter = '';
+  protected readonly accountFilter = signal('');
+  protected readonly categoryFilter = signal('');
 
   protected readonly txnModalOpen = signal(false);
   protected readonly accountModalOpen = signal(false);
@@ -379,6 +409,7 @@ export class FinanceComponent implements OnInit {
 
   protected readonly budgetMonth = signal(monthKey());
   protected txnForm: TransactionPayload = {};
+  protected txnRecurring: RecurringFrequency = 'none';
   protected accountForm: Partial<Account> = {};
   protected budgetForm: Partial<Budget> = {};
 
@@ -404,17 +435,26 @@ export class FinanceComponent implements OnInit {
     { value: 'ewallet', label: 'E-wallet' },
   ]);
 
+  protected readonly recurringOptions = computed(() => [
+    { value: 'none', label: 'No repeat' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+  ]);
+
   protected readonly filteredTransactions = computed(() =>
     this.transactions().filter((t) => {
       if (this.typeFilter() !== 'all' && t.type !== this.typeFilter()) return false;
-      if (this.accountFilter && this.idOf(t.account) !== this.accountFilter) return false;
-      if (this.categoryFilter && this.idOf(t.category) !== this.categoryFilter) return false;
+      const selectedAccount = this.accountFilter();
+      if (selectedAccount && this.idOf(t.account) !== selectedAccount) return false;
+      const selectedCategory = this.categoryFilter();
+      if (selectedCategory && this.idOf(t.category) !== selectedCategory) return false;
       return true;
     })
   );
 
   protected readonly balance = computed(() =>
-    this.transactions().reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0)
+    this.accounts().reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
   );
 
   protected readonly monthIncome = computed(() =>
@@ -482,8 +522,11 @@ export class FinanceComponent implements OnInit {
       type: 'expense',
       amount: undefined,
       description: '',
-      date: new Date().toISOString().slice(0, 10),
+      date: getTodayLocalDate(),
     };
+    this.txnRecurring = this.txnForm.recurring?.isRecurring
+      ? (this.txnForm.recurring.frequency ?? 'monthly')
+      : 'none';
     this.txnModalOpen.set(true);
   };
 
@@ -495,8 +538,11 @@ export class FinanceComponent implements OnInit {
       description: txn.description,
       category: typeof txn.category === 'string' ? txn.category : txn.category?._id,
       account: typeof txn.account === 'string' ? txn.account : txn.account?._id,
-      date: String(txn.date).slice(0, 10),
+      date: formatDateToLocalYYYYMMDD(toDate(txn.date)),
     };
+    this.txnRecurring = txn.recurring?.isRecurring
+      ? (txn.recurring.frequency ?? 'monthly')
+      : 'none';
     this.txnModalOpen.set(true);
   }
 
@@ -506,11 +552,16 @@ export class FinanceComponent implements OnInit {
       this.toast.error('Please enter a valid amount.');
       return;
     }
+    const isRecurring = this.txnRecurring !== 'none';
     const payload: TransactionPayload = {
       ...this.txnForm,
       amount,
       category: this.txnForm.category || null,
       account: this.txnForm.account || null,
+      recurring: {
+        isRecurring,
+        frequency: isRecurring ? this.txnRecurring : 'none',
+      },
     };
     this.savingTxn.set(true);
     const obs = this.editingTxn()
@@ -577,6 +628,18 @@ export class FinanceComponent implements OnInit {
         this.savingAccount.set(false);
         this.toast.error(err.message);
       },
+    });
+  }
+
+  protected removeAccount(account: Account): void {
+    if (!confirm(`Delete account "${account.name}"? This cannot be undone.`)) return;
+    this.accountService.remove(account._id).subscribe({
+      next: () => {
+        this.toast.success('Account deleted');
+        this.failedLogos.set(this.failedLogos().filter((id) => id !== account._id));
+        this.accountService.load();
+      },
+      error: (err: Error) => this.toast.error(err.message),
     });
   }
 
@@ -657,6 +720,23 @@ export class FinanceComponent implements OnInit {
     if (type === 'cash') return 'banknote';
     if (type === 'ewallet') return 'smartphone';
     return 'credit-card';
+  }
+
+  protected accountLogo(name: string): string | null {
+    const n = name.toLowerCase();
+    if (n.includes('bca')) return 'assets/bcamobile.png';
+    if (n.includes('livin') || n.includes('mandiri')) return 'assets/livinmandiri.png';
+    if (n.includes('bni')) return 'assets/woderbni.png';
+    if (n.includes('dana')) return 'assets/dana.png';
+    if (/gopay|go[\s-]*pay/.test(n)) return 'assets/gopay.png';
+    if (n.includes('sea')) return 'assets/seabank.png';
+    return null;
+  }
+
+  protected onLogoError(account: Account): void {
+    if (!this.failedLogos().includes(account._id)) {
+      this.failedLogos.set([...this.failedLogos(), account._id]);
+    }
   }
 
   protected idOf(value: unknown): string {

@@ -54,11 +54,25 @@ export class AuthService {
   }
 
   logout() {
+    this.clearSession();
+    this.router.navigate(['/login']);
+  }
+
+  /** Called by the auth interceptor when the API returns 401 (expired token). */
+  handleUnauthorized() {
+    if (!this.isAuthenticated()) return;
+    this.clearSession();
+    // Avoid redirect loops: only navigate when not already on a guest page.
+    if (!this.router.url.startsWith('/login')) {
+      this.router.navigate(['/login']);
+    }
+  }
+
+  private clearSession() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     this.user.set(null);
     this.isAuthenticated.set(false);
-    this.router.navigate(['/login']);
   }
 
   private persist(res: AuthResponse) {

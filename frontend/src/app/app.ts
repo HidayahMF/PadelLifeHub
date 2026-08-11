@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastHostComponent } from './toast-host.component';
+import { AuthService } from './core/services/auth.service';
+import { SettingService } from './core/services/data.service';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +13,15 @@ import { ToastHostComponent } from './toast-host.component';
     <app-toast-host />
   `,
 })
-export class App {}
+export class App implements OnInit {
+  private auth = inject(AuthService);
+  private settings = inject(SettingService);
+
+  ngOnInit(): void {
+    // Preload the user's settings once on boot so currency formatting is
+    // correct across the whole app immediately after sign-in.
+    if (this.auth.isAuthenticated()) {
+      this.settings.load();
+    }
+  }
+}

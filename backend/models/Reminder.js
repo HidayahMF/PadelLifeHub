@@ -29,7 +29,7 @@ const reminderSchema = new mongoose.Schema(
       isRecurring: { type: Boolean, default: false },
       frequency: {
         type: String,
-        enum: ['daily', 'weekly', 'monthly', 'yearly'],
+        enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
         default: 'monthly',
       },
     },

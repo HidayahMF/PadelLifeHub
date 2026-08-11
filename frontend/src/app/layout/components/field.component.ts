@@ -43,7 +43,7 @@ import { IconComponent } from './icon.component';
           [attr.aria-label]="label() || placeholder()"
           (input)="onInput($any($event.target).value)"
           (blur)="onBlur()"
-          class="h-11 w-full rounded-field border-2 bg-surface text-sm font-medium text-ink placeholder:font-normal placeholder:text-ink-faint transition-all duration-150 focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-2"
+          class="h-11 w-full rounded-field border-2 bg-surface px-3.5 text-sm font-medium text-ink placeholder:font-normal placeholder:text-ink-faint transition-all duration-150 focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-2"
           [ngClass]="fieldClass()"
         />
         <app-icon

@@ -21,8 +21,10 @@ const habitSchema = new mongoose.Schema(
       enum: ['daily', 'weekly', 'monthly'],
       default: 'daily',
     },
+    // Calendar dates as "YYYY-MM-DD" strings (Asia/Jakarta). Storing strings
+    // keeps day-level comparisons exact and free from UTC drift.
     completedDates: {
-      type: [Date],
+      type: [String],
       default: [],
     },
     streak: {

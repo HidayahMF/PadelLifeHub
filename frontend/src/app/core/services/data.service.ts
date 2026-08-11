@@ -1,7 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { tap } from 'rxjs/operators';
 import type { Note, Setting, DashboardSummary, Statistics } from '../models/misc.model';
 import type { QueryParams } from './api.service';
 import { ApiService } from './api.service';
+import { setCurrency } from '../utils/format';
 
 @Injectable({ providedIn: 'root' })
 export class NoteService {
@@ -43,11 +45,17 @@ export class SettingService {
   readonly settings = signal<Setting | null>(null);
   readonly loading = signal(false);
 
+  private sync(res: Setting): void {
+    this.settings.set(res);
+    // Keep the global currency formatter reactive to the stored preference.
+    setCurrency(res.currency);
+  }
+
   load() {
     this.loading.set(true);
     return this.api.get<Setting>('/settings').subscribe({
       next: (res) => {
-        this.settings.set(res);
+        this.sync(res);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -55,11 +63,11 @@ export class SettingService {
   }
 
   get() {
-    return this.api.get<Setting>('/settings');
+    return this.api.get<Setting>('/settings').pipe(tap((res) => this.sync(res)));
   }
 
   update(payload: Partial<Setting>) {
-    return this.api.put<Setting>('/settings', payload);
+    return this.api.put<Setting>('/settings', payload).pipe(tap((res) => this.sync(res)));
   }
 }
 
@@ -71,7 +79,7 @@ export class DashboardService {
     return this.api.get<DashboardSummary>('/dashboard/summary');
   }
 
-  statistics() {
-    return this.api.get<Statistics>('/dashboard/statistics');
+  statistics(range?: string) {
+    return this.api.get<Statistics>('/dashboard/statistics', range ? { range } : undefined);
   }
 }

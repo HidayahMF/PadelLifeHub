@@ -1,8 +1,33 @@
-export function formatCurrency(value: number, currency = 'IDR'): string {
-  return new Intl.NumberFormat('id-ID', {
+import { signal } from '@angular/core';
+
+// The user's currency preference, kept as a global signal so every component
+// that calls formatCurrency() stays reactive when the setting changes.
+const currentCurrency = signal('IDR');
+
+/** Set the global display currency (called by SettingService on load/save). */
+export function setCurrency(code: string): void {
+  currentCurrency.set((code || 'IDR').toUpperCase());
+}
+
+/** Read the current display currency. */
+export function getCurrency(): string {
+  return currentCurrency();
+}
+
+/**
+ * Format a number as currency using the user's currency setting (or an
+ * explicit override). IDR and other zero-decimal currencies display whole
+ * numbers (Rp10.000); others use two decimals ($10.00).
+ */
+export function formatCurrency(value: number, currency?: string): string {
+  const code = (currency ?? currentCurrency()).toUpperCase();
+  const zeroFraction = ['IDR', 'JPY', 'KRW', 'VND'].includes(code);
+  const locale = code === 'IDR' ? 'id-ID' : 'en-US';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
+    currency: code,
+    minimumFractionDigits: zeroFraction ? 0 : 2,
+    maximumFractionDigits: zeroFraction ? 0 : 2,
   }).format(value ?? 0);
 }
 

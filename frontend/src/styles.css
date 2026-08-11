@@ -93,6 +93,37 @@
     outline-offset: 2px;
   }
 
+  /* ------------------------------------------------------------------
+     Angular component hosts default to display:inline, which makes
+     padding/margin utility classes applied to them (e.g. class="p-6" on
+     <app-card>, space-y-* between <app-field> siblings) silently no-ops.
+     Force block layout so the design-system spacing works everywhere.
+     NOTE: display utilities (flex, grid, ...) live in the utilities layer
+     and still override this base rule where a component needs them.
+     ------------------------------------------------------------------ */
+  app-card,
+  app-stat-card,
+  app-page-header,
+  app-field,
+  app-select,
+  app-textarea,
+  app-segmented,
+  app-toggle,
+  app-button,
+  app-badge,
+  app-skeleton,
+  app-progress,
+  app-modal,
+  app-drawer,
+  app-empty-state,
+  app-error-state,
+  app-table,
+  app-bar-chart,
+  app-line-chart,
+  app-donut-chart {
+    display: block;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-ink-faint) transparent;

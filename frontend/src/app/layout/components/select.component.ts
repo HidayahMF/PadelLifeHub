@@ -32,7 +32,7 @@ export interface SelectOption {
       <div class="relative">
         <select
           [value]="modelValue"
-          [disabled]="disabledState"
+          [disabled]="disabledState || disabled()"
           (change)="onChange($any($event.target).value)"
           (blur)="onBlur()"
           class="h-11 w-full appearance-none rounded-field border-2 border-ink bg-surface pl-3.5 pr-10 text-sm font-medium text-ink transition-all duration-150 focus:border-primary focus:shadow-soft focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-2"
@@ -64,6 +64,7 @@ export class SelectComponent implements ControlValueAccessor {
   readonly options = input.required<SelectOption[]>();
   readonly required = input(false);
   readonly hint = input('');
+  readonly disabled = input(false);
 
   modelValue = '';
   protected disabledState = false;

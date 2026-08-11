@@ -83,3 +83,14 @@ export interface Statistics {
   productivity: ProductivityStats;
   finance: FinanceStats;
 }
+
+export interface NotificationItem {
+  _id: string;
+  user: string;
+  title: string;
+  message: string;
+  type: 'reminder' | 'task' | 'bill' | 'habit' | 'recurring' | 'system';
+  relatedId?: string | null;
+  read: boolean;
+  createdAt: string;
+}

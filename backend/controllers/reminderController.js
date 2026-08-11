@@ -2,13 +2,16 @@ const Reminder = require('../models/Reminder');
 
 const getReminders = async (req, res, next) => {
   try {
-    const { type, upcoming } = req.query;
+    const { type, upcoming, sent } = req.query;
     const filter = { user: req.user._id };
 
     if (type) filter.type = type;
     if (upcoming === 'true') {
       filter.datetime = { $gte: new Date() };
+      filter.sent = false;
     }
+    if (sent === 'true') filter.sent = true;
+    if (sent === 'false') filter.sent = false;
 
     const reminders = await Reminder.find(filter).sort({ datetime: 1 });
     res.json(reminders);
@@ -40,6 +43,10 @@ const updateReminder = async (req, res, next) => {
       throw new Error('Reminder not found');
     }
     Object.assign(reminder, req.body);
+    // A changed datetime means the reminder should fire again.
+    if (req.body.datetime !== undefined) {
+      reminder.sent = false;
+    }
     const updated = await reminder.save();
     res.json(updated);
   } catch (err) {

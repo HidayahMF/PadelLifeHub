@@ -78,7 +78,8 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
         <app-select
           placeholder="Category"
           [options]="categoryOptions()"
-          [(ngModel)]="categoryFilter"
+          [ngModel]="categoryFilter()"
+          (ngModelChange)="categoryFilter.set($event)"
         ></app-select>
         <app-button size="sm" variant="ghost" icon="archive" (click)="toggleArchive()">
           {{ archived() ? 'Active' : 'Archived' }}
@@ -353,7 +354,7 @@ export class TasksComponent implements OnInit {
 
   protected readonly filter = signal<Filter>('all');
   protected readonly search = signal('');
-  protected categoryFilter = '';
+  protected readonly categoryFilter = signal('');
   protected readonly archived = signal(false);
   protected readonly modalOpen = signal(false);
   protected readonly editing = signal<Task | null>(null);
@@ -383,12 +384,13 @@ export class TasksComponent implements OnInit {
       .filter((t) => {
         if (t.archived !== this.archived()) return false;
         if (this.filter() !== 'all' && t.status !== this.filter()) return false;
-        if (this.categoryFilter) {
+        const selectedCategory = this.categoryFilter();
+        if (selectedCategory) {
           const cid =
             t.category && typeof t.category === 'object'
               ? (t.category as { _id: string })._id
               : t.category;
-          if (cid !== this.categoryFilter) return false;
+          if (cid !== selectedCategory) return false;
         }
         if (q && !t.title.toLowerCase().includes(q)) return false;
         return true;

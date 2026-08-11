@@ -124,7 +124,7 @@ import { ToastService } from '../../../core/services/toast.service';
                 <a routerLink="/register" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">
                   Create an account
                 </a>
-                <a href="#" class="font-medium text-ink-faint hover:text-ink-soft">Forgot password?</a>
+                <a routerLink="/forgot-password" class="font-medium text-ink-faint hover:text-ink-soft">Forgot password?</a>
               </div>
 
               <app-button type="submit" [block]="true" [loading]="loading()" icon="log-in">

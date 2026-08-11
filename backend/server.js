@@ -1,13 +1,23 @@
+// Force the application timezone to Asia/Jakarta (UTC+7) BEFORE anything else
+// so every `new Date()` local-time operation uses WIB consistently.
+process.env.TZ = process.env.TZ || 'Asia/Jakarta';
+
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { startReminderScheduler } = require('./services/reminderScheduler');
+const { startRecurringScheduler } = require('./services/recurringScheduler');
 
 const app = express();
 
-connectDB();
+connectDB().then(() => {
+  // Schedulers run only after the database is reachable.
+  startReminderScheduler();
+  startRecurringScheduler();
+});
 
 app.use(
   cors({
@@ -38,6 +48,7 @@ app.use('/api/notes', require('./routes/noteRoutes'));
 app.use('/api/goals', require('./routes/goalRoutes'));
 app.use('/api/habits', require('./routes/habitRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/settings', require('./routes/settingRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
@@ -47,7 +58,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  console.log(`LifeHub API running on port ${PORT}`);
+  console.log(`LifeHub API running on port ${PORT} (TZ: ${process.env.TZ})`);
 });
 
 process.on('SIGINT', () => {

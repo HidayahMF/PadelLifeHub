@@ -1,4 +1,16 @@
 const Task = require('../models/Task');
+const Category = require('../models/Category');
+
+/** Reject category references that do not belong to the user. */
+async function validateCategory(userId, category) {
+  if (!category) return;
+  const cat = await Category.findOne({ _id: category, user: userId });
+  if (!cat) {
+    const err = new Error('Category not found');
+    err.statusCode = 400;
+    throw err;
+  }
+}
 
 const getTasks = async (req, res, next) => {
   try {
@@ -50,6 +62,7 @@ const getTaskById = async (req, res, next) => {
 
 const createTask = async (req, res, next) => {
   try {
+    await validateCategory(req.user._id, req.body.category);
     const task = await Task.create({
       user: req.user._id,
       ...req.body,
@@ -73,10 +86,19 @@ const updateTask = async (req, res, next) => {
     }
 
     const body = { ...req.body };
+    await validateCategory(req.user._id, body.category);
     if (body.status === 'completed') {
       body.completedAt = body.completedAt || Date.now();
     } else if (body.status && body.status !== 'completed') {
       body.completedAt = null;
+    }
+
+    // A changed reminder time must be notified again (compare instants, not
+    // string-vs-Date, so plain edits never re-trigger a sent reminder).
+    if (body.reminder !== undefined) {
+      const newTime = body.reminder ? new Date(body.reminder).getTime() : null;
+      const oldTime = task.reminder ? new Date(task.reminder).getTime() : null;
+      if (newTime !== oldTime) body.reminderSentAt = null;
     }
 
     Object.assign(task, body);

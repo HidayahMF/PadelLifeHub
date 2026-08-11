@@ -30,7 +30,7 @@ import { formatDate } from '../../core/utils/format';
       <app-card class="lg:col-span-1" [padding]="'none'">
         <div class="flex flex-col items-center p-6 text-center">
           <div class="relative">
-            <app-avatar [name]="user()?.name ?? 'User'" [size]="96" />
+            <app-avatar [name]="user()?.name ?? 'User'" [src]="user()?.avatar ?? ''" [size]="96" />
             <button
               class="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface bg-primary text-ink shadow-soft transition-transform hover:scale-105"
               [attr.aria-label]="'Change avatar'"
@@ -43,6 +43,33 @@ import { formatDate } from '../../core/utils/format';
           <p class="text-sm text-ink-soft">{{ user()?.email }}</p>
           @if (user()?.createdAt) {
             <p class="mt-2 text-xs text-ink-faint">Member since {{ formatDate(user()!.createdAt, 'medium') }}</p>
+          }
+
+          @if (avatarOpen()) {
+            <form
+              (ngSubmit)="saveAvatar()"
+              class="mt-4 w-full space-y-2 rounded-card border-2 border-line bg-surface-2 p-3 text-left"
+            >
+              <label class="block text-xs font-bold text-ink">Avatar URL</label>
+              <input
+                type="url"
+                name="avatar"
+                [(ngModel)]="avatarUrl"
+                placeholder="https://example.com/avatar.jpg"
+                class="h-10 w-full rounded-field border-2 border-ink bg-surface px-3 text-sm text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none"
+              />
+              <div class="flex justify-end gap-2">
+                <app-button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  (click)="avatarUrl = ''; saveAvatar()"
+                >
+                  Remove
+                </app-button>
+                <app-button type="submit" size="sm" [loading]="savingAvatar()">Save</app-button>
+              </div>
+            </form>
           }
         </div>
       </app-card>
@@ -85,12 +112,34 @@ export class ProfileComponent {
   protected readonly avatarOpen = signal(false);
   protected readonly savingProfile = signal(false);
   protected readonly savingPassword = signal(false);
+  protected readonly savingAvatar = signal(false);
+  protected avatarUrl = this.auth.user()?.avatar ?? '';
 
   protected readonly noop = (): void => {};
 
   protected readonly profileForm = { name: this.auth.user()?.name ?? '' };
 
   protected passwordForm = { current: '', next: '' };
+
+  protected saveAvatar(): void {
+    const url = this.avatarUrl.trim();
+    if (url && !/^https?:\/\//i.test(url)) {
+      this.toast.error('Please enter a valid URL (https://…).');
+      return;
+    }
+    this.savingAvatar.set(true);
+    this.auth.updateProfile({ avatar: url }).subscribe({
+      next: () => {
+        this.savingAvatar.set(false);
+        this.avatarOpen.set(false);
+        this.toast.success('Avatar updated');
+      },
+      error: (err: Error) => {
+        this.savingAvatar.set(false);
+        this.toast.error(err.message);
+      },
+    });
+  }
 
   protected saveProfile(): void {
     if (!this.profileForm.name.trim()) {

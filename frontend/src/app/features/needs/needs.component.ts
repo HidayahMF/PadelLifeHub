@@ -13,7 +13,7 @@ import { ToggleComponent } from './components/toggle.component';
 import { NeedService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Need } from '../../core/models/lifestyle.model';
-import { formatCurrency } from '../../core/utils/format';
+import { formatCurrency, formatDate } from '../../core/utils/format';
 
 @Component({
   selector: 'app-needs',
@@ -90,6 +90,12 @@ import { formatCurrency } from '../../core/utils/format';
                 <p class="mt-0.5 text-xs text-ink-faint">
                   {{ need.quantity }} {{ need.unit || 'pcs' }} · {{ need.category || 'General' }}
                 </p>
+                @if ((need.purchaseHistory ?? []).length > 0) {
+                  <p class="mt-1 text-xs text-ink-soft">
+                    🛒 Purchased {{ (need.purchaseHistory ?? []).length }}× · last
+                    {{ formatDate(lastPurchase(need)?.date, 'short') }}
+                  </p>
+                }
               </div>
 
               <span class="shrink-0 text-sm font-semibold text-ink">
@@ -240,6 +246,11 @@ export class NeedsComponent implements OnInit {
     });
   }
 
+  protected lastPurchase(need: Need): { date: string; quantity: number; price: number } | null {
+    const history = need.purchaseHistory ?? [];
+    return history.length > 0 ? history[history.length - 1] : null;
+  }
+
   protected remove(need: Need): void {
     if (!confirm(`Delete "${need.name}"?`)) return;
     this.service.remove(need._id).subscribe({
@@ -252,4 +263,5 @@ export class NeedsComponent implements OnInit {
   }
 
   protected readonly formatCurrency = formatCurrency;
+  protected readonly formatDate = formatDate;
 }

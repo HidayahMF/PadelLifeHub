@@ -1,6 +1,6 @@
 export type TransactionType = 'income' | 'expense';
 export type AccountType = 'cash' | 'bank' | 'ewallet';
-export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurringFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export interface Recurring {
   isRecurring: boolean;
@@ -27,6 +27,9 @@ export interface Transaction {
   account?: string | Account | null;
   date: string;
   recurring?: Recurring;
+  nextRunAt?: string | null;
+  lastRunAt?: string | null;
+  parentRecurringId?: string | null;
   createdAt: string;
 }
 

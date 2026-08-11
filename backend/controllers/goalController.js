@@ -34,7 +34,7 @@ const updateGoal = async (req, res, next) => {
     }
 
     const body = { ...req.body };
-    if (body.target && body.progress >= body.target) {
+    if (goal.target && body.progress !== undefined && body.progress >= goal.target) {
       body.completed = true;
     }
     if (body.completed === false) body.completed = false;

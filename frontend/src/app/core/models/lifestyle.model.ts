@@ -23,7 +23,7 @@ export interface Need {
   category?: string;
   onShoppingList: boolean;
   purchased: boolean;
-  purchaseHistory: {
+  purchaseHistory?: {
     date: string;
     quantity: number;
     price: number;

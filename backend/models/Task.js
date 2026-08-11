@@ -38,6 +38,10 @@ const taskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    reminderSentAt: {
+      type: Date,
+      default: null,
+    },
     archived: {
       type: Boolean,
       default: false,

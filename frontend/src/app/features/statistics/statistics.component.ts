@@ -5,9 +5,21 @@ import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { LineChartComponent } from './components/line-chart.component';
 import type { ChartPoint } from '../../core/models/chart.model';
 import { DonutChartComponent, DonutSegment } from './components/donut-chart.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { DashboardService } from '../../core/services/data.service';
 import type { Statistics } from '../../core/models/misc.model';
 import { formatCurrency } from '../../core/utils/format';
+
+type RangeKey = 'thisMonth' | 'lastMonth' | '7d' | '30d' | 'thisYear' | 'all';
+
+const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
+  { value: '7d', label: '7 days' },
+  { value: '30d', label: '30 days' },
+  { value: 'thisMonth', label: 'This month' },
+  { value: 'lastMonth', label: 'Last month' },
+  { value: 'thisYear', label: 'This year' },
+  { value: 'all', label: 'All time' },
+];
 
 @Component({
   selector: 'app-statistics',
@@ -18,11 +30,21 @@ import { formatCurrency } from '../../core/utils/format';
     SkeletonComponent,
     LineChartComponent,
     DonutChartComponent,
+    SegmentedComponent,
   ],
   template: `
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold tracking-tight text-ink">Statistics</h1>
-      <p class="mt-1 text-sm text-ink-soft">Insights into your productivity and finances.</p>
+    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Statistics</h1>
+        <p class="mt-1 text-sm text-ink-soft">
+          Insights into your productivity and finances.
+        </p>
+      </div>
+      <app-segmented
+        [options]="rangeOptions()"
+        [model]="range()"
+        (change)="setRange($event)"
+      />
     </div>
 
     @if (loading()) {
@@ -41,7 +63,7 @@ import { formatCurrency } from '../../core/utils/format';
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Weekly activity</h2>
-            <p class="text-xs text-ink-soft">Tasks completed per day</p>
+            <p class="text-xs text-ink-soft">Tasks completed per day (last 7 days)</p>
           </div>
           <div class="p-4">
             <app-line-chart [data]="weeklyActivity()" aria-label="Weekly completed tasks" />
@@ -50,11 +72,11 @@ import { formatCurrency } from '../../core/utils/format';
 
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Monthly cash flow</h2>
-            <p class="text-xs text-ink-soft">Net balance per month</p>
+            <h2 class="text-base font-semibold text-ink">Cash flow</h2>
+            <p class="text-xs text-ink-soft">{{ rangeLabel() }}</p>
           </div>
           <div class="p-4">
-            <app-line-chart [data]="cashFlow()" aria-label="Monthly cash flow" />
+            <app-line-chart [data]="cashFlow()" aria-label="Cash flow" />
           </div>
         </app-card>
       </div>
@@ -63,7 +85,7 @@ import { formatCurrency } from '../../core/utils/format';
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Spending by category</h2>
-            <p class="text-xs text-ink-soft">All time</p>
+            <p class="text-xs text-ink-soft">{{ rangeLabel() }}</p>
           </div>
           <div class="p-5">
             <app-donut-chart [segments]="categorySpending()" [totalLabel]="'spent'" />
@@ -73,7 +95,7 @@ import { formatCurrency } from '../../core/utils/format';
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Financial summary</h2>
-            <p class="text-xs text-ink-soft">All time</p>
+            <p class="text-xs text-ink-soft">{{ rangeLabel() }}</p>
           </div>
           <div class="space-y-3 p-5">
             <div class="flex items-center justify-between rounded-card bg-surface-2 px-4 py-3">
@@ -85,9 +107,12 @@ import { formatCurrency } from '../../core/utils/format';
               <span class="text-sm font-semibold text-danger">{{ formatCurrency(stats()!.finance.totalExpense) }}</span>
             </div>
             <div class="flex items-center justify-between rounded-card bg-primary/10 px-4 py-3">
-              <span class="text-sm font-medium text-ink">Net balance</span>
+              <span class="text-sm font-medium text-ink">Balance (all accounts)</span>
               <span class="text-sm font-bold text-ink">{{ formatCurrency(stats()!.finance.balance) }}</span>
             </div>
+            <p class="pt-1 text-xs text-ink-faint">
+              Balance is the current stored balance across your accounts, matching the Finance page.
+            </p>
             <p class="pt-1 text-xs text-ink-faint">
               Completion rate: {{ completionRate() }}%
             </p>
@@ -102,6 +127,13 @@ export class StatisticsComponent implements OnInit {
 
   protected readonly stats = signal<Statistics | null>(null);
   protected readonly loading = signal(true);
+  protected readonly range = signal<RangeKey>('thisMonth');
+
+  protected readonly rangeOptions = computed(() => RANGE_OPTIONS);
+
+  protected readonly rangeLabel = computed(
+    () => RANGE_OPTIONS.find((o) => o.value === this.range())?.label.toLowerCase() ?? 'this month'
+  );
 
   protected readonly weeklyActivity = computed<ChartPoint[]>(() =>
     (this.stats()?.productivity.weeklyActivity ?? []).map((a) => ({
@@ -112,6 +144,7 @@ export class StatisticsComponent implements OnInit {
 
   protected readonly cashFlow = computed<ChartPoint[]>(() =>
     (this.stats()?.finance.monthlyCashFlow ?? []).map((c) => ({
+      // Key is "MM-DD" for 7d/30d ranges and "MM" for longer ranges.
       label: c._id.slice(5),
       value: c.income - c.expense,
     }))
@@ -140,7 +173,17 @@ export class StatisticsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.service.statistics().subscribe({
+    this.loadRange();
+  }
+
+  protected setRange(value: string): void {
+    this.range.set(value as RangeKey);
+    this.loadRange();
+  }
+
+  private loadRange(): void {
+    this.loading.set(true);
+    this.service.statistics(this.range()).subscribe({
       next: (res) => {
         this.stats.set(res);
         this.loading.set(false);
