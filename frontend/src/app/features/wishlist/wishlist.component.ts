@@ -1,17 +1,17 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
-import { ProgressComponent } from '../../shared/components/progress/progress.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
-import { SelectComponent } from '../../shared/components/select/select.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { SegmentedComponent } from '../../shared/components/segmented/segmented.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { BadgeComponent } from '../../layout/components/badge.component';
+import { ProgressComponent } from '../../layout/components/progress.component';
+import { FieldComponent } from '../../layout/components/field.component';
+import { SelectComponent } from '../../layout/components/select.component';
+import { ModalComponent } from '../../layout/components/modal.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { WishlistService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { WishlistItem, WishlistStatus } from '../../core/models/lifestyle.model';
@@ -58,11 +58,11 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
     @if (loading()) {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @for (_ of [1, 2, 3]; track $index) {
-          <app-card><app-skeleton size="button" class="m-4" /></app-card>
+          <app-card [padding]="'none'"><div class="p-4"><app-skeleton size="button" /></div></app-card>
         }
       </div>
     } @else if (filteredItems().length === 0) {
-      <app-card>
+      <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="gift" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
           <p class="mt-3 text-sm font-semibold text-ink">Nothing here yet</p>
@@ -72,8 +72,9 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @for (item of filteredItems(); track item._id) {
-          <app-card class="flex flex-col p-5">
-            <div class="flex items-start justify-between gap-2">
+          <app-card>
+            <div class="flex h-full flex-col">
+              <div class="flex items-start justify-between gap-2">
               <span
                 class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-ink"
               >
@@ -101,9 +102,10 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
               </p>
             }
 
-            <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
-              <app-button
-                *ngIf="item.status !== 'purchased'"
+              <div class="mt-auto">
+                <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
+                  <app-button
+                    *ngIf="item.status !== 'purchased'"
                 size="sm"
                 icon="check"
                 (click)="markPurchased(item)"
@@ -111,9 +113,11 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
                 Purchased
               </app-button>
               <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(item)">Edit</app-button>
-              <app-button size="icon" variant="ghost" icon="trash-2"
-                [attr.aria-label]="'Delete ' + item.name"
-                (click)="remove(item)"></app-button>
+                  <app-button size="icon" variant="ghost" icon="trash-2"
+                    [attr.aria-label]="'Delete ' + item.name"
+                    (click)="remove(item)"></app-button>
+                </div>
+              </div>
             </div>
           </app-card>
         }

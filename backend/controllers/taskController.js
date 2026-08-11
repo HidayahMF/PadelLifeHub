@@ -2,11 +2,10 @@ const Task = require('../models/Task');
 
 const getTasks = async (req, res, next) => {
   try {
-    const { status, priority, category, search, archived, sort } = req.query;
+    const { status, category, search, archived, sort } = req.query;
     const filter = { user: req.user._id };
 
     if (status) filter.status = status;
-    if (priority) filter.priority = priority;
     if (category) filter.category = category;
     if (archived !== undefined) filter.archived = archived === 'true';
 
@@ -17,10 +16,9 @@ const getTasks = async (req, res, next) => {
       ];
     }
 
-    let sortBy = { dueDate: 1 };
-    if (sort === 'created') sortBy = { createdAt: -1 };
-    if (sort === 'priority') sortBy = { priority: 1 };
-    if (sort === 'dueDate') sortBy = { dueDate: 1 };
+    let sortBy = { pinned: -1, dueDate: 1 };
+    if (sort === 'created') sortBy = { pinned: -1, createdAt: -1 };
+    if (sort === 'dueDate') sortBy = { pinned: -1, dueDate: 1 };
 
     const tasks = await Task.find(filter)
       .sort(sortBy)

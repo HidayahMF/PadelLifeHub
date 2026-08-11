@@ -2,23 +2,23 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgClass, NgIf } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
-import { SelectComponent } from '../../shared/components/select/select.component';
-import { TextareaComponent } from '../../shared/components/textarea/textarea.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
-import { SegmentedComponent } from '../../shared/components/segmented/segmented.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { BadgeComponent } from '../../layout/components/badge.component';
+import { FieldComponent } from '../../layout/components/field.component';
+import { SelectComponent } from '../../layout/components/select.component';
+import { TextareaComponent } from './components/textarea.component';
+import { ModalComponent } from '../../layout/components/modal.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { EmptyStateComponent } from './components/empty-state.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { TaskService } from '../../core/services/task.service';
 import { CategoryService } from '../../core/services/category.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Category, Task, TaskPayload } from '../../core/models/task.model';
-import { isOverdue, relativeDay } from '../../core/utils/format';
+import { formatDateTime, isOverdue, relativeDay } from '../../core/utils/format';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
 
@@ -71,13 +71,14 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
             [value]="search()"
             (input)="setSearch($any($event.target).value)"
             placeholder="Search tasks…"
+            name="search"
             class="h-10 w-56 rounded-field border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none"
           />
         </div>
         <app-select
-          placeholder="Priority"
-          [options]="priorityOptions()"
-          [(ngModel)]="priorityFilter"
+          placeholder="Category"
+          [options]="categoryOptions()"
+          [(ngModel)]="categoryFilter"
         ></app-select>
         <app-button size="sm" variant="ghost" icon="archive" (click)="toggleArchive()">
           {{ archived() ? 'Active' : 'Archived' }}
@@ -85,7 +86,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
       </div>
     </div>
 
-    <app-card>
+    <app-card [padding]="'none'">
       @if (loading()) {
         <div class="space-y-3 p-4">
           @for (_ of [1, 2, 3, 4]; track $index) {
@@ -97,7 +98,6 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           icon="list-todo"
           title="No tasks found"
           message="Create your first task or adjust your filters."
-          actionLabel="Add task"
           actionIcon="plus"
           actionRoute="/tasks"
         />
@@ -146,6 +146,12 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                       }
                     </span>
                   }
+                  @if (task.reminder) {
+                    <span class="flex items-center gap-1">
+                      <app-icon name="bell" [size]="12" />
+                      {{ formatDateTime(task.reminder) }}
+                    </span>
+                  }
                   @if (categoryName(task.category)) {
                     <span class="flex items-center gap-1">
                       <span
@@ -158,11 +164,25 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                 </span>
               </button>
 
-              <app-badge [tone]="priorityTone(task.priority)">
-                {{ titleCase(task.priority) }}
-              </app-badge>
-
-              <div class="flex items-center gap-1">
+              <div class="flex shrink-0 items-center gap-1">
+                <app-button
+                  size="icon"
+                  variant="ghost"
+                  icon="eye"
+                  [attr.aria-label]="'View details of ' + task.title"
+                  (click)="openDetail(task)"
+                ></app-button>
+                <button
+                  type="button"
+                  (click)="togglePin(task)"
+                  [attr.aria-label]="task.pinned ? 'Unpin ' + task.title : 'Pin ' + task.title"
+                  class="flex h-10 w-10 items-center justify-center rounded-button transition-colors"
+                  [ngClass]="
+                    task.pinned ? 'text-primary' : 'text-ink-faint hover:text-ink'
+                  "
+                >
+                  <app-icon name="pin" [size]="18" [strokeWidth]="2.4" />
+                </button>
                 <app-button
                   size="icon"
                   variant="ghost"
@@ -203,21 +223,13 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           [(ngModel)]="form.description"
           name="description"
         />
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <app-select
-            label="Category"
-            placeholder="No category"
-            [options]="categoryOptions()"
-            [(ngModel)]="form.category"
-            name="category"
-          />
-          <app-select
-            label="Priority"
-            [options]="priorityOptions()"
-            [(ngModel)]="form.priority"
-            name="priority"
-          />
-        </div>
+        <app-select
+          label="Category"
+          placeholder="No category"
+          [options]="categoryOptions()"
+          [(ngModel)]="form.category"
+          name="category"
+        />
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <app-field
             label="Due date"
@@ -240,6 +252,97 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
         </div>
       </form>
     </app-modal>
+
+    <app-modal
+      [open]="detailOpen()"
+      title="Task details"
+      [width]="672"
+      (closed)="closeDetail()"
+    >
+      @if (viewed(); as task) {
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <app-badge [tone]="statusTone(task.status)">
+              {{ titleCase(task.status) }}
+            </app-badge>
+            @if (task.pinned) {
+              <span
+                class="inline-flex items-center gap-1 rounded-md border border-line bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink"
+              >
+                <app-icon name="pin" [size]="12" />
+                Pinned
+              </span>
+            }
+            @if (categoryName(task.category)) {
+              <span
+                class="inline-flex items-center gap-1 rounded-md border border-line bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink"
+              >
+                <span
+                  class="inline-block h-2 w-2 rounded-full"
+                  [style.background]="categoryColor(task.category)"
+                ></span>
+                {{ categoryName(task.category) }}
+              </span>
+            }
+          </div>
+
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Title</p>
+            <p class="mt-1 text-sm font-medium text-ink">{{ task.title }}</p>
+          </div>
+
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Description</p>
+            <p class="mt-1 break-words whitespace-pre-wrap text-sm text-ink">
+              {{ task.description || 'No description.' }}
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Due date</p>
+              <p
+                class="mt-1 flex items-center gap-1 text-sm text-ink"
+                [ngClass]="
+                  task.dueDate && isOverdue(task.dueDate) && task.status !== 'completed'
+                    ? 'font-medium text-danger'
+                    : ''
+                "
+              >
+                <app-icon name="calendar" [size]="14" />
+                {{ task.dueDate ? relativeDay(task.dueDate) : 'No due date' }}
+                @if (task.dueDate && isOverdue(task.dueDate) && task.status !== 'completed') {
+                  · overdue
+                }
+              </p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Reminder</p>
+              <p class="mt-1 flex items-center gap-1 text-sm text-ink">
+                <app-icon name="bell" [size]="14" />
+                {{ task.reminder ? formatDateTime(task.reminder) : 'No reminder' }}
+              </p>
+            </div>
+          </div>
+
+          @if (task.completedAt || task.createdAt) {
+            <div class="border-t border-line pt-3 text-xs text-ink-faint">
+              @if (task.createdAt) {
+                <p>Created {{ formatDateTime(task.createdAt) }}</p>
+              }
+              @if (task.completedAt) {
+                <p>Completed {{ formatDateTime(task.completedAt) }}</p>
+              }
+            </div>
+          }
+
+          <div class="flex justify-end gap-2 pt-1">
+            <app-button type="button" variant="secondary" (click)="closeDetail()">Close</app-button>
+            <app-button icon="pencil" (click)="editViewed()">Edit task</app-button>
+          </div>
+        </div>
+      }
+    </app-modal>
   `,
 })
 export class TasksComponent implements OnInit {
@@ -250,11 +353,13 @@ export class TasksComponent implements OnInit {
 
   protected readonly filter = signal<Filter>('all');
   protected readonly search = signal('');
-  protected priorityFilter = '';
+  protected categoryFilter = '';
   protected readonly archived = signal(false);
   protected readonly modalOpen = signal(false);
   protected readonly editing = signal<Task | null>(null);
   protected readonly saving = signal(false);
+  protected readonly detailOpen = signal(false);
+  protected readonly viewed = signal<Task | null>(null);
 
   protected readonly tasks = this.taskService.tasks;
   protected readonly loading = this.taskService.loading;
@@ -263,14 +368,7 @@ export class TasksComponent implements OnInit {
   protected readonly filterOptions = computed(() => [
     { value: 'all', label: 'All' },
     { value: 'todo', label: 'To do' },
-    { value: 'in-progress', label: 'In progress' },
     { value: 'completed', label: 'Done' },
-  ]);
-
-  protected readonly priorityOptions = computed(() => [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
   ]);
 
   protected readonly categoryOptions = computed<{ value: string; label: string }[]>(() =>
@@ -281,13 +379,21 @@ export class TasksComponent implements OnInit {
 
   protected readonly filteredTasks = computed(() => {
     const q = this.search().toLowerCase().trim();
-    return this.tasks().filter((t) => {
-      if (t.archived !== this.archived()) return false;
-      if (this.filter() !== 'all' && t.status !== this.filter()) return false;
-      if (this.priorityFilter && t.priority !== this.priorityFilter) return false;
-      if (q && !t.title.toLowerCase().includes(q)) return false;
-      return true;
-    });
+    return this.tasks()
+      .filter((t) => {
+        if (t.archived !== this.archived()) return false;
+        if (this.filter() !== 'all' && t.status !== this.filter()) return false;
+        if (this.categoryFilter) {
+          const cid =
+            t.category && typeof t.category === 'object'
+              ? (t.category as { _id: string })._id
+              : t.category;
+          if (cid !== this.categoryFilter) return false;
+        }
+        if (q && !t.title.toLowerCase().includes(q)) return false;
+        return true;
+      })
+      .sort((a, b) => Number(b.pinned) - Number(a.pinned));
   });
 
   protected form: TaskPayload = {};
@@ -301,7 +407,7 @@ export class TasksComponent implements OnInit {
   }
 
   protected reload(): void {
-    this.taskService.load({ includeArchived: this.archived() ? 'true' : undefined });
+    this.taskService.load({ archived: this.archived() ? 'true' : undefined });
   }
 
   protected setFilter(f: string): void {
@@ -317,7 +423,7 @@ export class TasksComponent implements OnInit {
 
   protected openCreate = (): void => {
     this.editing.set(null);
-    this.form = { title: '', description: '', priority: 'medium', status: 'todo' };
+    this.form = { title: '', description: '', status: 'todo' };
     this.modalOpen.set(true);
   };
 
@@ -327,7 +433,6 @@ export class TasksComponent implements OnInit {
       title: task.title,
       description: task.description,
       category: typeof task.category === 'string' ? task.category : task.category?._id,
-      priority: task.priority,
       status: task.status,
       dueDate: task.dueDate ?? '',
       reminder: task.reminder ?? '',
@@ -337,6 +442,22 @@ export class TasksComponent implements OnInit {
 
   protected closeModal(): void {
     this.modalOpen.set(false);
+  }
+
+  protected openDetail(task: Task): void {
+    this.viewed.set(task);
+    this.detailOpen.set(true);
+  }
+
+  protected closeDetail(): void {
+    this.detailOpen.set(false);
+  }
+
+  protected editViewed(): void {
+    const task = this.viewed();
+    if (!task) return;
+    this.detailOpen.set(false);
+    this.openEdit(task);
   }
 
   protected save(): void {
@@ -383,6 +504,18 @@ export class TasksComponent implements OnInit {
       });
   }
 
+  protected togglePin(task: Task): void {
+    this.taskService
+      .update(task._id, { pinned: !task.pinned })
+      .subscribe({
+        next: () => {
+          this.toast.success(task.pinned ? 'Task unpinned' : 'Task pinned');
+          this.reload();
+        },
+        error: (err: Error) => this.toast.error(err.message),
+      });
+  }
+
   protected remove(task: Task): void {
     if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
     this.taskService.remove(task._id).subscribe({
@@ -408,16 +541,20 @@ export class TasksComponent implements OnInit {
     return 'var(--color-ink-faint)';
   }
 
-  protected priorityTone(p: string): 'neutral' | 'danger' | 'warning' {
-    if (p === 'high') return 'danger';
-    if (p === 'medium') return 'warning';
+  protected statusTone(s: string): 'neutral' | 'success' | 'info' {
+    if (s === 'completed') return 'success';
+    if (s === 'in-progress') return 'info';
     return 'neutral';
   }
 
   protected titleCase(value: string): string {
-    return value.charAt(0).toUpperCase() + value.slice(1);
+    return value
+      .split('-')
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(' ');
   }
 
   protected readonly isOverdue = isOverdue;
   protected readonly relativeDay = relativeDay;
+  protected readonly formatDateTime = formatDateTime;
 }

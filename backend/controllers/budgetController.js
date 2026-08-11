@@ -1,4 +1,5 @@
 const Budget = require('../models/Budget');
+const Transaction = require('../models/Transaction');
 
 const getBudgets = async (req, res, next) => {
   try {
@@ -9,6 +10,40 @@ const getBudgets = async (req, res, next) => {
     const budgets = await Budget.find(filter)
       .sort({ month: -1 })
       .populate('category', 'name color icon');
+
+    // Compute actual spending from transactions so budget progress is real,
+    // instead of relying on the stale `spent` column which is never updated.
+    // Note: `spent` is refreshed only when the `month` filter is provided;
+    // all current callers (dashboard + finance) always pass `month`.
+    if (month) {
+      const [year, m] = month.split('-').map(Number);
+      const monthStart = new Date(year, m - 1, 1);
+      const nextMonth = new Date(year, m, 1);
+
+      const spentByCategory = await Transaction.aggregate([
+        {
+          $match: {
+            user: req.user._id,
+            type: 'expense',
+            date: { $gte: monthStart, $lt: nextMonth },
+          },
+        },
+        { $group: { _id: '$category', total: { $sum: '$amount' } } },
+      ]);
+      const spentMap = new Map(spentByCategory.map((s) => [String(s._id), s.total]));
+      const totalSpent = spentByCategory.reduce((sum, s) => sum + s.total, 0);
+
+      for (const budget of budgets) {
+        if (budget.category) {
+          const id = String(budget.category._id || budget.category);
+          budget.spent = spentMap.get(id) ?? 0;
+        } else {
+          // Overall budget (no category) covers every expense of the month.
+          budget.spent = totalSpent;
+        }
+      }
+    }
+
     res.json(budgets);
   } catch (err) {
     next(err);

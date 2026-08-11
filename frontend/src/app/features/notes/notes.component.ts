@@ -1,11 +1,11 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
-import { TextareaComponent } from '../../shared/components/textarea/textarea.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { ModalComponent } from '../../layout/components/modal.component';
+import { FieldComponent } from '../../layout/components/field.component';
+import { TextareaComponent } from './components/textarea.component';
 import { NoteService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Note } from '../../core/models/misc.model';
@@ -33,7 +33,7 @@ import { formatDateTime, toDate } from '../../core/utils/format';
         <div class="relative">
           <app-icon name="search" [size]="16" class="pointer-events-none absolute top-1/2 -translate-y-1/2"
             [style.left.px]="10" [style.color]="'var(--color-ink-faint)'" />
-          <input type="text" [value]="search()" (input)="search.set($any($event.target).value)"
+          <input type="text" name="search" [value]="search()" (input)="search.set($any($event.target).value)"
             placeholder="Search notes…"
             class="h-10 w-56 rounded-field border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none" />
         </div>
@@ -66,7 +66,7 @@ import { formatDateTime, toDate } from '../../core/utils/format';
               <app-icon *ngIf="note.pinned" name="pin" [size]="16" class="mt-1 shrink-0 text-primary-strong" />
             </div>
             @if (note.content) {
-              <p class="mt-2 whitespace-pre-wrap text-sm text-ink-soft line-clamp-6">{{ note.content }}</p>
+              <p class="mt-2 line-clamp-6 break-words whitespace-pre-wrap text-sm text-ink-soft">{{ note.content }}</p>
             }
             <div class="mt-4 flex items-center justify-between border-t border-line pt-3">
               <span class="text-xs text-ink-faint">{{ formatDateTime(note.updatedAt) }}</span>

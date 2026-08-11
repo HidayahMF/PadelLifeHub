@@ -141,6 +141,7 @@
   --animate-scale-in: scale-in 0.18s ease-out;
   --animate-slide-up: slide-up 0.25s ease-out;
   --animate-slide-in-right: slide-in-right 0.25s ease-out;
+  --animate-slide-in-left: slide-in-left 0.25s ease-out;
   --animate-float: float 5s ease-in-out infinite;
   --animate-float-slow: float 7s ease-in-out infinite;
 
@@ -176,6 +177,16 @@
     from {
       opacity: 0;
       transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
     }
     to {
       opacity: 1;

@@ -1,8 +1,6 @@
 import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
-import { NgClass } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { ButtonComponent } from '../../layout/components/button.component';
 import { ToastService } from '../../core/services/toast.service';
 
 type Mode = 'focus' | 'short' | 'long';
@@ -20,7 +18,7 @@ const CYCLE_BREAK_EVERY = 4;
         <p class="mt-1 text-sm text-ink-soft">Focus in sprints, rest between.</p>
       </div>
 
-      <app-card class="p-8">
+      <app-card>
         <div class="mb-8 flex items-center justify-center gap-2">
           <app-button
             [variant]="mode() === 'focus' ? 'primary' : 'secondary'"
@@ -46,20 +44,23 @@ const CYCLE_BREAK_EVERY = 4;
         </div>
 
         <div class="mb-6 flex flex-col items-center">
-          <svg viewBox="0 0 200 200" class="h-56 w-56 -rotate-90">
-            <circle cx="100" cy="100" r="86" fill="none" stroke="var(--color-surface-2)" stroke-width="10" />
-            <circle
-              cx="100"
-              cy="100"
-              r="86"
-              fill="none"
-              [attr.stroke]="mode() === 'focus' ? 'var(--color-primary)' : 'var(--color-success)'"
-              stroke-width="10"
-              stroke-linecap="round"
-              [attr.stroke-dasharray]="circumference"
-              [attr.stroke-dashoffset]="dashOffset()"
-              style="transition: stroke-dashoffset 1s linear"
-            />
+          <svg viewBox="0 0 200 200" class="h-56 w-56">
+            <!-- Rotate only the rings so the progress starts at 12 o'clock; the text stays horizontal. -->
+            <g transform="rotate(-90 100 100)">
+              <circle cx="100" cy="100" r="86" fill="none" stroke="var(--color-surface-2)" stroke-width="10" />
+              <circle
+                cx="100"
+                cy="100"
+                r="86"
+                fill="none"
+                [attr.stroke]="mode() === 'focus' ? 'var(--color-primary)' : 'var(--color-success)'"
+                stroke-width="10"
+                stroke-linecap="round"
+                [attr.stroke-dasharray]="circumference"
+                [attr.stroke-dashoffset]="dashOffset()"
+                style="transition: stroke-dashoffset 1s linear"
+              />
+            </g>
             <text
               x="100"
               y="100"
@@ -88,7 +89,7 @@ const CYCLE_BREAK_EVERY = 4;
             [size]="'lg'"
             (click)="toggle()"
           >
-            {{ running() ? 'Pause' : running() ? '' : 'Start' }}
+            {{ running() ? 'Pause' : 'Start' }}
           </app-button>
           <app-button size="icon" variant="secondary" icon="rotate-ccw"
             [attr.aria-label]="'Reset timer'"

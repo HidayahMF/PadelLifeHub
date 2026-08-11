@@ -1,9 +1,9 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NgClass, NgIf } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { TaskService } from '../../core/services/task.service';
 import { ReminderService } from '../../core/services/lifestyle.service';
 import type { Task } from '../../core/models/task.model';
@@ -45,7 +45,7 @@ interface DayCell {
         }
       </div>
     } @else {
-      <app-card class="overflow-hidden">
+      <app-card [padding]="'none'">
         <div class="grid grid-cols-7 border-b border-line">
           @for (day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; track day) {
             <div class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-ink-faint">
@@ -98,7 +98,7 @@ interface DayCell {
       </app-card>
 
       @if (selectedItems().length > 0) {
-        <app-card class="mt-4 p-5">
+        <app-card class="mt-4">
           <h2 class="text-base font-semibold text-ink">
             {{ formatDate(selectedDate(), 'long') }}
           </h2>

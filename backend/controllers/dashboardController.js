@@ -33,7 +33,7 @@ const getDashboardSummary = async (req, res, next) => {
         user: userId,
         dueDate: { $gte: today, $lt: tomorrow },
         archived: { $ne: true },
-      }).sort({ priority: 1 }),
+      }).sort({ pinned: -1, dueDate: 1 }),
       Task.find({
         user: userId,
         dueDate: { $gte: tomorrow },

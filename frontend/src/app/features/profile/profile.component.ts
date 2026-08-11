@@ -1,11 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { AvatarComponent } from './components/avatar.component';
+import { FieldComponent } from '../../layout/components/field.component';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { formatDate } from '../../core/utils/format';
@@ -27,7 +27,7 @@ import { formatDate } from '../../core/utils/format';
       actionLabel="" [action]="noop"></app-page-header>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <app-card class="lg:col-span-1">
+      <app-card class="lg:col-span-1" [padding]="'none'">
         <div class="flex flex-col items-center p-6 text-center">
           <div class="relative">
             <app-avatar [name]="user()?.name ?? 'User'" [size]="96" />
@@ -48,7 +48,7 @@ import { formatDate } from '../../core/utils/format';
       </app-card>
 
       <div class="space-y-6 lg:col-span-2">
-        <app-card class="p-6">
+        <app-card>
           <h2 class="text-base font-semibold text-ink">Personal information</h2>
           <form (ngSubmit)="saveProfile()" class="mt-5 space-y-4">
             <app-field label="Full name" placeholder="Your name" [required]="true"
@@ -61,7 +61,7 @@ import { formatDate } from '../../core/utils/format';
           </form>
         </app-card>
 
-        <app-card class="p-6">
+        <app-card>
           <h2 class="text-base font-semibold text-ink">Change password</h2>
           <form (ngSubmit)="changePassword()" class="mt-5 space-y-4">
             <app-field label="Current password" type="password" autocomplete="current-password"

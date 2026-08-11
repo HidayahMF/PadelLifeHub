@@ -1,14 +1,14 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { DatePipe, NgClass } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { ProgressComponent } from '../../shared/components/progress/progress.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { BarChartComponent } from '../../shared/components/chart/bar-chart.component';
-import type { ChartPoint } from '../../shared/components/chart/line-chart.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { StatCardComponent } from './components/stat-card.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { ProgressComponent } from '../../layout/components/progress.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { BarChartComponent } from './components/bar-chart.component';
+import type { ChartPoint } from '../../core/models/chart.model';
 import { DashboardService } from '../../core/services/data.service';
 import { HabitService, WishlistService } from '../../core/services/lifestyle.service';
 import { BudgetService, TransactionService } from '../../core/services/finance.service';
@@ -102,7 +102,7 @@ import {
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <!-- Today's tasks -->
-          <app-card class="lg:col-span-1">
+          <app-card class="lg:col-span-1" [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Today’s tasks</h2>
               <button
@@ -150,7 +150,7 @@ import {
           </app-card>
 
           <!-- Upcoming -->
-          <app-card class="lg:col-span-1">
+          <app-card class="lg:col-span-1" [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Upcoming deadlines</h2>
               <button
@@ -191,7 +191,7 @@ import {
           </app-card>
 
           <!-- Habits today -->
-          <app-card class="lg:col-span-1">
+          <app-card class="lg:col-span-1" [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Habits</h2>
               <button
@@ -235,7 +235,7 @@ import {
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <!-- Income vs Expense -->
-          <app-card>
+          <app-card [padding]="'none'">
             <div class="px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Income vs expense</h2>
               <p class="text-xs text-ink-soft">Last 6 months</p>
@@ -246,7 +246,7 @@ import {
           </app-card>
 
           <!-- Monthly budget -->
-          <app-card>
+          <app-card [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Monthly budget</h2>
               <button
@@ -280,7 +280,7 @@ import {
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <!-- Goals progress -->
-          <app-card class="lg:col-span-1">
+          <app-card class="lg:col-span-1" [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Goals</h2>
               <button
@@ -309,7 +309,7 @@ import {
           </app-card>
 
           <!-- Wishlist progress -->
-          <app-card class="lg:col-span-1">
+          <app-card class="lg:col-span-1" [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Wishlist</h2>
               <button
@@ -339,7 +339,7 @@ import {
           </app-card>
 
           <!-- Recent transactions -->
-          <app-card class="lg:col-span-1">
+          <app-card class="lg:col-span-1" [padding]="'none'">
             <div class="flex items-center justify-between px-5 pt-5">
               <h2 class="text-base font-semibold text-ink">Recent transactions</h2>
               <button

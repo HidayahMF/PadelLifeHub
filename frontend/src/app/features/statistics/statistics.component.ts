@@ -1,9 +1,10 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { LineChartComponent, ChartPoint } from '../../shared/components/chart/line-chart.component';
-import { DonutChartComponent, DonutSegment } from '../../shared/components/chart/donut-chart.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { StatCardComponent } from './components/stat-card.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { LineChartComponent } from './components/line-chart.component';
+import type { ChartPoint } from '../../core/models/chart.model';
+import { DonutChartComponent, DonutSegment } from './components/donut-chart.component';
 import { DashboardService } from '../../core/services/data.service';
 import type { Statistics } from '../../core/models/misc.model';
 import { formatCurrency } from '../../core/utils/format';
@@ -37,7 +38,7 @@ import { formatCurrency } from '../../core/utils/format';
       </div>
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <app-card>
+        <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Weekly activity</h2>
             <p class="text-xs text-ink-soft">Tasks completed per day</p>
@@ -47,7 +48,7 @@ import { formatCurrency } from '../../core/utils/format';
           </div>
         </app-card>
 
-        <app-card>
+        <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Monthly cash flow</h2>
             <p class="text-xs text-ink-soft">Net balance per month</p>
@@ -59,7 +60,7 @@ import { formatCurrency } from '../../core/utils/format';
       </div>
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <app-card>
+        <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Spending by category</h2>
             <p class="text-xs text-ink-soft">All time</p>
@@ -69,7 +70,7 @@ import { formatCurrency } from '../../core/utils/format';
           </div>
         </app-card>
 
-        <app-card>
+        <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Financial summary</h2>
             <p class="text-xs text-ink-soft">All time</p>

@@ -1,15 +1,15 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgClass, NgIf } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { SegmentedComponent } from '../../shared/components/segmented/segmented.component';
-import { ToggleComponent } from '../../shared/components/toggle/toggle.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { FieldComponent } from '../../layout/components/field.component';
+import { ModalComponent } from '../../layout/components/modal.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
+import { ToggleComponent } from './components/toggle.component';
 import { NeedService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Need } from '../../core/models/lifestyle.model';
@@ -55,7 +55,7 @@ import { formatCurrency } from '../../core/utils/format';
     @if (loading()) {
       <div class="space-y-3">@for (_ of [1, 2, 3]; track $index) { <app-skeleton size="field" /> }</div>
     } @else if (visibleNeeds().length === 0) {
-      <app-card>
+      <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="shopping-basket" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
           <p class="mt-3 text-sm font-semibold text-ink">No needs yet</p>
@@ -63,7 +63,7 @@ import { formatCurrency } from '../../core/utils/format';
         </div>
       </app-card>
     } @else {
-      <app-card>
+      <app-card [padding]="'none'">
         <ul class="divide-y divide-line">
           @for (need of visibleNeeds(); track need._id) {
             <li class="flex items-center gap-4 px-5 py-4">

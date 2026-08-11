@@ -16,7 +16,7 @@ import { TopbarComponent } from './topbar/topbar.component';
             class="absolute inset-0 bg-black/50 animate-fade-in"
             (click)="mobileOpen.set(false)"
           ></div>
-          <div class="absolute left-0 top-0 z-10 h-full animate-slide-in-right">
+          <div class="absolute left-0 top-0 z-10 h-full animate-slide-in-left">
             <app-sidebar (navigated)="mobileOpen.set(false)"></app-sidebar>
           </div>
         </div>

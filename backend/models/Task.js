@@ -21,10 +21,9 @@ const taskSchema = new mongoose.Schema(
       ref: 'Category',
       default: null,
     },
-    priority: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium',
+    pinned: {
+      type: Boolean,
+      default: false,
     },
     status: {
       type: String,

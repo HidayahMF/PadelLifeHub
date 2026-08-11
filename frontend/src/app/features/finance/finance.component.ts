@@ -1,18 +1,18 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
-import { ProgressComponent } from '../../shared/components/progress/progress.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
-import { SelectComponent } from '../../shared/components/select/select.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { SegmentedComponent } from '../../shared/components/segmented/segmented.component';
-import { DonutChartComponent, DonutSegment } from '../../shared/components/chart/donut-chart.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { StatCardComponent } from './components/stat-card.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { BadgeComponent } from '../../layout/components/badge.component';
+import { ProgressComponent } from '../../layout/components/progress.component';
+import { FieldComponent } from '../../layout/components/field.component';
+import { SelectComponent } from '../../layout/components/select.component';
+import { ModalComponent } from '../../layout/components/modal.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
+import { DonutChartComponent, DonutSegment } from './components/donut-chart.component';
 import {
   AccountService,
   BudgetService,
@@ -75,25 +75,32 @@ import {
 
     <!-- Accounts -->
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <app-card class="flex items-center gap-4 p-5">
-        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-ink">
-          <app-icon name="circle-plus" [size]="20" />
-        </span>
-        <button
-          (click)="openAccount()"
-          class="text-sm font-semibold text-ink hover:underline"
-        >
-          Add account
-        </button>
+      <app-card>
+        <div class="flex items-center gap-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+            <app-icon name="circle-plus" [size]="20" />
+          </span>
+          <button
+            (click)="openAccount()"
+            class="min-w-0 text-left text-sm font-semibold text-ink hover:underline"
+          >
+            Add account
+          </button>
+        </div>
       </app-card>
       @for (account of accounts(); track account._id) {
-        <app-card class="flex items-center gap-4 p-5">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-ink">
-            <app-icon [name]="accountIcon(account.type)" [size]="20" />
-          </span>
-          <div class="min-w-0">
-            <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
-            <p class="text-sm text-ink-soft">{{ formatCurrency(account.balance) }}</p>
+        <app-card>
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+              <app-icon [name]="accountIcon(account.type)" [size]="20" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
+              <p class="truncate text-sm text-ink-soft">{{ formatCurrency(account.balance) }}</p>
+            </div>
+            <app-button size="icon" variant="ghost" icon="pencil"
+              [attr.aria-label]="'Edit ' + account.name"
+              (click)="openEditAccount(account)"></app-button>
           </div>
         </app-card>
       }
@@ -122,7 +129,7 @@ import {
           </div>
         </div>
 
-        <app-card>
+        <app-card [padding]="'none'">
           @if (transactionsLoading()) {
             <div class="space-y-3 p-4">
               @for (_ of [1, 2, 3, 4, 5]; track $index) {
@@ -193,7 +200,7 @@ import {
 
       <!-- Sidebar: budgets + spending -->
       <div class="space-y-6">
-        <app-card>
+        <app-card [padding]="'none'">
           <div class="flex items-center justify-between px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Budgets</h2>
             <app-button size="sm" variant="secondary" icon="plus" (click)="openBudget()"></app-button>
@@ -216,9 +223,15 @@ import {
               <div class="space-y-4">
                 @for (budget of budgets(); track budget._id) {
                   <div>
-                    <div class="mb-1.5 flex items-center justify-between text-sm">
-                      <span class="font-medium text-ink">{{ categoryName(budget.category) || 'Overall' }}</span>
-                      <span class="text-xs text-ink-soft">{{ formatCurrency(budget.spent) }} / {{ formatCurrency(budget.amount) }}</span>
+                    <div class="mb-1.5 flex items-center gap-2 text-sm">
+                      <span class="min-w-0 flex-1 truncate font-medium text-ink">{{ categoryName(budget.category) || 'Overall' }}</span>
+                      <span class="shrink-0 text-xs text-ink-soft">{{ formatCurrency(budget.spent) }} / {{ formatCurrency(budget.amount) }}</span>
+                      <app-button size="icon" variant="ghost" icon="pencil"
+                        [attr.aria-label]="'Edit budget'"
+                        (click)="openEditBudget(budget)"></app-button>
+                      <app-button size="icon" variant="ghost" icon="trash-2"
+                        [attr.aria-label]="'Delete budget'"
+                        (click)="removeBudget(budget)"></app-button>
                     </div>
                     <app-progress [value]="percent(budget.spent, budget.amount)" />
                   </div>
@@ -228,7 +241,7 @@ import {
           </div>
         </app-card>
 
-        <app-card>
+        <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Spending by category</h2>
             <p class="text-xs text-ink-soft">This month</p>
@@ -299,7 +312,7 @@ import {
     <!-- Account modal -->
     <app-modal
       [open]="accountModalOpen()"
-      title="New account"
+      [title]="editingAccount() ? 'Edit account' : 'New account'"
       (closed)="accountModalOpen.set(false)"
     >
       <form (ngSubmit)="saveAccount()" class="space-y-4">
@@ -319,7 +332,7 @@ import {
     <!-- Budget modal -->
     <app-modal
       [open]="budgetModalOpen()"
-      title="New budget"
+      [title]="editingBudget() ? 'Edit budget' : 'New budget'"
       (closed)="budgetModalOpen.set(false)"
     >
       <form (ngSubmit)="saveBudget()" class="space-y-4">
@@ -358,6 +371,8 @@ export class FinanceComponent implements OnInit {
   protected readonly accountModalOpen = signal(false);
   protected readonly budgetModalOpen = signal(false);
   protected readonly editingTxn = signal<Transaction | null>(null);
+  protected readonly editingAccount = signal<Account | null>(null);
+  protected readonly editingBudget = signal<Budget | null>(null);
   protected readonly savingTxn = signal(false);
   protected readonly savingAccount = signal(false);
   protected readonly savingBudget = signal(false);
@@ -392,8 +407,8 @@ export class FinanceComponent implements OnInit {
   protected readonly filteredTransactions = computed(() =>
     this.transactions().filter((t) => {
       if (this.typeFilter() !== 'all' && t.type !== this.typeFilter()) return false;
-      if (this.accountFilter && String(t.account) !== this.accountFilter) return false;
-      if (this.categoryFilter && String(t.category) !== this.categoryFilter) return false;
+      if (this.accountFilter && this.idOf(t.account) !== this.accountFilter) return false;
+      if (this.categoryFilter && this.idOf(t.category) !== this.categoryFilter) return false;
       return true;
     })
   );
@@ -516,7 +531,18 @@ export class FinanceComponent implements OnInit {
   }
 
   protected openAccount(): void {
+    this.editingAccount.set(null);
     this.accountForm = { name: '', type: 'bank', balance: 0 };
+    this.accountModalOpen.set(true);
+  }
+
+  protected openEditAccount(account: Account): void {
+    this.editingAccount.set(account);
+    this.accountForm = {
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+    };
     this.accountModalOpen.set(true);
   }
 
@@ -525,29 +551,48 @@ export class FinanceComponent implements OnInit {
       this.toast.error('Account name is required.');
       return;
     }
+    const balance = Number(this.accountForm.balance ?? 0);
+    if (!Number.isFinite(balance)) {
+      this.toast.error('Please enter a valid balance.');
+      return;
+    }
     this.savingAccount.set(true);
-    this.accountService
-      .create({
-        name: this.accountForm.name.trim(),
-        type: this.accountForm.type ?? 'bank',
-        balance: Number(this.accountForm.balance ?? 0),
-      })
-      .subscribe({
-        next: () => {
-          this.savingAccount.set(false);
-          this.toast.success('Account added');
-          this.accountModalOpen.set(false);
-          this.accountService.load();
-        },
-        error: (err: Error) => {
-          this.savingAccount.set(false);
-          this.toast.error(err.message);
-        },
-      });
+    const payload = {
+      name: this.accountForm.name.trim(),
+      type: this.accountForm.type ?? 'bank',
+      balance,
+    };
+    const obs = this.editingAccount()
+      ? this.accountService.update(this.editingAccount()!._id, payload)
+      : this.accountService.create(payload);
+    obs.subscribe({
+      next: () => {
+        this.savingAccount.set(false);
+        this.toast.success(this.editingAccount() ? 'Account updated' : 'Account added');
+        this.editingAccount.set(null);
+        this.accountModalOpen.set(false);
+        this.accountService.load();
+      },
+      error: (err: Error) => {
+        this.savingAccount.set(false);
+        this.toast.error(err.message);
+      },
+    });
   }
 
   protected openBudget(): void {
+    this.editingBudget.set(null);
     this.budgetForm = { amount: undefined, month: this.budgetMonth() };
+    this.budgetModalOpen.set(true);
+  }
+
+  protected openEditBudget(budget: Budget): void {
+    this.editingBudget.set(budget);
+    this.budgetForm = {
+      category: typeof budget.category === 'string' ? budget.category : budget.category?._id,
+      amount: budget.amount,
+      month: budget.month,
+    };
     this.budgetModalOpen.set(true);
   }
 
@@ -558,24 +603,43 @@ export class FinanceComponent implements OnInit {
       return;
     }
     this.savingBudget.set(true);
-    this.budgetService
-      .create({
-        category: this.budgetForm.category || null,
-        amount,
-        month: this.budgetMonth(),
-      })
-      .subscribe({
-        next: () => {
-          this.savingBudget.set(false);
-          this.toast.success('Budget created');
-          this.budgetModalOpen.set(false);
-          this.budgetService.load({ month: this.budgetMonth() });
-        },
-        error: (err: Error) => {
-          this.savingBudget.set(false);
-          this.toast.error(err.message);
-        },
-      });
+    const payload = {
+      category: this.budgetForm.category || null,
+      amount,
+      month: this.budgetMonth(),
+    };
+    const obs = this.editingBudget()
+      ? this.budgetService.update(this.editingBudget()!._id, payload)
+      : this.budgetService.create(payload);
+    obs.subscribe({
+      next: () => {
+        this.savingBudget.set(false);
+        this.toast.success(this.editingBudget() ? 'Budget updated' : 'Budget created');
+        this.editingBudget.set(null);
+        this.budgetModalOpen.set(false);
+        this.budgetService.load({ month: this.budgetMonth() });
+      },
+      error: (err: Error) => {
+        this.savingBudget.set(false);
+        this.toast.error(
+          /duplicate/i.test(err.message)
+            ? 'A budget for this category already exists this month.'
+            : err.message
+        );
+      },
+    });
+  }
+
+  protected removeBudget(budget: Budget): void {
+    const label = this.categoryName(budget.category) || 'Overall';
+    if (!confirm(`Delete budget for ${label}?`)) return;
+    this.budgetService.remove(budget._id).subscribe({
+      next: () => {
+        this.toast.success('Budget deleted');
+        this.budgetService.load({ month: this.budgetMonth() });
+      },
+      error: (err: Error) => this.toast.error(err.message),
+    });
   }
 
   protected remove(txn: Transaction): void {
@@ -593,6 +657,13 @@ export class FinanceComponent implements OnInit {
     if (type === 'cash') return 'banknote';
     if (type === 'ewallet') return 'smartphone';
     return 'credit-card';
+  }
+
+  protected idOf(value: unknown): string {
+    if (value && typeof value === 'object') {
+      return String((value as { _id?: unknown })._id ?? '');
+    }
+    return String(value ?? '');
   }
 
   protected categoryName(value: unknown): string {

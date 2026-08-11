@@ -1,4 +1,3 @@
-export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'todo' | 'in-progress' | 'completed';
 
 export interface Task {
@@ -7,7 +6,7 @@ export interface Task {
   title: string;
   description?: string;
   category?: string | Category | null;
-  priority: TaskPriority;
+  pinned: boolean;
   status: TaskStatus;
   dueDate?: string | null;
   reminder?: string | null;
@@ -21,7 +20,7 @@ export interface TaskPayload {
   title?: string;
   description?: string;
   category?: string | null;
-  priority?: TaskPriority;
+  pinned?: boolean;
   status?: TaskStatus;
   dueDate?: string | null;
   reminder?: string | null;

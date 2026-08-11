@@ -1,11 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { SelectComponent } from '../../shared/components/select/select.component';
-import { ToggleComponent } from '../../shared/components/toggle/toggle.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { SelectComponent } from '../../layout/components/select.component';
+import { ToggleComponent } from './components/toggle.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { SettingService } from '../../core/services/data.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -31,7 +31,7 @@ import type { Setting } from '../../core/models/misc.model';
       <div class="max-w-2xl space-y-4">@for (_ of [1, 2, 3]; track $index) { <app-skeleton size="button" class="rounded-card" /> }</div>
     } @else {
       <div class="max-w-2xl space-y-6">
-        <app-card class="p-6">
+        <app-card>
           <h2 class="text-base font-semibold text-ink">Appearance</h2>
           <div class="mt-5 flex items-center justify-between">
             <div>
@@ -52,7 +52,7 @@ import type { Setting } from '../../core/models/misc.model';
           </div>
         </app-card>
 
-        <app-card class="p-6">
+        <app-card>
           <h2 class="text-base font-semibold text-ink">Notifications</h2>
           <div class="mt-5 space-y-5">
             <div class="flex items-center justify-between">

@@ -1,8 +1,8 @@
 import { Component, inject, output } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgIf } from '@angular/common';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { IconComponent } from '../components/icon.component';
+import { AvatarComponent } from '../components/avatar.component';
 import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -37,6 +37,7 @@ import { AuthService } from '../../core/services/auth.service';
         <input
           #searchInput
           type="text"
+          name="global-search"
           placeholder="Search tasks, notes, transactions…"
           (keydown.enter)="globalSearch(searchInput.value)"
           class="h-10 w-full rounded-field border-2 border-ink bg-surface-2/70 pl-10 pr-3 text-sm font-medium text-ink placeholder:font-normal placeholder:text-ink-faint transition-all duration-150 focus:border-primary focus:bg-surface focus:shadow-soft focus:outline-none"

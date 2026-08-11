@@ -2,8 +2,8 @@ import { Component, computed, inject, input, output } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { NgClass, NgIf } from '@angular/common';
 import { NAV_BOTTOM, NAV_SECTIONS } from '../nav-items';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { IconComponent } from '../components/icon.component';
+import { AvatarComponent } from '../components/avatar.component';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({

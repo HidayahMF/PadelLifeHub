@@ -1,17 +1,17 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
-import { CardComponent } from '../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
-import { ProgressComponent } from '../../shared/components/progress/progress.component';
-import { FieldComponent } from '../../shared/components/field/field.component';
-import { TextareaComponent } from '../../shared/components/textarea/textarea.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { SegmentedComponent } from '../../shared/components/segmented/segmented.component';
+import { CardComponent } from '../../layout/components/card.component';
+import { PageHeaderComponent } from '../../layout/components/page-header.component';
+import { ButtonComponent } from '../../layout/components/button.component';
+import { IconComponent } from '../../layout/components/icon.component';
+import { BadgeComponent } from '../../layout/components/badge.component';
+import { ProgressComponent } from '../../layout/components/progress.component';
+import { FieldComponent } from '../../layout/components/field.component';
+import { TextareaComponent } from './components/textarea.component';
+import { ModalComponent } from '../../layout/components/modal.component';
+import { SkeletonComponent } from '../../layout/components/skeleton.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { GoalService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Goal } from '../../core/models/lifestyle.model';
@@ -55,10 +55,10 @@ import { formatDate, percent } from '../../core/utils/format';
 
     @if (loading()) {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        @for (_ of [1, 2, 3]; track $index) { <app-card><app-skeleton size="button" class="m-4" /></app-card> }
+        @for (_ of [1, 2, 3]; track $index) { <app-card [padding]="'none'"><div class="p-4"><app-skeleton size="button" /></div></app-card> }
       </div>
     } @else if (visibleGoals().length === 0) {
-      <app-card>
+      <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="target" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
           <p class="mt-3 text-sm font-semibold text-ink">No goals yet</p>
@@ -68,8 +68,9 @@ import { formatDate, percent } from '../../core/utils/format';
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @for (goal of visibleGoals(); track goal._id) {
-          <app-card class="flex flex-col p-5">
-            <div class="flex items-start justify-between gap-2">
+          <app-card>
+            <div class="flex h-full flex-col">
+              <div class="flex items-start justify-between gap-2">
               <span
                 class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-ink"
               >
@@ -81,7 +82,7 @@ import { formatDate, percent } from '../../core/utils/format';
             </div>
             <h3 class="mt-4 text-base font-semibold text-ink">{{ goal.title }}</h3>
             @if (goal.description) {
-              <p class="mt-1 line-clamp-2 text-sm text-ink-soft">{{ goal.description }}</p>
+              <p class="mt-1 line-clamp-2 break-words text-sm text-ink-soft">{{ goal.description }}</p>
             }
 
             <div class="mt-4">
@@ -100,14 +101,17 @@ import { formatDate, percent } from '../../core/utils/format';
               </p>
             }
 
-            <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
-              <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(goal)">Update</app-button>
+              <div class="mt-auto">
+                <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
+                  <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(goal)">Update</app-button>
               <app-button *ngIf="!goal.completed" size="sm" icon="circle-check" (click)="complete(goal)">
                 Complete
               </app-button>
-              <app-button size="icon" variant="ghost" icon="trash-2"
-                [attr.aria-label]="'Delete ' + goal.title"
-                (click)="remove(goal)"></app-button>
+                  <app-button size="icon" variant="ghost" icon="trash-2"
+                    [attr.aria-label]="'Delete ' + goal.title"
+                    (click)="remove(goal)"></app-button>
+                </div>
+              </div>
             </div>
           </app-card>
         }

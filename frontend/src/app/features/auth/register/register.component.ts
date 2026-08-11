@@ -1,9 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { FieldComponent } from '../../../shared/components/field/field.component';
-import { ButtonComponent } from '../../../shared/components/button/button.component';
-import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { FieldComponent } from '../../../layout/components/field.component';
+import { ButtonComponent } from '../../../layout/components/button.component';
+import { IconComponent } from '../../../layout/components/icon.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 
@@ -120,7 +120,7 @@ import { ToastService } from '../../../core/services/toast.service';
                 <button
                   type="button"
                   (click)="showPassword.set(!showPassword())"
-                  class="absolute right-3 top-[34px] text-ink-faint transition-colors hover:text-ink"
+                  class="absolute right-3 top-[40px] text-ink-faint transition-colors hover:text-ink"
                   [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
                 >
                   <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" />

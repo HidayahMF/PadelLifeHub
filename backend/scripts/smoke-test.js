@@ -22,7 +22,6 @@ const generateToken = require('../utils/generateToken');
   const task = await Task.create({
     user: user._id,
     title: 'Setup backend',
-    priority: 'high',
   });
   console.log('Task created:', task.title);
 
