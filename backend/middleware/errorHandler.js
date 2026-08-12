@@ -22,6 +22,11 @@ const errorHandler = (err, req, res, next) => {
     message = `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
   }
 
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 413;
+    message = 'File too large (max 3MB)';
+  }
+
   if (err.name === 'CastError') {
     statusCode = 400;
     message = `Invalid ${err.path}: ${err.value}`;

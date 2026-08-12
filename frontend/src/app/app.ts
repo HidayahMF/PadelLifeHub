@@ -18,8 +18,8 @@ export class App implements OnInit {
   private settings = inject(SettingService);
 
   ngOnInit(): void {
-    // Preload the user's settings once on boot so currency formatting is
-    // correct across the whole app immediately after sign-in.
+    // Preload the user's settings once on boot so theme and notification
+    // preferences are correct across the whole app immediately after sign-in.
     if (this.auth.isAuthenticated()) {
       this.settings.load();
     }

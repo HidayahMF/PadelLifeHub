@@ -1,7 +1,66 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const User = require('../models/User');
 const Setting = require('../models/Setting');
 const generateToken = require('../utils/generateToken');
+
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const AVATAR_EXT = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) =>
+    cb(null, `${crypto.randomBytes(16).toString('hex')}${AVATAR_EXT[file.mimetype]}`),
+});
+
+/** Multer middleware: accepts a single 'avatar' image field. */
+const avatarUpload = multer({
+  storage,
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!AVATAR_EXT[file.mimetype]) {
+      const err = new Error('Only JPG, PNG, WebP or GIF images are allowed');
+      err.statusCode = 400;
+      return cb(err);
+    }
+    cb(null, true);
+  },
+}).single('avatar');
+
+/** Delete an uploaded file from disk (ignores missing files). */
+function removeUploadedFile(url) {
+  if (!url || typeof url !== 'string') return;
+  const match = url.match(/\/uploads\/([^/?]+)/);
+  if (!match) return;
+  fs.unlink(path.join(UPLOAD_DIR, match[1]), () => {});
+}
+
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400);
+      throw new Error('No image uploaded');
+    }
+    const user = await User.findById(req.user._id);
+    removeUploadedFile(user.avatar);
+
+    const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    user.avatar = url;
+    await user.save();
+
+    res.json({ _id: user._id, name: user.name, email: user.email, avatar: user.avatar });
+  } catch (err) {
+    if (req.file) fs.unlink(path.join(UPLOAD_DIR, req.file.filename), () => {});
+    next(err);
+  }
+};
 
 const register = async (req, res, next) => {
   try {
@@ -195,4 +254,6 @@ module.exports = {
   changePassword,
   forgotPassword,
   resetPassword,
+  uploadAvatar,
+  avatarUpload,
 };

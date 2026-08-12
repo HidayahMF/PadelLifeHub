@@ -49,6 +49,17 @@ export class AuthService {
     );
   }
 
+  uploadAvatar(file: File) {
+    const form = new FormData();
+    form.append('avatar', file, file.name);
+    return this.api.post<User>('/auth/avatar', form).pipe(
+      tap((user) => {
+        this.user.set(user);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      })
+    );
+  }
+
   changePassword(currentPassword: string, newPassword: string) {
     return this.api.put('/auth/change-password', { currentPassword, newPassword });
   }

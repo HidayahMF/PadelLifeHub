@@ -46,30 +46,54 @@ import { formatDate } from '../../core/utils/format';
           }
 
           @if (avatarOpen()) {
-            <form
-              (ngSubmit)="saveAvatar()"
-              class="mt-4 w-full space-y-2 rounded-card border-2 border-line bg-surface-2 p-3 text-left"
+            <div
+              class="mt-4 w-full space-y-3 rounded-card border-2 border-line bg-surface-2 p-3 text-left"
             >
-              <label class="block text-xs font-bold text-ink">Avatar URL</label>
-              <input
-                type="url"
-                name="avatar"
-                [(ngModel)]="avatarUrl"
-                placeholder="https://example.com/avatar.jpg"
-                class="h-10 w-full rounded-field border-2 border-ink bg-surface px-3 text-sm text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none"
-              />
-              <div class="flex justify-end gap-2">
-                <app-button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  (click)="avatarUrl = ''; saveAvatar()"
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-ink bg-surface"
                 >
-                  Remove
-                </app-button>
-                <app-button type="submit" size="sm" [loading]="savingAvatar()">Save</app-button>
+                  @if (avatarPreview()) {
+                    <img [src]="avatarPreview()" alt="Avatar preview" class="h-full w-full object-cover" />
+                  } @else if (user()?.avatar) {
+                    <img [src]="user()!.avatar" alt="Avatar" class="h-full w-full object-cover" />
+                  } @else {
+                    <app-icon name="user-round" [size]="24" class="text-ink-faint" />
+                  }
+                </span>
+                <div class="min-w-0 flex-1">
+                  <app-button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    icon="image"
+                    (click)="fileInput.click()"
+                  >
+                    Choose image
+                  </app-button>
+                  <input
+                    #fileInput
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    class="hidden"
+                    (change)="onFileSelected($event)"
+                  />
+                  <p class="mt-1.5 text-[11px] font-medium text-ink-faint">
+                    JPG, PNG, WebP or GIF · max 3MB
+                  </p>
+                </div>
               </div>
-            </form>
+              @if (avatarPreview()) {
+                <div class="flex justify-end gap-2">
+                  <app-button type="button" size="sm" variant="ghost" (click)="cancelAvatar()">Cancel</app-button>
+                  <app-button type="button" size="sm" [loading]="savingAvatar()" (click)="uploadAvatar()">Save</app-button>
+                </div>
+              } @else if (user()?.avatar) {
+                <div class="flex justify-end">
+                  <app-button type="button" size="sm" variant="ghost" [loading]="removingAvatar()" (click)="removeAvatar()">Remove</app-button>
+                </div>
+              }
+            </div>
           }
         </div>
       </app-card>
@@ -113,7 +137,9 @@ export class ProfileComponent {
   protected readonly savingProfile = signal(false);
   protected readonly savingPassword = signal(false);
   protected readonly savingAvatar = signal(false);
-  protected avatarUrl = this.auth.user()?.avatar ?? '';
+  protected readonly removingAvatar = signal(false);
+  protected readonly avatarPreview = signal('');
+  protected avatarFile: File | null = null;
 
   protected readonly noop = (): void => {};
 
@@ -121,17 +147,35 @@ export class ProfileComponent {
 
   protected passwordForm = { current: '', next: '' };
 
-  protected saveAvatar(): void {
-    const url = this.avatarUrl.trim();
-    if (url && !/^https?:\/\//i.test(url)) {
-      this.toast.error('Please enter a valid URL (https://…).');
+  protected onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      this.toast.error('Only JPG, PNG, WebP or GIF images are allowed.');
+      input.value = '';
       return;
     }
+    if (file.size > 3 * 1024 * 1024) {
+      this.toast.error('Image is too large (max 3MB).');
+      input.value = '';
+      return;
+    }
+    this.avatarFile = file;
+    const reader = new FileReader();
+    reader.onload = () => this.avatarPreview.set(String(reader.result ?? ''));
+    reader.readAsDataURL(file);
+  }
+
+  protected uploadAvatar(): void {
+    if (!this.avatarFile) return;
     this.savingAvatar.set(true);
-    this.auth.updateProfile({ avatar: url }).subscribe({
+    this.auth.uploadAvatar(this.avatarFile).subscribe({
       next: () => {
         this.savingAvatar.set(false);
         this.avatarOpen.set(false);
+        this.resetAvatar();
         this.toast.success('Avatar updated');
       },
       error: (err: Error) => {
@@ -139,6 +183,30 @@ export class ProfileComponent {
         this.toast.error(err.message);
       },
     });
+  }
+
+  protected removeAvatar(): void {
+    this.removingAvatar.set(true);
+    this.auth.updateProfile({ avatar: '' }).subscribe({
+      next: () => {
+        this.removingAvatar.set(false);
+        this.avatarOpen.set(false);
+        this.toast.success('Avatar removed');
+      },
+      error: (err: Error) => {
+        this.removingAvatar.set(false);
+        this.toast.error(err.message);
+      },
+    });
+  }
+
+  protected cancelAvatar(): void {
+    this.resetAvatar();
+  }
+
+  private resetAvatar(): void {
+    this.avatarFile = null;
+    this.avatarPreview.set('');
   }
 
   protected saveProfile(): void {

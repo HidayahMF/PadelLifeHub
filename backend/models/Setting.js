@@ -20,10 +20,6 @@ const settingSchema = new mongoose.Schema(
       type: String,
       default: 'en',
     },
-    currency: {
-      type: String,
-      default: 'IDR',
-    },
     notifications: {
       taskReminders: { type: Boolean, default: true },
       billReminders: { type: Boolean, default: true },

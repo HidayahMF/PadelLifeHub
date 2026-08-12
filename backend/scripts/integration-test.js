@@ -96,6 +96,37 @@ async function main() {
     check('login with new password', !!token);
   }
 
+  // ---------- AVATAR UPLOAD ----------
+  console.log('\n[avatar upload]');
+  const pngBytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    'base64'
+  );
+  const upForm = new FormData();
+  upForm.append('avatar', new Blob([pngBytes], { type: 'image/png' }), 'avatar.png');
+  const upRes = await fetch(`${BASE}/auth/avatar`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: upForm,
+  });
+  const upData = await upRes.json().catch(() => ({}));
+  check(
+    'upload avatar returns updated user with /uploads/ url',
+    upRes.status === 200 && !!upData.avatar && upData.avatar.includes('/uploads/'),
+    `avatar ${upData.avatar}`
+  );
+  const profAfterAvatar = await api('GET', '/auth/profile');
+  check('avatar persisted on profile', profAfterAvatar.data.avatar === upData.avatar);
+
+  const badForm = new FormData();
+  badForm.append('avatar', new Blob([Buffer.from('not-an-image')], { type: 'text/plain' }), 'file.txt');
+  const badRes = await fetch(`${BASE}/auth/avatar`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: badForm,
+  });
+  check('non-image upload rejected', badRes.status === 400, `status ${badRes.status}`);
+
   // ---------- FINANCE: account + balance math ----------
   console.log('\n[finance]');
   const acc = await api('POST', '/accounts', {
@@ -276,8 +307,8 @@ async function main() {
   const keys7d = (stats7d.data?.finance?.monthlyCashFlow || []).map((c) => c._id);
   check('statistics 7d buckets today in WIB', keys7d.includes(today()), `keys ${keys7d.join(',')}`);
 
-  const settings = await api('PUT', '/settings', { body: { currency: 'USD' } });
-  check('settings currency persisted', settings.data.currency === 'USD');
+  const settings = await api('PUT', '/settings', { body: { darkMode: true } });
+  check('settings darkMode persisted', settings.data.darkMode === true);
 
   // Wait for the 30s reminder scheduler to process the due reminder.
   let notificationFound = false;

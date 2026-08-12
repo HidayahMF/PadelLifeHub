@@ -37,8 +37,8 @@ export interface SelectOption {
           (blur)="onBlur()"
           class="h-11 w-full appearance-none rounded-field border-2 border-ink bg-surface pl-3.5 pr-10 text-sm font-medium text-ink transition-all duration-150 focus:border-primary focus:shadow-soft focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-2"
         >
-          @if (placeholder()) {
-            <option value="" disabled>{{ placeholder() }}</option>
+          @if (placeholder() && !modelValue) {
+            <option value="" selected>{{ placeholder() }}</option>
           }
           @for (opt of options(); track opt.value) {
             <option [value]="opt.value">{{ opt.label }}</option>

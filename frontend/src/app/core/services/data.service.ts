@@ -3,7 +3,6 @@ import { tap } from 'rxjs/operators';
 import type { Note, Setting, DashboardSummary, Statistics } from '../models/misc.model';
 import type { QueryParams } from './api.service';
 import { ApiService } from './api.service';
-import { setCurrency } from '../utils/format';
 
 @Injectable({ providedIn: 'root' })
 export class NoteService {
@@ -47,8 +46,6 @@ export class SettingService {
 
   private sync(res: Setting): void {
     this.settings.set(res);
-    // Keep the global currency formatter reactive to the stored preference.
-    setCurrency(res.currency);
   }
 
   load() {

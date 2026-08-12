@@ -169,7 +169,6 @@ export class WishlistComponent implements OnInit {
   protected readonly statusOptions = computed(() => [
     { value: 'all', label: 'All' },
     { value: 'saved', label: 'Saving' },
-    { value: 'in-progress', label: 'In progress' },
     { value: 'purchased', label: 'Purchased' },
   ]);
 

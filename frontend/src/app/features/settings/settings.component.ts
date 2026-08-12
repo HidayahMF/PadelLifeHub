@@ -45,9 +45,6 @@ import type { Setting } from '../../core/models/misc.model';
               (ngModelChange)="form.theme = $event; syncTheme()"></app-select>
           </div>
           <div class="mt-5">
-            <app-select label="Currency" [options]="currencyOptions()" [(ngModel)]="form.currency"></app-select>
-          </div>
-          <div class="mt-5">
             <app-select label="Language" [options]="languageOptions()" [disabled]="true"
               [hint]="'Language switching is coming soon.'"
               [(ngModel)]="form.language"></app-select>
@@ -112,7 +109,6 @@ export class SettingsComponent implements OnInit {
     theme: 'light',
     darkMode: false,
     language: 'en',
-    currency: 'IDR',
     notifications: {
       taskReminders: true,
       billReminders: true,
@@ -127,13 +123,6 @@ export class SettingsComponent implements OnInit {
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },
     { value: 'system', label: 'System' },
-  ];
-
-  protected readonly currencyOptions = () => [
-    { value: 'IDR', label: 'IDR — Indonesian Rupiah' },
-    { value: 'USD', label: 'USD — US Dollar' },
-    { value: 'MYR', label: 'MYR — Malaysian Ringgit' },
-    { value: 'SGD', label: 'SGD — Singapore Dollar' },
   ];
 
   protected readonly languageOptions = () => [

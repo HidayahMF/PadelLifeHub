@@ -39,6 +39,8 @@ import {
 } from '../../core/utils/format';
 import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/date';
 
+const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
+
 @Component({
   selector: 'app-finance',
   standalone: true,
@@ -68,10 +70,21 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
     ></app-page-header>
 
     <!-- Summary -->
+    <div class="mb-3 flex items-center justify-between">
+      <p class="text-xs font-bold uppercase tracking-wider text-ink-soft">Summary</p>
+      <app-button
+        size="icon"
+        variant="ghost"
+        [icon]="hideBalance() ? 'eye-off' : 'eye'"
+        [attr.aria-label]="hideBalance() ? 'Show balances' : 'Hide balances'"
+        [attr.title]="hideBalance() ? 'Show balances' : 'Hide balances'"
+        (click)="toggleHideBalance()"
+      ></app-button>
+    </div>
     <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
-      <app-stat-card label="Balance" [value]="formatCurrency(balance())" icon="piggy-bank" tone="primary" />
-      <app-stat-card label="Income (month)" [value]="formatCurrency(monthIncome())" icon="trending-up" tone="success" />
-      <app-stat-card label="Expenses (month)" [value]="formatCurrency(monthExpense())" icon="trending-down" tone="danger" />
+      <app-stat-card label="Balance" [value]="displayBalance(balance())" icon="piggy-bank" tone="primary" />
+      <app-stat-card label="Income (month)" [value]="displayAmount(monthIncome())" icon="trending-up" tone="success" />
+      <app-stat-card label="Expenses (month)" [value]="displayAmount(monthExpense())" icon="trending-down" tone="danger" />
       <app-stat-card label="Transactions" [value]="transactions().length" icon="receipt" />
     </div>
 
@@ -111,7 +124,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             }
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
-              <p class="truncate text-sm text-ink-soft">{{ formatCurrency(account.balance) }}</p>
+              <p class="truncate text-sm text-ink-soft">{{ displayBalance(account.balance) }}</p>
             </div>
             <div class="flex shrink-0 items-center gap-0.5">
               <app-button size="icon" variant="ghost" icon="pencil"
@@ -306,6 +319,8 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             label="Category"
             placeholder="Select category"
             [options]="categoryOptions()"
+            [required]="isExpense()"
+            [hint]="isExpense() ? 'Updates your budget progress.' : ''"
             [(ngModel)]="txnForm.category"
             name="category"
           />
@@ -313,6 +328,8 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             label="Account"
             placeholder="Select account"
             [options]="accountOptions()"
+            [required]="true"
+            [hint]="'Updates the balance of this bank or e-wallet.'"
             [(ngModel)]="txnForm.account"
             name="account"
           />
@@ -392,6 +409,7 @@ export class FinanceComponent implements OnInit {
   protected readonly budgetsLoading = this.budgetService.loading;
   protected readonly categories = this.categoryService.categories;
   protected readonly failedLogos = signal<string[]>([]);
+  protected readonly hideBalance = signal<boolean>(localStorage.getItem(HIDE_BALANCE_KEY) === '1');
 
   protected readonly typeFilter = signal<TransactionType | 'all'>('all');
   protected readonly accountFilter = signal('');
@@ -452,6 +470,25 @@ export class FinanceComponent implements OnInit {
       return true;
     })
   );
+
+  protected toggleHideBalance(): void {
+    const value = !this.hideBalance();
+    this.hideBalance.set(value);
+    localStorage.setItem(HIDE_BALANCE_KEY, value ? '1' : '0');
+  }
+
+  protected displayBalance(value: number): string {
+    return this.hideBalance() ? this.maskedAmount() : formatCurrency(value);
+  }
+
+  protected displayAmount(value: number): string {
+    return this.hideBalance() ? this.maskedAmount() : formatCurrency(value);
+  }
+
+  private maskedAmount(): string {
+    const symbol = formatCurrency(0).replace(/[\d.,\s]/g, '').trim() || 'Rp';
+    return `${symbol} ••••••`;
+  }
 
   protected readonly balance = computed(() =>
     this.accounts().reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
@@ -516,6 +553,10 @@ export class FinanceComponent implements OnInit {
     this.txnForm = { ...this.txnForm, type: t as TransactionType };
   }
 
+  protected isExpense(): boolean {
+    return (this.txnForm.type ?? 'expense') === 'expense';
+  }
+
   protected openCreate = (): void => {
     this.editingTxn.set(null);
     this.txnForm = {
@@ -550,6 +591,14 @@ export class FinanceComponent implements OnInit {
     const amount = Number(this.txnForm.amount);
     if (!this.txnForm.type || !amount || amount <= 0) {
       this.toast.error('Please enter a valid amount.');
+      return;
+    }
+    if (!this.txnForm.account) {
+      this.toast.error('Select an account so the balance is updated.');
+      return;
+    }
+    if (this.isExpense() && !this.txnForm.category) {
+      this.toast.error('Select a category so your budget is updated.');
       return;
     }
     const isRecurring = this.txnRecurring !== 'none';

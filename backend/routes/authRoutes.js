@@ -8,6 +8,8 @@ const {
   changePassword,
   forgotPassword,
   resetPassword,
+  uploadAvatar,
+  avatarUpload,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -18,5 +20,6 @@ router.post('/reset-password', resetPassword);
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.put('/change-password', protect, changePassword);
+router.post('/avatar', protect, avatarUpload, uploadAvatar);
 
 module.exports = router;

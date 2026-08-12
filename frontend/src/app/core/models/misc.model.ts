@@ -18,7 +18,6 @@ export interface Setting {
   theme: string;
   darkMode: boolean;
   language: string;
-  currency: string;
   notifications: {
     taskReminders: boolean;
     billReminders: boolean;
