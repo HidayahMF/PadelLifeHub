@@ -7,7 +7,9 @@ const getNotes = async (req, res, next) => {
 
     if (trashed !== undefined) filter.trashed = trashed === 'true';
     else filter.trashed = { $ne: true };
+    // Archived items stay out of the default (active) list.
     if (archived !== undefined) filter.archived = archived === 'true';
+    else filter.archived = { $ne: true };
     if (tag) filter.tags = tag;
 
     if (search) {

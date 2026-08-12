@@ -97,8 +97,13 @@ const taskSchema = new mongoose.Schema(
 
 taskSchema.index({ user: 1, status: 1 });
 taskSchema.index({ user: 1, dueDate: 1 });
-// Sparse unique index: guarantees a recurring series can never generate the
-// same occurrence twice, even across scheduler restarts.
-taskSchema.index({ user: 1, recurrenceId: 1, dueDate: 1 }, { unique: true, sparse: true });
+// Unique partial index: guarantees a recurring series can never generate the
+// same occurrence twice, even across scheduler restarts. It only applies to
+// scheduler-generated children (recurrenceId is a real ObjectId there), so
+// ordinary tasks without due dates never collide on {user, null, null}.
+taskSchema.index(
+  { user: 1, recurrenceId: 1, dueDate: 1 },
+  { unique: true, partialFilterExpression: { recurrenceId: { $type: 'objectId' } } }
+);
 
 module.exports = mongoose.model('Task', taskSchema);

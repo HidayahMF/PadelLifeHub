@@ -27,6 +27,11 @@ const settingSchema = new mongoose.Schema(
       emailUpdates: { type: Boolean, default: false },
     },
     // Ordered list of visible dashboard widget keys — per user, not global.
+    // Hides currency amounts on the dashboard (privacy toggle).
+    hideBalance: {
+      type: Boolean,
+      default: false,
+    },
     dashboardWidgets: {
       type: [String],
       default: [

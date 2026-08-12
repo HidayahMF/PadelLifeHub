@@ -8,7 +8,9 @@ const getWishlistItems = async (req, res, next) => {
     if (priority) filter.priority = priority;
     if (trashed !== undefined) filter.trashed = trashed === 'true';
     else filter.trashed = { $ne: true };
+    // Archived items stay out of the default (active) list.
     if (archived !== undefined) filter.archived = archived === 'true';
+    else filter.archived = { $ne: true };
     if (tag) filter.tags = tag;
 
     const items = await Wishlist.find(filter).sort({ createdAt: -1 });

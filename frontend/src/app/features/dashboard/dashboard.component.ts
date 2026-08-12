@@ -125,30 +125,44 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 </div>
               }
               @case ('finance') {
-                <div class="grid grid-cols-2 gap-4 lg:col-span-3 xl:grid-cols-4">
-                  <app-stat-card
-                    label="Balance"
-                    [value]="formatCurrency(summary()!.financeSummary.balance)"
-                    icon="piggy-bank"
-                    tone="primary"
-                  />
-                  <app-stat-card
-                    label="Income (month)"
-                    [value]="formatCurrency(summary()!.financeSummary.monthIncome)"
-                    icon="trending-up"
-                    tone="success"
-                  />
-                  <app-stat-card
-                    label="Expense (month)"
-                    [value]="formatCurrency(summary()!.financeSummary.monthExpense)"
-                    icon="trending-down"
-                    tone="danger"
-                  />
-                  <app-stat-card
-                    label="Net (month)"
-                    [value]="formatCurrency(monthNet())"
-                    icon="wallet"
-                  />
+                <div class="lg:col-span-3">
+                  <div class="mb-3 flex items-center justify-between">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-ink-soft">Finance summary</h2>
+                    <button
+                      type="button"
+                      class="flex items-center gap-1.5 rounded-button border-2 border-ink bg-surface px-2.5 py-1 text-xs font-semibold text-ink transition-colors hover:bg-surface-2"
+                      [attr.aria-label]="hideBalance() ? 'Show balance' : 'Hide balance'"
+                      (click)="toggleHideBalance()"
+                    >
+                      <app-icon [name]="hideBalance() ? 'eye-off' : 'eye'" [size]="14" />
+                      {{ hideBalance() ? 'Show' : 'Hide' }}
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                    <app-stat-card
+                      label="Balance"
+                      [value]="money(summary()!.financeSummary.balance)"
+                      icon="piggy-bank"
+                      tone="primary"
+                    />
+                    <app-stat-card
+                      label="Income (month)"
+                      [value]="money(summary()!.financeSummary.monthIncome)"
+                      icon="trending-up"
+                      tone="success"
+                    />
+                    <app-stat-card
+                      label="Expense (month)"
+                      [value]="money(summary()!.financeSummary.monthExpense)"
+                      icon="trending-down"
+                      tone="danger"
+                    />
+                    <app-stat-card
+                      label="Net (month)"
+                      [value]="money(monthNet())"
+                      icon="wallet"
+                    />
+                  </div>
                 </div>
               }
               @case ('today') {
@@ -289,7 +303,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                         <div class="mb-1.5 flex items-center justify-between text-sm">
                           <span class="font-medium text-ink">{{ categoryName(budget.category) }}</span>
                           <span class="text-xs text-ink-soft">
-                            {{ formatCurrency(budget.spent) }} / {{ formatCurrency(budget.amount) }}
+                            {{ money(budget.spent) }} / {{ money(budget.amount) }}
                           </span>
                         </div>
                         <app-progress [value]="budgetPercent(budget)" />
@@ -339,7 +353,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                         <div class="mb-1.5 flex items-center justify-between text-sm">
                           <span class="truncate font-medium text-ink">{{ item.name }}</span>
                           <span class="ml-2 shrink-0 text-xs text-ink-soft">
-                            {{ formatCurrency(item.savingProgress) }} / {{ formatCurrency(item.price) }}
+                            {{ money(item.savingProgress) }} / {{ money(item.price) }}
                           </span>
                         </div>
                         <app-progress [value]="percent(item.savingProgress, item.price)" />
@@ -388,7 +402,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                             [class.text-success]="txn.type === 'income'"
                             [class.text-ink]="txn.type === 'expense' || txn.type === 'transfer'"
                           >
-                            {{ txn.type === 'transfer' ? '' : txn.type === 'income' ? '+' : '−' }}{{ formatCurrency(txn.amount) }}
+                            {{ txn.type === 'transfer' ? '' : txn.type === 'income' ? '+' : '−' }}{{ money(txn.amount) }}
                           </span>
                         </li>
                       }
@@ -466,6 +480,7 @@ export class DashboardComponent implements OnInit {
   >([]);
 
   protected readonly widgets = signal<string[]>([...DEFAULT_WIDGETS]);
+  protected readonly hideBalance = signal(false);
   protected readonly customizeOpen = signal(false);
   protected readonly savingWidgets = signal(false);
   protected dragIndex: number | null = null;
@@ -537,6 +552,7 @@ export class DashboardComponent implements OnInit {
         if (s.dashboardWidgets?.length) {
           this.widgets.set(this.normalizeWidgets(s.dashboardWidgets));
         }
+        this.hideBalance.set(!!s.hideBalance);
       },
       error: () => undefined,
     });
@@ -576,6 +592,19 @@ export class DashboardComponent implements OnInit {
 
   protected openCustomize(): void {
     this.customizeOpen.set(true);
+  }
+
+  protected toggleHideBalance(): void {
+    const next = !this.hideBalance();
+    this.hideBalance.set(next);
+    this.settingService.update({ hideBalance: next }).subscribe({
+      next: () => this.toast.success(next ? 'Balance hidden' : 'Balance visible'),
+      error: () => this.toast.error('Failed to save preference'),
+    });
+  }
+
+  protected money(value: number): string {
+    return this.hideBalance() ? '••••••' : formatCurrency(value);
   }
 
   protected toggleWidget(key: string): void {

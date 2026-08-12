@@ -259,6 +259,15 @@ const updateTransaction = async (req, res, next) => {
     Object.assign(transaction, cleanBody);
     transaction.type = newType;
     transaction.amount = newAmount;
+    // A type switch must not leave stale refs behind: a transfer keeps no
+    // income/expense account, and an income/expense keeps no transfer legs.
+    if (newType === 'transfer') {
+      transaction.account = null;
+      transaction.category = null;
+    } else {
+      transaction.fromAccount = null;
+      transaction.toAccount = null;
+    }
     if (date !== undefined) transaction.date = normalizeTransactionDate(date);
     if (recurring !== undefined) {
       transaction.recurring = { ...transaction.recurring, ...recurring };

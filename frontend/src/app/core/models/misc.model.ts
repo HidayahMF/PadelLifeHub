@@ -28,6 +28,7 @@ export interface Setting {
     emailUpdates: boolean;
   };
   dashboardWidgets?: string[];
+  hideBalance?: boolean;
 }
 
 export interface TaskSummary {

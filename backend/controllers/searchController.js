@@ -23,11 +23,11 @@ const globalSearch = async (req, res, next) => {
     const regex = { $regex: q, $options: 'i' };
     const userId = req.user._id;
 
+    const activeFilter = { user: userId, archived: { $ne: true }, trashed: { $ne: true } };
     const [tasks, transactions, notes, goals, habits, wishlist, needs, reminders] =
       await Promise.all([
         Task.find({
-          user: userId,
-          archived: { $ne: true },
+          ...activeFilter,
           $or: [{ title: regex }, { description: regex }],
         })
           .sort({ pinned: -1, dueDate: 1 })
@@ -39,18 +39,24 @@ const globalSearch = async (req, res, next) => {
           .populate('category', 'name color icon')
           .populate('account', 'name type'),
         Note.find({
-          user: userId,
+          ...activeFilter,
           $or: [{ title: regex }, { content: regex }],
         })
           .sort({ updatedAt: -1 })
           .limit(PER_COLLECTION_LIMIT),
-        Goal.find({ user: userId, $or: [{ title: regex }, { description: regex }] })
+        Goal.find({
+          ...activeFilter,
+          $or: [{ title: regex }, { description: regex }],
+        })
           .sort({ updatedAt: -1 })
           .limit(PER_COLLECTION_LIMIT),
-        Habit.find({ user: userId, name: regex })
+        Habit.find({ user: userId, archived: { $ne: true }, name: regex })
           .sort({ updatedAt: -1 })
           .limit(PER_COLLECTION_LIMIT),
-        Wishlist.find({ user: userId, name: regex })
+        Wishlist.find({
+          ...activeFilter,
+          name: regex,
+        })
           .sort({ updatedAt: -1 })
           .limit(PER_COLLECTION_LIMIT),
         Need.find({ user: userId, name: regex })
