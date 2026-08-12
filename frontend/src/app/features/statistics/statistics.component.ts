@@ -6,8 +6,9 @@ import { LineChartComponent } from './components/line-chart.component';
 import type { ChartPoint } from '../../core/models/chart.model';
 import { DonutChartComponent, DonutSegment } from './components/donut-chart.component';
 import { SegmentedComponent } from '../../layout/components/segmented.component';
-import { DashboardService } from '../../core/services/data.service';
-import type { Statistics } from '../../core/models/misc.model';
+import { InsightsComponent } from './components/insights.component';
+import { DashboardService, InsightsService } from '../../core/services/data.service';
+import type { InsightsData, Statistics } from '../../core/models/misc.model';
 import { formatCurrency } from '../../core/utils/format';
 
 type RangeKey = 'thisMonth' | 'lastMonth' | '7d' | '30d' | 'thisYear' | 'all';
@@ -31,6 +32,7 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
     LineChartComponent,
     DonutChartComponent,
     SegmentedComponent,
+    InsightsComponent,
   ],
   template: `
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -48,18 +50,18 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
     </div>
 
     @if (loading()) {
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         @for (_ of [1, 2, 3, 4]; track $index) { <app-skeleton size="button" class="rounded-card" /> }
       </div>
     } @else if (stats()) {
-      <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div class="mb-6 grid grid-cols-2 gap-5 xl:grid-cols-4">
         <app-stat-card label="Total tasks" [value]="stats()!.productivity.totalTasks" icon="list-todo" />
         <app-stat-card label="Completed tasks" [value]="stats()!.productivity.completedTasks" icon="circle-check" tone="success" />
         <app-stat-card label="Completed this week" [value]="stats()!.productivity.weeklyCompleted" icon="trending-up" />
         <app-stat-card label="Completed this month" [value]="stats()!.productivity.monthlyCompleted" icon="calendar-check" />
       </div>
 
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">Weekly activity</h2>
@@ -89,6 +91,19 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
           </div>
           <div class="p-5">
             <app-donut-chart [segments]="categorySpending()" [totalLabel]="'spent'" />
+          </div>
+        </app-card>
+
+        <!-- Financial insights -->
+        <app-card [padding]="'none'">
+          <div class="p-5">
+            @if (insightsLoading()) {
+              <div class="space-y-3">
+                @for (_ of [1, 2]; track $index) { <app-skeleton size="field" /> }
+              </div>
+            } @else {
+              <app-insights [insights]="insights()" />
+            }
           </div>
         </app-card>
 
@@ -124,10 +139,13 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
 })
 export class StatisticsComponent implements OnInit {
   private service = inject(DashboardService);
+  private insightsService = inject(InsightsService);
 
   protected readonly stats = signal<Statistics | null>(null);
   protected readonly loading = signal(true);
   protected readonly range = signal<RangeKey>('thisMonth');
+  protected readonly insights = signal<InsightsData | null>(null);
+  protected readonly insightsLoading = signal(true);
 
   protected readonly rangeOptions = computed(() => RANGE_OPTIONS);
 
@@ -174,6 +192,18 @@ export class StatisticsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRange();
+    this.loadInsights();
+  }
+
+  private loadInsights(): void {
+    this.insightsLoading.set(true);
+    this.insightsService.get().subscribe({
+      next: (res) => {
+        this.insights.set(res);
+        this.insightsLoading.set(false);
+      },
+      error: () => this.insightsLoading.set(false),
+    });
   }
 
   protected setRange(value: string): void {

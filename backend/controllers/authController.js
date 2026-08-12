@@ -4,7 +4,42 @@ const path = require('path');
 const multer = require('multer');
 const User = require('../models/User');
 const Setting = require('../models/Setting');
+const Category = require('../models/Category');
 const generateToken = require('../utils/generateToken');
+
+/**
+ * Default categories every new account starts with. The UI has no category
+ * management screen, so without these a fresh user cannot save an expense
+ * (which requires a category) or categorize tasks.
+ */
+const DEFAULT_CATEGORIES = [
+  // transaction
+  { name: 'Salary', color: '#00C2A8', icon: 'wallet', type: 'transaction' },
+  { name: 'Food', color: '#FF9F1C', icon: 'utensils', type: 'transaction' },
+  { name: 'Transport', color: '#FF5DA2', icon: 'car', type: 'transaction' },
+  { name: 'Shopping', color: '#FFD600', icon: 'shopping-bag', type: 'transaction' },
+  { name: 'Bills', color: '#FF4D4D', icon: 'receipt', type: 'transaction' },
+  { name: 'Entertainment', color: '#6366f1', icon: 'clapperboard', type: 'transaction' },
+  { name: 'Health', color: '#00C2A8', icon: 'heart-pulse', type: 'transaction' },
+  // task
+  { name: 'Personal', color: '#FF5DA2', icon: 'user', type: 'task' },
+  { name: 'Work', color: '#6366f1', icon: 'briefcase', type: 'task' },
+  { name: 'Urgent', color: '#FF4D4D', icon: 'alert-triangle', type: 'task' },
+];
+
+/** Create the default categories for a brand new user (best-effort). */
+async function seedDefaultCategories(userId) {
+  try {
+    const existing = await Category.countDocuments({ user: userId });
+    if (existing > 0) return;
+    await Category.insertMany(
+      DEFAULT_CATEGORIES.map((c) => ({ ...c, user: userId }))
+    );
+  } catch (err) {
+    // A failed seed must never block registration.
+    console.error(`[categories] seed failed for ${userId}: ${err.message}`);
+  }
+}
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const AVATAR_EXT = {
@@ -79,6 +114,7 @@ const register = async (req, res, next) => {
 
     const user = await User.create({ name, email, password });
     await Setting.create({ user: user._id });
+    await seedDefaultCategories(user._id);
 
     res.status(201).json({
       _id: user._id,

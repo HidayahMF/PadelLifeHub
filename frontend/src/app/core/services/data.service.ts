@@ -1,6 +1,14 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { tap } from 'rxjs/operators';
-import type { Note, Setting, DashboardSummary, Statistics } from '../models/misc.model';
+import type {
+  Note,
+  Setting,
+  DashboardSummary,
+  Statistics,
+  TodayData,
+  InsightsData,
+  WeeklyReviewData,
+} from '../models/misc.model';
 import type { QueryParams } from './api.service';
 import { ApiService } from './api.service';
 
@@ -78,5 +86,40 @@ export class DashboardService {
 
   statistics(range?: string) {
     return this.api.get<Statistics>('/dashboard/statistics', range ? { range } : undefined);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class TodayService {
+  private api = inject(ApiService);
+
+  get() {
+    return this.api.get<TodayData>('/today');
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class InsightsService {
+  private api = inject(ApiService);
+
+  get() {
+    return this.api.get<InsightsData>('/insights');
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class WeeklyReviewService {
+  private api = inject(ApiService);
+
+  get() {
+    return this.api.get<WeeklyReviewData>('/weekly-review');
+  }
+
+  save(payload: {
+    weekStart?: string;
+    wentWell?: string;
+    improve?: string;
+  }) {
+    return this.api.put<WeeklyReviewData>('/weekly-review', payload);
   }
 }

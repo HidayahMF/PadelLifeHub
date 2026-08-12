@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 export type AccountType = 'cash' | 'bank' | 'ewallet';
 export type RecurringFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -25,6 +25,8 @@ export interface Transaction {
   description?: string;
   category?: string | Category | null;
   account?: string | Account | null;
+  fromAccount?: string | Account | null;
+  toAccount?: string | Account | null;
   date: string;
   recurring?: Recurring;
   nextRunAt?: string | null;
@@ -39,6 +41,8 @@ export interface TransactionPayload {
   description?: string;
   category?: string | null;
   account?: string | null;
+  fromAccount?: string | null;
+  toAccount?: string | null;
   date?: string;
   recurring?: Partial<Recurring>;
 }

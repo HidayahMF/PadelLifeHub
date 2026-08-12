@@ -1,6 +1,6 @@
 import type { Transaction } from './finance.model';
 import type { Task } from './task.model';
-import type { Goal } from './lifestyle.model';
+import type { Goal, Habit, Need, Reminder, WishlistItem } from './lifestyle.model';
 
 export interface Note {
   _id: string;
@@ -8,6 +8,9 @@ export interface Note {
   title: string;
   content?: string;
   pinned: boolean;
+  tags?: string[];
+  archived?: boolean;
+  trashed?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +27,7 @@ export interface Setting {
     habitReminders: boolean;
     emailUpdates: boolean;
   };
+  dashboardWidgets?: string[];
 }
 
 export interface TaskSummary {
@@ -92,4 +96,74 @@ export interface NotificationItem {
   relatedId?: string | null;
   read: boolean;
   createdAt: string;
+}
+
+export interface SearchResults {
+  tasks: Task[];
+  transactions: Transaction[];
+  notes: Note[];
+  goals: Goal[];
+  habits: Habit[];
+  wishlist: WishlistItem[];
+  needs: Need[];
+  reminders: Reminder[];
+}
+
+export interface TodayHabit extends Habit {
+  doneToday: boolean;
+}
+
+export interface TodayData {
+  date: string;
+  focus: Task[];
+  overdue: Task[];
+  completedToday: number;
+  habits: TodayHabit[];
+  finance: { income: number; expense: number; net: number };
+  upcomingReminders: Reminder[];
+  upcomingTasks: Task[];
+  goals: Goal[];
+  progress: {
+    totalTasksToday: number;
+    completedTasksToday: number;
+    habitsTotal: number;
+    habitsDone: number;
+  };
+}
+
+export interface WeeklyReviewData {
+  weekStart: string;
+  weekEnd: string;
+  weekLabel: string;
+  productivity: {
+    completed: number;
+    created: number;
+    completionRate: number;
+    overdue: number;
+  };
+  habits: { bestStreak: number; averageCompletion: number; tracked: number };
+  finance: { income: number; expense: number; saved: number };
+  goals: { progressed: number; completed: number };
+  topCategory: { name: string; total: number } | null;
+  reflection: { wentWell: string; improve: string };
+}
+
+export interface InsightsData {
+  month: string;
+  income: { thisMonth: number; lastMonth: number };
+  expense: { thisMonth: number; lastMonth: number };
+  savingsRate: number;
+  savingsRateLastMonth: number;
+  spendingByCategory: { name: string; color: string; total: number; pct: number }[];
+  largestCategory: { name: string; total: number; pct: number } | null;
+  monthOverMonth: { spent: number; lastMonthSpent: number; diff: number; pct: number };
+  budget: {
+    totalBudget: number;
+    totalSpent: number;
+    pct: number;
+    count: number;
+    overBudget: string[];
+  };
+  cashFlow: { _id: string; income: number; expense: number; net: number }[];
+  weekendVsWeekday: { weekendAvg: number; weekdayAvg: number };
 }

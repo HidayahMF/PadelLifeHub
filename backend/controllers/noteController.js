@@ -2,8 +2,13 @@ const Note = require('../models/Note');
 
 const getNotes = async (req, res, next) => {
   try {
-    const { search } = req.query;
+    const { search, archived, trashed, tag } = req.query;
     const filter = { user: req.user._id };
+
+    if (trashed !== undefined) filter.trashed = trashed === 'true';
+    else filter.trashed = { $ne: true };
+    if (archived !== undefined) filter.archived = archived === 'true';
+    if (tag) filter.tags = tag;
 
     if (search) {
       filter.$or = [

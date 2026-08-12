@@ -39,6 +39,18 @@ const wishlistSchema = new mongoose.Schema(
       enum: ['saved', 'in-progress', 'purchased'],
       default: 'saved',
     },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    archived: {
+      type: Boolean,
+      default: false,
+    },
+    trashed: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

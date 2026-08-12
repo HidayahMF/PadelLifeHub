@@ -46,7 +46,7 @@ import { ToastService } from '../../../core/services/toast.service';
             <span
               class="flex h-12 w-12 items-center justify-center rounded-[14px] border-2 border-ink bg-primary text-ink shadow-soft"
             >
-              <app-icon name="zap" [size]="26" [strokeWidth]="2.6" />
+              <img src="assets/logolifehub.png" alt="LifeHub logo" class="h-7 w-7 object-contain" />
             </span>
             <div>
               <p class="font-display text-xl leading-none text-ink">LIFEHUB</p>
@@ -120,11 +120,10 @@ import { ToastService } from '../../../core/services/toast.service';
                 </button>
               </div>
 
-              <div class="flex items-center justify-between text-sm">
+              <div class="text-sm">
                 <a routerLink="/register" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">
                   Create an account
                 </a>
-                <a routerLink="/forgot-password" class="font-medium text-ink-faint hover:text-ink-soft">Forgot password?</a>
               </div>
 
               <app-button type="submit" [block]="true" [loading]="loading()" icon="log-in">

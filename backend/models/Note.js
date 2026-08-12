@@ -20,6 +20,18 @@ const noteSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    archived: {
+      type: Boolean,
+      default: false,
+    },
+    trashed: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

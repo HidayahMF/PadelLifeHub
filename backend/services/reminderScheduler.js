@@ -6,6 +6,9 @@ const Reminder = require('../models/Reminder');
 const Task = require('../models/Task');
 const Notification = require('../models/Notification');
 const Setting = require('../models/Setting');
+const Budget = require('../models/Budget');
+const Goal = require('../models/Goal');
+const Habit = require('../models/Habit');
 
 const TICK_MS = 30 * 1000;
 
@@ -71,6 +74,87 @@ async function processDueReminder() {
   }
 }
 
+/**
+ * Milestone notifications — budget warnings (80%/100%), habit streaks
+ * (7/30/100 days) and goal progress milestones (50%/100%). Each is emitted
+ * at most once per milestone via relatedId-based dedup checks, so restarts
+ * can never spam duplicates.
+ */
+async function processMilestones() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Budget warnings — once per budget per month.
+  const budgets = await Budget.find({
+    amount: { $gt: 0 },
+    $expr: { $gte: [{ $divide: ['$spent', '$amount'] }, 0.8] },
+  }).populate('category', 'name');
+  for (const budget of budgets) {
+    const existing = await Notification.findOne({
+      user: budget.user,
+      type: 'bill',
+      relatedId: budget._id,
+      createdAt: { $gte: monthStart },
+    });
+    if (existing) continue;
+    const pct = Math.min(100, Math.round((budget.spent / budget.amount) * 100));
+    const name = budget.category?.name ?? 'Overall';
+    await Notification.create({
+      user: budget.user,
+      title: pct >= 100 ? 'Budget exceeded' : `${name} budget ${pct}% used`,
+      message: `${name} — ${pct}% of your budget is used (${Math.round(budget.spent).toLocaleString()} / ${Math.round(budget.amount).toLocaleString()}).`,
+      type: 'bill',
+      relatedId: budget._id,
+    });
+  }
+
+  // Habit streaks — once per streak value.
+  const habits = await Habit.find({
+    archived: { $ne: true },
+    streak: { $in: [7, 30, 100] },
+  });
+  for (const habit of habits) {
+    const existing = await Notification.findOne({
+      user: habit.user,
+      type: 'habit',
+      relatedId: habit._id,
+      message: new RegExp(`${habit.streak}-day streak`),
+    });
+    if (existing) continue;
+    await Notification.create({
+      user: habit.user,
+      title: `${habit.streak}-day habit streak! 🔥`,
+      message: `${habit.name} — ${habit.streak}-day streak. Keep it up!`,
+      type: 'habit',
+      relatedId: habit._id,
+    });
+  }
+
+  // Goal milestones — once per threshold reached.
+  const goals = await Goal.find({ completed: false, target: { $gt: 0 }, progress: { $gt: 0 } });
+  for (const goal of goals) {
+    const pct = Math.min(100, Math.round((goal.progress / goal.target) * 100));
+    if (pct < 50) continue;
+    const thresholds = pct >= 100 ? [100] : [50];
+    for (const threshold of thresholds) {
+      const existing = await Notification.findOne({
+        user: goal.user,
+        type: 'system',
+        relatedId: goal._id,
+        title: new RegExp(`${threshold}%`),
+      });
+      if (existing) continue;
+      await Notification.create({
+        user: goal.user,
+        title: `Goal ${threshold}% reached 🎯`,
+        message: `${goal.title} is ${pct}% complete.`,
+        type: 'system',
+        relatedId: goal._id,
+      });
+    }
+  }
+}
+
 async function processDueTaskReminders() {
   const now = new Date();
   const dueTasks = await Task.find({
@@ -106,7 +190,7 @@ async function processDueTaskReminders() {
 
 async function tick() {
   try {
-    await Promise.all([processDueReminder(), processDueTaskReminders()]);
+    await Promise.all([processDueReminder(), processDueTaskReminders(), processMilestones()]);
   } catch (err) {
     // Never crash the server because of a scheduler error.
     console.error(`[scheduler] error: ${err.message}`);

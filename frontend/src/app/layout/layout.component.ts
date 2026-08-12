@@ -1,12 +1,21 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TopbarComponent } from './topbar/topbar.component';
+import { GlobalSearchComponent } from './components/global-search.component';
+import { QuickAddComponent } from './components/quick-add.component';
+import { ShortcutsService } from '../core/services/shortcuts.service';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent, TopbarComponent],
+  imports: [
+    RouterOutlet,
+    SidebarComponent,
+    TopbarComponent,
+    GlobalSearchComponent,
+    QuickAddComponent,
+  ],
   template: `
     <div class="flex h-dvh overflow-hidden bg-bg">
       <!-- Mobile overlay drawer -->
@@ -38,12 +47,22 @@ import { TopbarComponent } from './topbar/topbar.component';
           <router-outlet />
         </main>
       </div>
+
+      <!-- Global overlays -->
+      <app-global-search />
+      <app-quick-add />
     </div>
   `,
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit {
+  private shortcuts = inject(ShortcutsService);
+
   protected readonly mobileOpen = signal(false);
   protected readonly collapsed = signal(false);
+
+  ngOnInit(): void {
+    this.shortcuts.init();
+  }
 
   @HostListener('window:keydown', ['$event'])
   protected onKey(event: KeyboardEvent): void {

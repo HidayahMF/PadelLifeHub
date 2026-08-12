@@ -7,7 +7,10 @@ export interface NavItem {
 export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: '',
-    items: [{ label: 'Dashboard', route: '/dashboard', icon: 'layout-dashboard' }],
+    items: [
+      { label: 'Today', route: '/today', icon: 'calendar-check' },
+      { label: 'Dashboard', route: '/dashboard', icon: 'layout-dashboard' },
+    ],
   },
   {
     title: 'Manage',
@@ -27,6 +30,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { label: 'Notes', route: '/notes', icon: 'sticky-note' },
       { label: 'Pomodoro', route: '/pomodoro', icon: 'timer' },
       { label: 'Statistics', route: '/statistics', icon: 'bar-chart-3' },
+      { label: 'Weekly review', route: '/weekly-review', icon: 'refresh-cw' },
     ],
   },
 ];

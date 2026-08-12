@@ -1,10 +1,41 @@
 const Goal = require('../models/Goal');
 
+/** Validate a goal's numeric fields before persisting. */
+function validateGoalBody(body) {
+  if (body.target !== undefined && body.target !== null) {
+    const t = Number(body.target);
+    if (!Number.isFinite(t) || t <= 0) {
+      const err = new Error('Target must be greater than zero');
+      err.statusCode = 400;
+      throw err;
+    }
+    body.target = t;
+  }
+  if (body.progress !== undefined) {
+    const p = Number(body.progress);
+    if (!Number.isFinite(p) || p < 0) {
+      const err = new Error('Progress cannot be negative');
+      err.statusCode = 400;
+      throw err;
+    }
+    body.progress = p;
+  }
+  if (body.deadline && Number.isNaN(new Date(body.deadline).getTime())) {
+    const err = new Error('Deadline must be a valid date');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
 const getGoals = async (req, res, next) => {
   try {
-    const { completed } = req.query;
+    const { completed, archived, trashed, tag } = req.query;
     const filter = { user: req.user._id };
     if (completed !== undefined) filter.completed = completed === 'true';
+    if (trashed !== undefined) filter.trashed = trashed === 'true';
+    else filter.trashed = { $ne: true };
+    if (archived !== undefined) filter.archived = archived === 'true';
+    if (tag) filter.tags = tag;
 
     const goals = await Goal.find(filter).sort({ createdAt: -1 });
     res.json(goals);
@@ -15,9 +46,11 @@ const getGoals = async (req, res, next) => {
 
 const createGoal = async (req, res, next) => {
   try {
+    const body = { ...req.body };
+    validateGoalBody(body);
     const goal = await Goal.create({
       user: req.user._id,
-      ...req.body,
+      ...body,
     });
     res.status(201).json(goal);
   } catch (err) {
@@ -34,6 +67,7 @@ const updateGoal = async (req, res, next) => {
     }
 
     const body = { ...req.body };
+    validateGoalBody(body);
     if (goal.target && body.progress !== undefined && body.progress >= goal.target) {
       body.completed = true;
     }

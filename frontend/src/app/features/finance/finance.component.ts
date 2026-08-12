@@ -185,23 +185,31 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
                     class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                     [class.bg-success/10]="txn.type === 'income'"
                     [class.bg-danger/10]="txn.type === 'expense'"
+                    [class.bg-primary/15]="txn.type === 'transfer'"
                     [class.text-success]="txn.type === 'income'"
                     [class.text-danger]="txn.type === 'expense'"
+                    [class.text-ink]="txn.type === 'transfer'"
                   >
                     <app-icon
-                      [name]="txn.type === 'income' ? 'arrow-down-right' : 'arrow-up-right'"
+                      [name]="txn.type === 'income' ? 'arrow-down-right' : txn.type === 'expense' ? 'arrow-up-right' : 'arrow-right'"
                       [size]="17"
                     />
                   </span>
                   <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium text-ink">
-                      {{ txn.description || 'Transaction' }}
+                      {{ txn.description || (txn.type === 'transfer' ? 'Transfer' : 'Transaction') }}
                     </p>
                     <p class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
-                      <span class="flex items-center gap-1">
-                        <span class="inline-block h-2 w-2 rounded-full" [style.background]="categoryColor(txn.category)"></span>
-                        {{ categoryName(txn.category) || 'Uncategorized' }}
-                      </span>
+                      @if (txn.type === 'transfer') {
+                        <span class="flex items-center gap-1 font-medium text-ink-soft">
+                          {{ accountName(txn.fromAccount) }} → {{ accountName(txn.toAccount) }}
+                        </span>
+                      } @else {
+                        <span class="flex items-center gap-1">
+                          <span class="inline-block h-2 w-2 rounded-full" [style.background]="categoryColor(txn.category)"></span>
+                          {{ categoryName(txn.category) || 'Uncategorized' }}
+                        </span>
+                      }
                       <span class="flex items-center gap-1">
                         <app-icon name="calendar" [size]="12" />
                         {{ formatDate(txn.date, 'short') }}
@@ -214,9 +222,9 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
                   <span
                     class="shrink-0 text-sm font-semibold"
                     [class.text-success]="txn.type === 'income'"
-                    [class.text-ink]="txn.type === 'expense'"
+                    [class.text-ink]="txn.type === 'expense' || txn.type === 'transfer'"
                   >
-                    {{ txn.type === 'income' ? '+' : '−' }}{{ formatCurrency(txn.amount) }}
+                    {{ txn.type === 'transfer' ? '' : txn.type === 'income' ? '+' : '−' }}{{ formatCurrency(txn.amount) }}
                   </span>
                   <div class="flex shrink-0 items-center gap-0.5">
                     <app-button size="icon" variant="ghost" icon="pencil"
@@ -314,26 +322,47 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
           [(ngModel)]="txnForm.description"
           name="description"
         />
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <app-select
-            label="Category"
-            placeholder="Select category"
-            [options]="categoryOptions()"
-            [required]="isExpense()"
-            [hint]="isExpense() ? 'Updates your budget progress.' : ''"
-            [(ngModel)]="txnForm.category"
-            name="category"
-          />
-          <app-select
-            label="Account"
-            placeholder="Select account"
-            [options]="accountOptions()"
-            [required]="true"
-            [hint]="'Updates the balance of this bank or e-wallet.'"
-            [(ngModel)]="txnForm.account"
-            name="account"
-          />
-        </div>
+        @if (txnForm.type === 'transfer') {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <app-select
+              label="From account"
+              placeholder="Select account"
+              [options]="accountOptions()"
+              [required]="true"
+              [(ngModel)]="txnForm.fromAccount"
+              name="fromAccount"
+            />
+            <app-select
+              label="To account"
+              placeholder="Select account"
+              [options]="accountOptions()"
+              [required]="true"
+              [(ngModel)]="txnForm.toAccount"
+              name="toAccount"
+            />
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <app-select
+              label="Category"
+              placeholder="Select category"
+              [options]="categoryOptions()"
+              [required]="isExpense()"
+              [hint]="isExpense() ? 'Updates your budget progress.' : ''"
+              [(ngModel)]="txnForm.category"
+              name="category"
+            />
+            <app-select
+              label="Account"
+              placeholder="Select account"
+              [options]="accountOptions()"
+              [required]="true"
+              [hint]="'Updates the balance of this bank or e-wallet.'"
+              [(ngModel)]="txnForm.account"
+              name="account"
+            />
+          </div>
+        }
         <app-field
           label="Date"
           type="date"
@@ -341,13 +370,15 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
           [(ngModel)]="txnForm.date"
           name="date"
         />
-        <app-select
-          label="Repeat"
-          [options]="recurringOptions()"
-          [hint]="'Generates a new transaction on schedule.'"
-          [(ngModel)]="txnRecurring"
-          name="recurring"
-        />
+        @if (txnForm.type !== 'transfer') {
+          <app-select
+            label="Repeat"
+            [options]="recurringOptions()"
+            [hint]="'Generates a new transaction on schedule.'"
+            [(ngModel)]="txnRecurring"
+            name="recurring"
+          />
+        }
         <div class="flex justify-end gap-2 pt-2">
           <app-button type="button" variant="secondary" (click)="txnModalOpen.set(false)">Cancel</app-button>
           <app-button type="submit" [loading]="savingTxn()">Save</app-button>
@@ -435,6 +466,7 @@ export class FinanceComponent implements OnInit {
     { value: 'all', label: 'All' },
     { value: 'income', label: 'Income' },
     { value: 'expense', label: 'Expense' },
+    { value: 'transfer', label: 'Transfer' },
   ]);
 
   protected readonly accountOptions = computed<{ value: string; label: string }[]>(() =>
@@ -464,7 +496,12 @@ export class FinanceComponent implements OnInit {
     this.transactions().filter((t) => {
       if (this.typeFilter() !== 'all' && t.type !== this.typeFilter()) return false;
       const selectedAccount = this.accountFilter();
-      if (selectedAccount && this.idOf(t.account) !== selectedAccount) return false;
+      if (
+        selectedAccount &&
+        ![t.account, t.fromAccount, t.toAccount].some((a) => this.idOf(a) === selectedAccount)
+      ) {
+        return false;
+      }
       const selectedCategory = this.categoryFilter();
       if (selectedCategory && this.idOf(t.category) !== selectedCategory) return false;
       return true;
@@ -564,6 +601,8 @@ export class FinanceComponent implements OnInit {
       amount: undefined,
       description: '',
       date: getTodayLocalDate(),
+      fromAccount: '',
+      toAccount: '',
     };
     this.txnRecurring = this.txnForm.recurring?.isRecurring
       ? (this.txnForm.recurring.frequency ?? 'monthly')
@@ -579,6 +618,8 @@ export class FinanceComponent implements OnInit {
       description: txn.description,
       category: typeof txn.category === 'string' ? txn.category : txn.category?._id,
       account: typeof txn.account === 'string' ? txn.account : txn.account?._id,
+      fromAccount: typeof txn.fromAccount === 'string' ? txn.fromAccount : txn.fromAccount?._id ?? '',
+      toAccount: typeof txn.toAccount === 'string' ? txn.toAccount : txn.toAccount?._id ?? '',
       date: formatDateToLocalYYYYMMDD(toDate(txn.date)),
     };
     this.txnRecurring = txn.recurring?.isRecurring
@@ -593,6 +634,41 @@ export class FinanceComponent implements OnInit {
       this.toast.error('Please enter a valid amount.');
       return;
     }
+    if (this.txnForm.type === 'transfer') {
+      if (!this.txnForm.fromAccount || !this.txnForm.toAccount) {
+        this.toast.error('Select both accounts for the transfer.');
+        return;
+      }
+      if (this.txnForm.fromAccount === this.txnForm.toAccount) {
+        this.toast.error('Pick two different accounts.');
+        return;
+      }
+      this.savingTxn.set(true);
+      const transferPayload: TransactionPayload = {
+        type: 'transfer',
+        amount,
+        description: this.txnForm.description || '',
+        fromAccount: this.txnForm.fromAccount,
+        toAccount: this.txnForm.toAccount,
+        date: this.txnForm.date || getTodayLocalDate(),
+      };
+      const obs = this.editingTxn()
+        ? this.txnService.update(this.editingTxn()!._id, transferPayload)
+        : this.txnService.create(transferPayload);
+      obs.subscribe({
+        next: () => {
+          this.savingTxn.set(false);
+          this.toast.success(this.editingTxn() ? 'Transfer updated' : 'Transfer added');
+          this.txnModalOpen.set(false);
+          this.reload();
+        },
+        error: (err: Error) => {
+          this.savingTxn.set(false);
+          this.toast.error(err.message);
+        },
+      });
+      return;
+    }
     if (!this.txnForm.account) {
       this.toast.error('Select an account so the balance is updated.');
       return;
@@ -603,10 +679,12 @@ export class FinanceComponent implements OnInit {
     }
     const isRecurring = this.txnRecurring !== 'none';
     const payload: TransactionPayload = {
-      ...this.txnForm,
+      type: this.txnForm.type,
       amount,
+      description: this.txnForm.description || '',
       category: this.txnForm.category || null,
       account: this.txnForm.account || null,
+      date: this.txnForm.date || getTodayLocalDate(),
       recurring: {
         isRecurring,
         frequency: isRecurring ? this.txnRecurring : 'none',
@@ -786,6 +864,13 @@ export class FinanceComponent implements OnInit {
     if (!this.failedLogos().includes(account._id)) {
       this.failedLogos.set([...this.failedLogos(), account._id]);
     }
+  }
+
+  protected accountName(value: unknown): string {
+    if (value && typeof value === 'object' && 'name' in (value as object)) {
+      return (value as { name: string }).name;
+    }
+    return '';
   }
 
   protected idOf(value: unknown): string {

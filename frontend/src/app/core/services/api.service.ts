@@ -35,6 +35,13 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err)));
   }
 
+  /** Raw download (CSV/JSON export files) — auth header added by the interceptor. */
+  download(path: string): Observable<Blob> {
+    return this.http
+      .get(`${this.base}${path}`, { responseType: 'blob' })
+      .pipe(catchError((err) => this.handleError(err)));
+  }
+
   private buildParams(params?: QueryParams): HttpParams | undefined {
     if (!params) return undefined;
     let httpParams = new HttpParams();

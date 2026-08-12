@@ -2,10 +2,14 @@ const Wishlist = require('../models/Wishlist');
 
 const getWishlistItems = async (req, res, next) => {
   try {
-    const { status, priority } = req.query;
+    const { status, priority, archived, trashed, tag } = req.query;
     const filter = { user: req.user._id };
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
+    if (trashed !== undefined) filter.trashed = trashed === 'true';
+    else filter.trashed = { $ne: true };
+    if (archived !== undefined) filter.archived = archived === 'true';
+    if (tag) filter.tags = tag;
 
     const items = await Wishlist.find(filter).sort({ createdAt: -1 });
     res.json(items);

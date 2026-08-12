@@ -9,7 +9,7 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['income', 'expense'],
+      enum: ['income', 'expense', 'transfer'],
       required: [true, 'Transaction type is required'],
     },
     amount: {
@@ -28,6 +28,18 @@ const transactionSchema = new mongoose.Schema(
       default: null,
     },
     account: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Account',
+      default: null,
+    },
+    // Transfers move money between two accounts and never count as
+    // income/expense in any statistic.
+    fromAccount: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Account',
+      default: null,
+    },
+    toAccount: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Account',
       default: null,

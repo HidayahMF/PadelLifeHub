@@ -6,6 +6,7 @@ import { IconComponent } from '../../layout/components/icon.component';
 import { ModalComponent } from '../../layout/components/modal.component';
 import { FieldComponent } from '../../layout/components/field.component';
 import { TextareaComponent } from './components/textarea.component';
+import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { NoteService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Note } from '../../core/models/misc.model';
@@ -22,6 +23,7 @@ import { formatDateTime, toDate } from '../../core/utils/format';
     ModalComponent,
     FieldComponent,
     TextareaComponent,
+    SegmentedComponent,
   ],
   template: `
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -30,6 +32,7 @@ import { formatDateTime, toDate } from '../../core/utils/format';
         <p class="mt-1 text-sm text-ink-soft">Capture ideas before they slip away.</p>
       </div>
       <div class="flex items-center gap-2">
+        <app-segmented [options]="viewOptions()" [model]="view()" (change)="setView($event)" />
         <div class="relative">
           <app-icon name="search" [size]="16" class="pointer-events-none absolute top-1/2 -translate-y-1/2"
             [style.left.px]="10" [style.color]="'var(--color-ink-faint)'" />
@@ -37,9 +40,32 @@ import { formatDateTime, toDate } from '../../core/utils/format';
             placeholder="Search notes…"
             class="h-10 w-56 rounded-field border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none" />
         </div>
-        <app-button icon="plus" (click)="openCreate()">New note</app-button>
+        @if (view() === 'active') {
+          <app-button icon="plus" (click)="openCreate()">New note</app-button>
+        }
       </div>
     </div>
+
+    @if (allTags().length > 0 && view() !== 'trash') {
+      <div class="mb-4 flex flex-wrap items-center gap-1.5">
+        <button
+          (click)="tagFilter.set('')"
+          class="rounded-md border-2 border-ink px-2 py-0.5 text-xs font-bold transition-colors"
+          [class]="tagFilter() === '' ? 'bg-primary text-ink' : 'bg-surface text-ink-soft hover:text-ink'"
+        >
+          All
+        </button>
+        @for (tag of allTags(); track tag) {
+          <button
+            (click)="tagFilter.set(tagFilter() === tag ? '' : tag)"
+            class="rounded-md border-2 border-ink px-2 py-0.5 text-xs font-bold transition-colors"
+            [class]="tagFilter() === tag ? 'bg-primary text-ink' : 'bg-surface text-ink-soft hover:text-ink'"
+          >
+            #{{ tag }}
+          </button>
+        }
+      </div>
+    }
 
     @if (loading()) {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -68,18 +94,44 @@ import { formatDateTime, toDate } from '../../core/utils/format';
             @if (note.content) {
               <p class="mt-2 line-clamp-6 break-words whitespace-pre-wrap text-sm text-ink-soft">{{ note.content }}</p>
             }
+            @if (note.tags?.length) {
+              <div class="mt-2.5 flex flex-wrap gap-1">
+                @for (tag of note.tags; track tag) {
+                  <span class="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-ink-soft">#{{ tag }}</span>
+                }
+              </div>
+            }
             <div class="mt-4 flex items-center justify-between border-t border-line pt-3">
               <span class="text-xs text-ink-faint">{{ formatDateTime(note.updatedAt) }}</span>
               <span class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                <app-button size="icon" variant="ghost" icon="pencil"
-                  [attr.aria-label]="'Edit note'"
-                  (click)="openEdit(note); $event.stopPropagation()"></app-button>
-                <app-button size="icon" variant="ghost" icon="pin"
-                  [attr.aria-label]="note.pinned ? 'Unpin note' : 'Pin note'"
-                  (click)="togglePin(note); $event.stopPropagation()"></app-button>
-                <app-button size="icon" variant="ghost" icon="trash-2"
-                  [attr.aria-label]="'Delete note'"
-                  (click)="remove(note); $event.stopPropagation()"></app-button>
+                @if (view() === 'active') {
+                  <app-button size="icon" variant="ghost" icon="pencil"
+                    [attr.aria-label]="'Edit note'"
+                    (click)="openEdit(note); $event.stopPropagation()"></app-button>
+                  <app-button size="icon" variant="ghost" icon="pin"
+                    [attr.aria-label]="note.pinned ? 'Unpin note' : 'Pin note'"
+                    (click)="togglePin(note); $event.stopPropagation()"></app-button>
+                  <app-button size="icon" variant="ghost" icon="archive"
+                    [attr.aria-label]="'Archive note'"
+                    (click)="setFlag(note, { archived: true }); $event.stopPropagation()"></app-button>
+                  <app-button size="icon" variant="ghost" icon="trash-2"
+                    [attr.aria-label]="'Move to trash'"
+                    (click)="setFlag(note, { trashed: true, archived: false }); $event.stopPropagation()"></app-button>
+                } @else if (view() === 'archived') {
+                  <app-button size="icon" variant="ghost" icon="rotate-ccw"
+                    [attr.aria-label]="'Restore note'"
+                    (click)="setFlag(note, { archived: false }); $event.stopPropagation()"></app-button>
+                  <app-button size="icon" variant="ghost" icon="trash-2"
+                    [attr.aria-label]="'Move to trash'"
+                    (click)="setFlag(note, { trashed: true, archived: false }); $event.stopPropagation()"></app-button>
+                } @else {
+                  <app-button size="icon" variant="ghost" icon="rotate-ccw"
+                    [attr.aria-label]="'Restore note'"
+                    (click)="setFlag(note, { trashed: false }); $event.stopPropagation()"></app-button>
+                  <app-button size="icon" variant="danger" icon="trash-2"
+                    [attr.aria-label]="'Delete permanently'"
+                    (click)="remove(note); $event.stopPropagation()"></app-button>
+                }
               </span>
             </div>
           </button>
@@ -96,6 +148,12 @@ import { formatDateTime, toDate } from '../../core/utils/format';
         <app-field label="Title" placeholder="Note title" [(ngModel)]="form.title" name="title" />
         <app-textarea label="Content" placeholder="Start writing…" [rows]="6"
           [(ngModel)]="form.content" name="content" />
+        <app-field
+          label="Tags"
+          placeholder="work, personal, ideas… (comma separated)"
+          [(ngModel)]="tagsText"
+          name="tags"
+        />
         <div class="flex justify-end gap-2 pt-2">
           <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
           <app-button type="submit" [loading]="saving()">Save note</app-button>
@@ -112,37 +170,67 @@ export class NotesComponent implements OnInit {
   protected readonly loading = this.service.loading;
 
   protected readonly search = signal('');
+  protected readonly tagFilter = signal('');
+  protected readonly view = signal<'active' | 'archived' | 'trash'>('active');
   protected readonly modalOpen = signal(false);
   protected readonly editing = signal<Note | null>(null);
   protected readonly saving = signal(false);
 
   protected form: Partial<Note> = {};
+  protected tagsText = '';
+
+  protected readonly viewOptions = computed(() => [
+    { value: 'active', label: 'Active' },
+    { value: 'archived', label: 'Archived' },
+    { value: 'trash', label: 'Trash' },
+  ]);
+
+  protected readonly allTags = computed(() =>
+    [...new Set(this.notes().flatMap((n) => n.tags ?? []))].sort()
+  );
 
   protected readonly filteredNotes = computed(() => {
     const q = this.search().toLowerCase().trim();
+    const tag = this.tagFilter();
     const sorted = [...this.notes()].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime();
     });
-    if (!q) return sorted;
-    return sorted.filter(
-      (n) => n.title.toLowerCase().includes(q) || (n.content ?? '').toLowerCase().includes(q)
-    );
+    return sorted.filter((n) => {
+      if (tag && !(n.tags ?? []).includes(tag)) return false;
+      if (!q) return true;
+      return n.title.toLowerCase().includes(q) || (n.content ?? '').toLowerCase().includes(q);
+    });
   });
 
   ngOnInit(): void {
-    this.service.load();
+    this.reload();
+  }
+
+  protected setView(value: string): void {
+    this.view.set(value as 'active' | 'archived' | 'trash');
+    this.tagFilter.set('');
+    this.reload();
+  }
+
+  private reload(): void {
+    const params: Record<string, string> = {};
+    if (this.view() === 'archived') params['archived'] = 'true';
+    if (this.view() === 'trash') params['trashed'] = 'true';
+    this.service.load(params);
   }
 
   protected openCreate(): void {
     this.editing.set(null);
     this.form = { title: '', content: '', pinned: false };
+    this.tagsText = '';
     this.modalOpen.set(true);
   }
 
   protected openEdit(note: Note): void {
     this.editing.set(note);
     this.form = { title: note.title, content: note.content, pinned: note.pinned };
+    this.tagsText = (note.tags ?? []).join(', ');
     this.modalOpen.set(true);
   }
 
@@ -151,6 +239,7 @@ export class NotesComponent implements OnInit {
       title: this.form.title?.trim() || 'Untitled',
       content: this.form.content ?? '',
       pinned: this.form.pinned ?? false,
+      tags: this.parseTags(this.tagsText),
     };
     this.saving.set(true);
     const obs = this.editing()
@@ -180,15 +269,29 @@ export class NotesComponent implements OnInit {
     });
   }
 
-  protected remove(note: Note): void {
-    if (!confirm('Delete this note?')) return;
-    this.service.remove(note._id).subscribe({
+  protected setFlag(note: Note, flags: Partial<Note>): void {
+    this.service.update(note._id, flags).subscribe({
       next: () => {
-        this.toast.success('Note deleted');
-        this.service.load();
+        this.toast.success(flags.trashed ? 'Moved to trash' : flags.archived ? 'Note archived' : 'Note restored');
+        this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),
     });
+  }
+
+  protected remove(note: Note): void {
+    if (!confirm(`Permanently delete "${note.title || 'Untitled'}"? This cannot be undone.`)) return;
+    this.service.remove(note._id).subscribe({
+      next: () => {
+        this.toast.success('Note deleted permanently');
+        this.reload();
+      },
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
+  protected parseTags(text: string): string[] {
+    return [...new Set(text.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))].slice(0, 10);
   }
 
   protected readonly formatDateTime = formatDateTime;

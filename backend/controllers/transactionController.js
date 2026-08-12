@@ -17,10 +17,11 @@ function normalizeTransactionDate(value) {
  * Reject references to accounts/categories that do not belong to the user,
  * so user A can never attach user B's account/category to a transaction.
  */
-async function validateOwnership(userId, { account, category }) {
-  if (account) {
-    const acc = await Account.findOne({ _id: account, user: userId });
-    if (!acc) {
+async function validateOwnership(userId, { account, category, fromAccount, toAccount }) {
+  const accountIds = [account, fromAccount, toAccount].filter(Boolean);
+  if (accountIds.length) {
+    const found = await Account.countDocuments({ _id: { $in: accountIds }, user: userId });
+    if (found !== accountIds.length) {
       const err = new Error('Account not found');
       err.statusCode = 400;
       throw err;
@@ -36,12 +37,65 @@ async function validateOwnership(userId, { account, category }) {
   }
 }
 
+/** Require a positive, finite amount. */
+function assertPositiveAmount(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n) || n <= 0) {
+    const err = new Error('Amount must be greater than zero');
+    err.statusCode = 400;
+    throw err;
+  }
+  return n;
+}
+
+/**
+ * Clean a transaction payload before it hits Mongoose.
+ * - Empty-string reference fields ('' from HTML forms) would otherwise throw
+ *   a CastError on ObjectId casting.
+ * - Type-irrelevant fields are dropped so a transfer never carries an
+ *   income/expense `account`, and vice versa.
+ */
+function sanitizeTransactionBody(body = {}) {
+  const cleaned = { ...body };
+  for (const key of ['account', 'category', 'fromAccount', 'toAccount']) {
+    if (cleaned[key] === '' || cleaned[key] === undefined) delete cleaned[key];
+  }
+  if (cleaned.type === 'transfer') {
+    delete cleaned.account;
+    delete cleaned.category;
+  } else {
+    delete cleaned.fromAccount;
+    delete cleaned.toAccount;
+  }
+  return cleaned;
+}
+
+/**
+ * Apply a transfer between two accounts (delta = +1 apply, -1 reverse).
+ * Transfers never touch income/expense totals — only balances move.
+ */
+const applyTransfer = async (transaction, delta = 1) => {
+  if (!transaction.fromAccount || !transaction.toAccount) return;
+  const [from, to] = await Promise.all([
+    Account.findOne({ _id: transaction.fromAccount, user: transaction.user }),
+    Account.findOne({ _id: transaction.toAccount, user: transaction.user }),
+  ]);
+  if (from) {
+    from.balance -= transaction.amount * delta;
+    await from.save();
+  }
+  if (to) {
+    to.balance += transaction.amount * delta;
+    await to.save();
+  }
+};
+
 /**
  * Apply income/expense to the linked account balance (user-scoped lookup).
  * delta = +1 apply, -1 reverse.
  */
 const adjustAccountBalance = async (transaction, delta = 1) => {
-  if (!transaction.account) return;
+  if (!transaction.account || transaction.type === 'transfer') return;
   const account = await Account.findOne({ _id: transaction.account, user: transaction.user });
   if (!account) return;
   const change = transaction.type === 'income' ? transaction.amount : -transaction.amount;
@@ -77,7 +131,9 @@ const getTransactions = async (req, res, next) => {
     const transactions = await Transaction.find(filter)
       .sort({ date: -1 })
       .populate('category', 'name color icon')
-      .populate('account', 'name type');
+      .populate('account', 'name type')
+      .populate('fromAccount', 'name type')
+      .populate('toAccount', 'name type');
 
     res.json(transactions);
   } catch (err) {
@@ -92,7 +148,9 @@ const getTransactionById = async (req, res, next) => {
       user: req.user._id,
     })
       .populate('category', 'name color icon')
-      .populate('account', 'name type');
+      .populate('account', 'name type')
+      .populate('fromAccount', 'name type')
+      .populate('toAccount', 'name type');
 
     if (!transaction) {
       res.status(404);
@@ -107,15 +165,50 @@ const getTransactionById = async (req, res, next) => {
 
 const createTransaction = async (req, res, next) => {
   try {
-    const { account, category, recurring, date } = req.body;
-    await validateOwnership(req.user._id, { account, category });
-
+    const cleanBody = sanitizeTransactionBody(req.body);
+    const { account, category, fromAccount, toAccount, type, recurring, date } = cleanBody;
     const normalizedDate = normalizeTransactionDate(date);
+    const numericAmount = assertPositiveAmount(req.body.amount);
+
+    // Transfer: move money between two accounts, never into income/expense.
+    // Validate distinct accounts BEFORE ownership lookup so the user gets the
+    // right error message (duplicate ids would trip the count-based check).
+    if (type === 'transfer') {
+      if (!fromAccount || !toAccount || fromAccount === toAccount) {
+        const err = new Error('Select two different accounts for a transfer');
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+    await validateOwnership(req.user._id, { account, category, fromAccount, toAccount });
+
+    if (type === 'transfer') {
+      const [from, to] = await Promise.all([
+        Account.findOne({ _id: fromAccount, user: req.user._id }),
+        Account.findOne({ _id: toAccount, user: req.user._id }),
+      ]);
+      from.balance -= numericAmount;
+      to.balance += numericAmount;
+      await Promise.all([from.save(), to.save()]);
+
+      const transaction = await Transaction.create({
+        user: req.user._id,
+        type: 'transfer',
+        amount: numericAmount,
+        description: req.body.description || '',
+        fromAccount,
+        toAccount,
+        date: normalizedDate,
+      });
+      return res.status(201).json(transaction);
+    }
+
     const nextRunAt = computeNextRunAt(normalizedDate, recurring);
 
     const transaction = await Transaction.create({
       user: req.user._id,
-      ...req.body,
+      ...cleanBody,
+      amount: numericAmount,
       date: normalizedDate,
       nextRunAt,
       lastRunAt: null,
@@ -141,28 +234,44 @@ const updateTransaction = async (req, res, next) => {
       throw new Error('Transaction not found');
     }
 
-    const { account, category, recurring, date } = req.body;
-    await validateOwnership(req.user._id, { account, category });
+    const cleanBody = sanitizeTransactionBody(req.body);
+    const { account, category, fromAccount, toAccount, recurring, date, type } = cleanBody;
 
-    // Reverse old effect on the previous account, then re-apply to the new one.
-    await adjustAccountBalance(transaction, -1);
-    Object.assign(transaction, req.body);
+    const newType = type ?? transaction.type;
+    const newAmount = req.body.amount !== undefined ? assertPositiveAmount(req.body.amount) : transaction.amount;
+
+    // Validate the new transfer config BEFORE ownership lookup / balance changes.
+    if (newType === 'transfer') {
+      const from = fromAccount ?? transaction.fromAccount;
+      const to = toAccount ?? transaction.toAccount;
+      if (!from || !to || from === to) {
+        const err = new Error('Select two different accounts for a transfer');
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+    await validateOwnership(req.user._id, { account, category, fromAccount, toAccount });
+
+    // Reverse the old effect, then apply the new one.
+    if (transaction.type === 'transfer') await applyTransfer(transaction, -1);
+    else await adjustAccountBalance(transaction, -1);
+
+    Object.assign(transaction, cleanBody);
+    transaction.type = newType;
+    transaction.amount = newAmount;
     if (date !== undefined) transaction.date = normalizeTransactionDate(date);
     if (recurring !== undefined) {
       transaction.recurring = { ...transaction.recurring, ...recurring };
     }
-    // Keep the schedule in sync when date or recurrence changes.
     if (recurring !== undefined || date !== undefined) {
       transaction.nextRunAt = computeNextRunAt(transaction.date, transaction.recurring);
     }
-    if (recurring !== undefined && (!recurring.isRecurring || !recurring.frequency)) {
-      // Turning recurrence off clears the schedule.
-      if (recurring.isRecurring === false) transaction.nextRunAt = null;
-    }
+    if (recurring !== undefined && recurring.isRecurring === false) transaction.nextRunAt = null;
+
+    if (transaction.type === 'transfer') await applyTransfer(transaction, 1);
+    else await adjustAccountBalance(transaction, 1);
 
     const updated = await transaction.save();
-    await adjustAccountBalance(updated, 1);
-
     res.json(updated);
   } catch (err) {
     next(err);
@@ -181,7 +290,8 @@ const deleteTransaction = async (req, res, next) => {
       throw new Error('Transaction not found');
     }
 
-    await adjustAccountBalance(transaction, -1);
+    if (transaction.type === 'transfer') await applyTransfer(transaction, -1);
+    else await adjustAccountBalance(transaction, -1);
     await transaction.deleteOne();
     res.json({ message: 'Transaction removed' });
   } catch (err) {

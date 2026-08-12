@@ -1,6 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgIf } from '@angular/common';
 import { CardComponent } from '../../layout/components/card.component';
 import { PageHeaderComponent } from '../../layout/components/page-header.component';
 import { ButtonComponent } from '../../layout/components/button.component';
@@ -8,6 +7,7 @@ import { IconComponent } from '../../layout/components/icon.component';
 import { BadgeComponent } from '../../layout/components/badge.component';
 import { ProgressComponent } from '../../layout/components/progress.component';
 import { FieldComponent } from '../../layout/components/field.component';
+import { SelectComponent } from '../../layout/components/select.component';
 import { TextareaComponent } from './components/textarea.component';
 import { ModalComponent } from '../../layout/components/modal.component';
 import { SkeletonComponent } from '../../layout/components/skeleton.component';
@@ -15,14 +15,13 @@ import { SegmentedComponent } from '../../layout/components/segmented.component'
 import { GoalService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import type { Goal } from '../../core/models/lifestyle.model';
-import { formatDate, percent } from '../../core/utils/format';
+import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
 @Component({
   selector: 'app-goals',
   standalone: true,
   imports: [
     FormsModule,
-    NgIf,
     CardComponent,
     PageHeaderComponent,
     ButtonComponent,
@@ -30,6 +29,7 @@ import { formatDate, percent } from '../../core/utils/format';
     BadgeComponent,
     ProgressComponent,
     FieldComponent,
+    SelectComponent,
     TextareaComponent,
     ModalComponent,
     SkeletonComponent,
@@ -44,12 +44,19 @@ import { formatDate, percent } from '../../core/utils/format';
       [action]="openCreate"
     ></app-page-header>
 
-    <div class="mb-5 flex items-center gap-3">
+    <div class="mb-5 flex flex-wrap items-center gap-3">
       <app-segmented
-        [options]="viewOptions()"
-        [model]="view()"
-        (change)="setView($event)"
+        [options]="lifecycleOptions()"
+        [model]="lifecycle()"
+        (change)="setLifecycle($event)"
       />
+      @if (lifecycle() === 'active') {
+        <app-segmented
+          [options]="viewOptions()"
+          [model]="view()"
+          (change)="setView($event)"
+        />
+      }
       <span class="ml-auto text-sm text-ink-soft">{{ completedCount() }} completed</span>
     </div>
 
@@ -84,6 +91,13 @@ import { formatDate, percent } from '../../core/utils/format';
             @if (goal.description) {
               <p class="mt-1 line-clamp-2 break-words text-sm text-ink-soft">{{ goal.description }}</p>
             }
+            @if (goal.tags?.length) {
+              <div class="mt-2 flex flex-wrap gap-1">
+                @for (tag of goal.tags; track tag) {
+                  <span class="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-ink-soft">#{{ tag }}</span>
+                }
+              </div>
+            }
 
             <div class="mt-4">
               <div class="mb-1.5 flex items-center justify-between text-xs">
@@ -95,21 +109,51 @@ import { formatDate, percent } from '../../core/utils/format';
               <app-progress [value]="goalPercent(goal)" />
             </div>
 
+            @if (isSavings(goal) && goal.target) {
+              <div class="mt-3 space-y-1 rounded-button border-2 border-ink bg-surface-2 p-2.5 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-ink-soft">Remaining</span>
+                  <span class="font-bold text-ink">{{ formatCurrency(goalRemaining(goal)) }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-ink-soft">Needed / month</span>
+                  <span class="font-bold text-ink">
+                    {{ goal.deadline ? formatCurrency(requiredMonthly(goal)) : '—' }}
+                  </span>
+                </div>
+              </div>
+            }
+
             @if (goal.deadline) {
               <p class="mt-3 flex items-center gap-1.5 text-xs text-ink-faint">
-                <app-icon name="calendar" [size]="13" /> {{ formatDate(goal.deadline, 'medium') }}
+                <app-icon name="calendar" [size]="13" /> Target {{ formatDate(goal.deadline, 'medium') }}
               </p>
             }
 
               <div class="mt-auto">
                 <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
-                  <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(goal)">Update</app-button>
-              <app-button *ngIf="!goal.completed" size="sm" icon="circle-check" (click)="complete(goal)">
-                Complete
-              </app-button>
-                  <app-button size="icon" variant="ghost" icon="trash-2"
-                    [attr.aria-label]="'Delete ' + goal.title"
-                    (click)="remove(goal)"></app-button>
+                  @if (lifecycle() === 'active') {
+                    <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(goal)">Update</app-button>
+                    @if (!goal.completed) {
+                      <app-button size="sm" icon="circle-check" (click)="complete(goal)">Complete</app-button>
+                    }
+                    <app-button size="icon" variant="ghost" icon="archive"
+                      [attr.aria-label]="'Archive ' + goal.title"
+                      (click)="setFlag(goal, { archived: true })"></app-button>
+                    <app-button size="icon" variant="ghost" icon="trash-2"
+                      [attr.aria-label]="'Move to trash'"
+                      (click)="setFlag(goal, { trashed: true, archived: false })"></app-button>
+                  } @else if (lifecycle() === 'archived') {
+                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(goal, { archived: false })">Restore</app-button>
+                    <app-button size="icon" variant="ghost" icon="trash-2"
+                      [attr.aria-label]="'Move to trash'"
+                      (click)="setFlag(goal, { trashed: true, archived: false })"></app-button>
+                  } @else {
+                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(goal, { trashed: false })">Restore</app-button>
+                    <app-button size="icon" variant="danger" icon="trash-2"
+                      [attr.aria-label]="'Delete permanently'"
+                      (click)="remove(goal)"></app-button>
+                  }
                 </div>
               </div>
             </div>
@@ -128,17 +172,42 @@ import { formatDate, percent } from '../../core/utils/format';
           [(ngModel)]="form.title" name="title" />
         <app-textarea label="Description" placeholder="Why does this matter?"
           [(ngModel)]="form.description" name="description" />
+        <app-select
+          label="Type"
+          [options]="goalKindOptions()"
+          [hint]="isSavingsForm() ? 'Financial target — progress counts in Rp.' : 'Anything you want to track.'"
+          [(ngModel)]="form.kind"
+          name="kind"
+        />
         <div class="grid grid-cols-2 gap-4">
-          <app-field label="Target" type="number" placeholder="Optional"
-            [(ngModel)]="form.target" name="target" />
-          <app-field label="Unit" placeholder="km / books / times"
-            [(ngModel)]="form.unit" name="unit" />
+          <app-field
+            label="Target"
+            type="number"
+            placeholder="Optional"
+            [hint]="isSavingsForm() ? 'Target amount (Rp)' : ''"
+            [(ngModel)]="form.target"
+            name="target"
+          />
+          <app-field
+            label="Unit"
+            placeholder="km / books / times"
+            [hint]="isSavingsForm() ? 'Fixed to Rupiah' : ''"
+            [(ngModel)]="form.unit"
+            [disabled]="isSavingsForm()"
+            name="unit"
+          />
         </div>
         <div class="grid grid-cols-2 gap-4">
           <app-field label="Progress" type="number" placeholder="0"
             [(ngModel)]="form.progress" name="progress" />
           <app-field label="Deadline" type="date" [(ngModel)]="form.deadline" name="deadline" />
         </div>
+        <app-field
+          label="Tags"
+          placeholder="health, work, finance… (comma separated)"
+          [(ngModel)]="tagsText"
+          name="tags"
+        />
         <div class="flex justify-end gap-2 pt-2">
           <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
           <app-button type="submit" [loading]="saving()">Save</app-button>
@@ -155,16 +224,29 @@ export class GoalsComponent implements OnInit {
   protected readonly loading = this.service.loading;
 
   protected readonly view = signal<'all' | 'active' | 'completed'>('all');
+  protected readonly lifecycle = signal<'active' | 'archived' | 'trash'>('active');
   protected readonly modalOpen = signal(false);
   protected readonly editing = signal<Goal | null>(null);
   protected readonly saving = signal(false);
 
   protected form: Partial<Goal> = {};
+  protected tagsText = '';
+
+  protected readonly lifecycleOptions = computed(() => [
+    { value: 'active', label: 'Active' },
+    { value: 'archived', label: 'Archived' },
+    { value: 'trash', label: 'Trash' },
+  ]);
 
   protected readonly viewOptions = computed(() => [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
     { value: 'completed', label: 'Done' },
+  ]);
+
+  protected readonly goalKindOptions = computed(() => [
+    { value: 'general', label: 'General goal' },
+    { value: 'savings', label: 'Savings goal' },
   ]);
 
   protected readonly visibleGoals = computed(() => {
@@ -176,12 +258,24 @@ export class GoalsComponent implements OnInit {
     });
   });
 
+  protected setLifecycle(value: string): void {
+    this.lifecycle.set(value as 'active' | 'archived' | 'trash');
+    this.reload();
+  }
+
+  private reload(): void {
+    const params: Record<string, string> = {};
+    if (this.lifecycle() === 'archived') params['archived'] = 'true';
+    if (this.lifecycle() === 'trash') params['trashed'] = 'true';
+    this.service.load(params);
+  }
+
   protected readonly completedCount = computed(() =>
     this.goals().filter((g) => g.completed).length
   );
 
   ngOnInit(): void {
-    this.service.load();
+    this.reload();
   }
 
   protected setView(value: string): void {
@@ -190,7 +284,8 @@ export class GoalsComponent implements OnInit {
 
   protected openCreate = (): void => {
     this.editing.set(null);
-    this.form = { title: '', description: '', target: null, progress: 0 };
+    this.form = { title: '', description: '', kind: 'general', target: null, progress: 0 };
+    this.tagsText = '';
     this.modalOpen.set(true);
   };
 
@@ -199,12 +294,14 @@ export class GoalsComponent implements OnInit {
     this.form = {
       title: goal.title,
       description: goal.description,
+      kind: goal.kind ?? 'general',
       target: goal.target,
       unit: goal.unit,
       progress: goal.progress,
       deadline: goal.deadline ?? '',
       completed: goal.completed,
     };
+    this.tagsText = (goal.tags ?? []).join(', ');
     this.modalOpen.set(true);
   }
 
@@ -216,9 +313,12 @@ export class GoalsComponent implements OnInit {
     const payload = {
       ...this.form,
       title: this.form.title.trim(),
+      kind: this.form.kind ?? 'general',
       target: this.form.target != null ? Number(this.form.target) : null,
+      unit: this.isSavingsForm() ? 'Rp' : this.form.unit || '',
       progress: Number(this.form.progress ?? 0),
       deadline: this.form.deadline || null,
+      tags: this.parseTags(this.tagsText),
     };
     this.saving.set(true);
     const obs = this.editing()
@@ -248,15 +348,29 @@ export class GoalsComponent implements OnInit {
     });
   }
 
-  protected remove(goal: Goal): void {
-    if (!confirm(`Delete "${goal.title}"?`)) return;
-    this.service.remove(goal._id).subscribe({
+  protected setFlag(goal: Goal, flags: Partial<Goal>): void {
+    this.service.update(goal._id, flags).subscribe({
       next: () => {
-        this.toast.success('Goal deleted');
-        this.service.load();
+        this.toast.success(flags.trashed ? 'Moved to trash' : flags.archived ? 'Goal archived' : 'Goal restored');
+        this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),
     });
+  }
+
+  protected remove(goal: Goal): void {
+    if (!confirm(`Permanently delete "${goal.title}"? This cannot be undone.`)) return;
+    this.service.remove(goal._id).subscribe({
+      next: () => {
+        this.toast.success('Goal deleted permanently');
+        this.reload();
+      },
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
+  protected parseTags(text: string): string[] {
+    return [...new Set(text.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))].slice(0, 10);
   }
 
   protected goalPercent(goal: Goal): number {
@@ -266,10 +380,37 @@ export class GoalsComponent implements OnInit {
 
   protected goalProgressText(goal: Goal): string {
     if (goal.target != null) {
+      if (this.isSavings(goal)) {
+        return `${formatCurrency(goal.progress)} / ${formatCurrency(goal.target)}`;
+      }
       return `${goal.progress} / ${goal.target} ${goal.unit || ''}`.trim();
     }
     return `${goal.progress} ${goal.unit || ''}`.trim();
   }
 
+  protected isSavings(goal: Goal): boolean {
+    return goal.kind === 'savings';
+  }
+
+  protected isSavingsForm(): boolean {
+    return this.form.kind === 'savings';
+  }
+
+  protected goalRemaining(goal: Goal): number {
+    return Math.max(0, (goal.target ?? 0) - (goal.progress ?? 0));
+  }
+
+  /** Required monthly saving to hit the target by the deadline (1 month floor). */
+  protected requiredMonthly(goal: Goal): number {
+    const remaining = this.goalRemaining(goal);
+    if (remaining <= 0 || !goal.deadline) return 0;
+    const months = Math.max(
+      1,
+      (new Date(goal.deadline).getTime() - Date.now()) / (30.44 * 86_400_000)
+    );
+    return Math.ceil(remaining / months);
+  }
+
   protected readonly formatDate = formatDate;
+  protected readonly formatCurrency = formatCurrency;
 }

@@ -9,6 +9,7 @@ import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { SettingService } from '../../core/services/data.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ApiService } from '../../core/services/api.service';
 import type { Setting } from '../../core/models/misc.model';
 
 @Component({
@@ -48,6 +49,35 @@ import type { Setting } from '../../core/models/misc.model';
             <app-select label="Language" [options]="languageOptions()" [disabled]="true"
               [hint]="'Language switching is coming soon.'"
               [(ngModel)]="form.language"></app-select>
+          </div>
+        </app-card>
+
+        <app-card>
+          <h2 class="text-base font-semibold text-ink">Keyboard shortcuts</h2>
+          <p class="mt-1 text-sm text-ink-soft">Active everywhere, except while typing in a field.</p>
+          <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            @for (sc of shortcuts; track sc.keys) {
+              <div class="flex items-center justify-between rounded-button border-2 border-ink bg-surface-2 px-3 py-2">
+                <span class="text-sm font-medium text-ink">{{ sc.action }}</span>
+                <kbd class="rounded-md border-2 border-ink bg-surface px-2 py-0.5 font-display text-[11px] text-ink">
+                  {{ sc.keys }}
+                </kbd>
+              </div>
+            }
+          </div>
+        </app-card>
+
+        <app-card>
+          <h2 class="text-base font-semibold text-ink">Export data</h2>
+          <p class="mt-1 text-sm text-ink-soft">Download only your own data — no passwords or secrets.</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <app-button variant="secondary" icon="receipt" (click)="exportCsv('transactions')">
+              Transactions CSV
+            </app-button>
+            <app-button variant="secondary" icon="list-todo" (click)="exportCsv('tasks')">
+              Tasks CSV
+            </app-button>
+            <app-button icon="download" (click)="exportAll()">Export my LifeHub data</app-button>
           </div>
         </app-card>
 
@@ -100,6 +130,16 @@ export class SettingsComponent implements OnInit {
   private settingService = inject(SettingService);
   private themeService = inject(ThemeService);
   private toast = inject(ToastService);
+  private api = inject(ApiService);
+
+  protected readonly shortcuts = [
+    { keys: 'Ctrl K', action: 'Global search' },
+    { keys: '/', action: 'Global search' },
+    { keys: 'N', action: 'New task (quick add)' },
+    { keys: 'D', action: 'Go to dashboard' },
+    { keys: 'T', action: 'Go to tasks' },
+    { keys: 'G', action: 'Go to goals' },
+  ];
 
   protected readonly loading = this.settingService.loading;
   protected readonly dark = this.themeService.dark;
@@ -171,5 +211,31 @@ export class SettingsComponent implements OnInit {
         this.toast.error(err.message);
       },
     });
+  }
+
+  protected exportCsv(kind: 'transactions' | 'tasks'): void {
+    this.api.download(`/export/${kind}`).subscribe({
+      next: (blob) => this.saveBlob(blob, `lifehub-${kind}-${Date.now()}.csv`),
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
+  protected exportAll(): void {
+    this.api.download('/export/all').subscribe({
+      next: (blob) => this.saveBlob(blob, `lifehub-data-${Date.now()}.json`),
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    this.toast.success('Download started');
   }
 }

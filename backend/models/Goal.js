@@ -16,6 +16,13 @@ const goalSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    // 'savings' goals are financial targets (target = amount of money) and get
+    // extra money-aware UI (remaining amount, required monthly saving).
+    kind: {
+      type: String,
+      enum: ['general', 'savings'],
+      default: 'general',
+    },
     target: {
       type: Number,
       default: null,
@@ -34,6 +41,18 @@ const goalSchema = new mongoose.Schema(
       default: null,
     },
     completed: {
+      type: Boolean,
+      default: false,
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    archived: {
+      type: Boolean,
+      default: false,
+    },
+    trashed: {
       type: Boolean,
       default: false,
     },

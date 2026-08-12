@@ -17,7 +17,12 @@ import { SegmentedComponent } from '../../layout/components/segmented.component'
 import { TaskService } from '../../core/services/task.service';
 import { CategoryService } from '../../core/services/category.service';
 import { ToastService } from '../../core/services/toast.service';
-import type { Category, Task, TaskPayload } from '../../core/models/task.model';
+import type {
+  Category,
+  Task,
+  TaskPayload,
+  TaskRecurrenceFrequency,
+} from '../../core/models/task.model';
 import { formatDateTime, isOverdue, relativeDay } from '../../core/utils/format';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
@@ -81,11 +86,30 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           [ngModel]="categoryFilter()"
           (ngModelChange)="categoryFilter.set($event)"
         ></app-select>
-        <app-button size="sm" variant="ghost" icon="archive" (click)="toggleArchive()">
-          {{ archived() ? 'Active' : 'Archived' }}
-        </app-button>
+        <app-segmented [options]="lifecycleOptions()" [model]="lifecycle()" (change)="setLifecycle($event)" />
       </div>
     </div>
+
+    @if (allTags().length > 0 && lifecycle() === 'active') {
+      <div class="mb-4 flex flex-wrap items-center gap-1.5">
+        <button
+          (click)="tagFilter.set('')"
+          class="rounded-md border-2 border-ink px-2 py-0.5 text-xs font-bold transition-colors"
+          [class]="tagFilter() === '' ? 'bg-primary text-ink' : 'bg-surface text-ink-soft hover:text-ink'"
+        >
+          All
+        </button>
+        @for (tag of allTags(); track tag) {
+          <button
+            (click)="tagFilter.set(tagFilter() === tag ? '' : tag)"
+            class="rounded-md border-2 border-ink px-2 py-0.5 text-xs font-bold transition-colors"
+            [class]="tagFilter() === tag ? 'bg-primary text-ink' : 'bg-surface text-ink-soft hover:text-ink'"
+          >
+            #{{ tag }}
+          </button>
+        }
+      </div>
+    }
 
     <app-card [padding]="'none'">
       @if (loading()) {
@@ -147,6 +171,22 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                       }
                     </span>
                   }
+                  @if (task.recurring?.isRecurring) {
+                    <span class="flex items-center gap-1">
+                      <app-icon name="repeat" [size]="12" />
+                      {{ task.recurring?.frequency }}
+                      @if (task.recurring?.frequency === 'weekly' && (task.recurring?.daysOfWeek?.length ?? 0) > 0) {
+                        · {{ dayNames(task.recurring!.daysOfWeek) }}
+                      }
+                    </span>
+                  }
+                  @if ((task.tags?.length ?? 0) > 0) {
+                    <span class="flex items-center gap-1">
+                      @for (tag of (task.tags ?? []).slice(0, 3); track tag) {
+                        <span class="rounded-md border border-line bg-surface-2 px-1 py-0.5 text-[10px] font-bold">#{{ tag }}</span>
+                      }
+                    </span>
+                  }
                   @if (task.reminder) {
                     <span class="flex items-center gap-1">
                       <app-icon name="bell" [size]="12" />
@@ -191,12 +231,21 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                   [attr.aria-label]="'Edit ' + task.title"
                   (click)="openEdit(task)"
                 ></app-button>
+                @if (lifecycle() !== 'trash') {
+                  <app-button
+                    size="icon"
+                    variant="ghost"
+                    icon="archive"
+                    [attr.aria-label]="'Archive ' + task.title"
+                    (click)="setFlag(task, { archived: true })"
+                  ></app-button>
+                }
                 <app-button
                   size="icon"
                   variant="ghost"
                   icon="trash-2"
-                  [attr.aria-label]="'Delete ' + task.title"
-                  (click)="remove(task)"
+                  [attr.aria-label]="lifecycle() === 'trash' ? 'Delete permanently' : 'Move to trash'"
+                  (click)="lifecycle() === 'trash' ? remove(task) : setFlag(task, { trashed: true, archived: false })"
                 ></app-button>
               </div>
             </li>
@@ -245,6 +294,45 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
             name="reminder"
           />
         </div>
+        <app-select
+          label="Repeat"
+          [options]="recurringOptions()"
+          [hint]="recurringHint()"
+          [(ngModel)]="formRecurring"
+          name="recurring"
+        />
+        <app-field
+          label="Tags"
+          placeholder="work, urgent, school… (comma separated)"
+          [(ngModel)]="tagsText"
+          name="tags"
+        />
+        @if (formRecurring === 'weekly') {
+          <div>
+            <label class="mb-1.5 block text-sm font-bold text-ink">Days of the week</label>
+            <div class="flex flex-wrap gap-1.5">
+              @for (day of weekDays; track day.value) {
+                <button
+                  type="button"
+                  (click)="toggleDay(day.value)"
+                  class="h-9 min-w-9 rounded-button border-2 px-2 text-xs font-bold transition-all"
+                  [class]="
+                    formDays.includes(day.value)
+                      ? 'border-ink bg-primary text-ink shadow-soft'
+                      : 'border-ink bg-surface text-ink-soft hover:bg-surface-2'
+                  "
+                >
+                  {{ day.label }}
+                </button>
+              }
+            </div>
+            @if (formDays.length > 0) {
+              <p class="mt-1.5 text-xs font-medium text-ink-soft">
+                Every {{ dayNames(formDays) }}
+              </p>
+            }
+          </div>
+        }
         <div class="flex justify-end gap-2 pt-2">
           <app-button type="button" variant="secondary" (click)="closeModal()">Cancel</app-button>
           <app-button type="submit" [loading]="saving()">
@@ -355,7 +443,8 @@ export class TasksComponent implements OnInit {
   protected readonly filter = signal<Filter>('all');
   protected readonly search = signal('');
   protected readonly categoryFilter = signal('');
-  protected readonly archived = signal(false);
+  protected readonly tagFilter = signal('');
+  protected readonly lifecycle = signal<'active' | 'archived' | 'trash'>('active');
   protected readonly modalOpen = signal(false);
   protected readonly editing = signal<Task | null>(null);
   protected readonly saving = signal(false);
@@ -378,11 +467,54 @@ export class TasksComponent implements OnInit {
       .map((c) => ({ value: c._id, label: c.name }))
   );
 
+  protected readonly lifecycleOptions = computed(() => [
+    { value: 'active', label: 'Active' },
+    { value: 'archived', label: 'Archived' },
+    { value: 'trash', label: 'Trash' },
+  ]);
+
+  protected readonly allTags = computed(() =>
+    [...new Set(this.tasks().flatMap((t) => t.tags ?? []))].sort()
+  );
+
+  protected readonly recurringOptions = computed(() => [
+    { value: 'none', label: 'No repeat' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' },
+  ]);
+
+  protected readonly recurringHint = computed(() =>
+    this.formRecurring === 'none'
+      ? ''
+      : this.formRecurring === 'weekly' && this.formDays.length === 0
+        ? 'Pick days below, or leave empty for every week.'
+        : 'Repeats automatically after the due date.'
+  );
+
+  protected readonly weekDays = [
+    { value: 0, label: 'Su' },
+    { value: 1, label: 'Mo' },
+    { value: 2, label: 'Tu' },
+    { value: 3, label: 'We' },
+    { value: 4, label: 'Th' },
+    { value: 5, label: 'Fr' },
+    { value: 6, label: 'Sa' },
+  ];
+
+  protected formRecurring: TaskRecurrenceFrequency = 'none';
+  protected formDays: number[] = [];
+
   protected readonly filteredTasks = computed(() => {
     const q = this.search().toLowerCase().trim();
+    const tag = this.tagFilter();
     return this.tasks()
       .filter((t) => {
-        if (t.archived !== this.archived()) return false;
+        if (this.lifecycle() === 'trash') return !!t.trashed;
+        if (t.trashed) return false;
+        if (this.lifecycle() === 'archived') return !!t.archived;
+        if (t.archived) return false;
         if (this.filter() !== 'all' && t.status !== this.filter()) return false;
         const selectedCategory = this.categoryFilter();
         if (selectedCategory) {
@@ -392,6 +524,7 @@ export class TasksComponent implements OnInit {
               : t.category;
           if (cid !== selectedCategory) return false;
         }
+        if (tag && !(t.tags ?? []).includes(tag)) return false;
         if (q && !t.title.toLowerCase().includes(q)) return false;
         return true;
       })
@@ -399,6 +532,7 @@ export class TasksComponent implements OnInit {
   });
 
   protected form: TaskPayload = {};
+  protected tagsText = '';
 
   ngOnInit(): void {
     this.categoryService.load({ type: 'task' });
@@ -409,7 +543,17 @@ export class TasksComponent implements OnInit {
   }
 
   protected reload(): void {
-    this.taskService.load({ archived: this.archived() ? 'true' : undefined });
+    const params: Record<string, string> = {};
+    if (this.lifecycle() === 'archived') params['archived'] = 'true';
+    else if (this.lifecycle() === 'trash') params['trashed'] = 'true';
+    else params['archived'] = 'false';
+    this.taskService.load(params);
+  }
+
+  protected setLifecycle(value: string): void {
+    this.lifecycle.set(value as 'active' | 'archived' | 'trash');
+    this.tagFilter.set('');
+    this.reload();
   }
 
   protected setFilter(f: string): void {
@@ -418,14 +562,12 @@ export class TasksComponent implements OnInit {
   protected setSearch(q: string): void {
     this.search.set(q);
   }
-  protected toggleArchive(): void {
-    this.archived.set(!this.archived());
-    this.reload();
-  }
-
   protected openCreate = (): void => {
     this.editing.set(null);
     this.form = { title: '', description: '', status: 'todo' };
+    this.formRecurring = 'none';
+    this.formDays = [];
+    this.tagsText = '';
     this.modalOpen.set(true);
   };
 
@@ -439,6 +581,9 @@ export class TasksComponent implements OnInit {
       dueDate: task.dueDate ?? '',
       reminder: task.reminder ?? '',
     };
+    this.formRecurring = task.recurring?.isRecurring ? task.recurring.frequency : 'none';
+    this.formDays = [...(task.recurring?.daysOfWeek ?? [])];
+    this.tagsText = (task.tags ?? []).join(', ');
     this.modalOpen.set(true);
   }
 
@@ -468,12 +613,19 @@ export class TasksComponent implements OnInit {
       this.toast.error('Task title is required.');
       return;
     }
+    const isRecurring = this.formRecurring !== 'none';
     const payload: TaskPayload = {
       ...this.form,
       title,
       category: this.form.category || null,
       dueDate: this.form.dueDate || null,
       reminder: this.form.reminder || null,
+      tags: this.parseTags(this.tagsText),
+      recurring: {
+        isRecurring,
+        frequency: isRecurring ? this.formRecurring : 'none',
+        daysOfWeek: isRecurring && this.formRecurring === 'weekly' ? this.formDays : [],
+      },
     };
     this.saving.set(true);
     const obs = this.editing()
@@ -506,6 +658,21 @@ export class TasksComponent implements OnInit {
       });
   }
 
+  protected toggleDay(day: number): void {
+    this.formDays = this.formDays.includes(day)
+      ? this.formDays.filter((d) => d !== day)
+      : [...this.formDays, day].sort((a, b) => a - b);
+  }
+
+  protected parseTags(text: string): string[] {
+    return [...new Set(text.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))].slice(0, 10);
+  }
+
+  protected dayNames(days: number[]): string {
+    const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days.map((d) => names[d]?.slice(0, 3)).join(', ');
+  }
+
   protected togglePin(task: Task): void {
     this.taskService
       .update(task._id, { pinned: !task.pinned })
@@ -518,11 +685,21 @@ export class TasksComponent implements OnInit {
       });
   }
 
+  protected setFlag(task: Task, flags: TaskPayload): void {
+    this.taskService.update(task._id, flags).subscribe({
+      next: () => {
+        this.toast.success(flags.trashed ? 'Moved to trash' : flags.archived ? 'Task archived' : 'Task restored');
+        this.reload();
+      },
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
   protected remove(task: Task): void {
-    if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+    if (!confirm(`Permanently delete "${task.title}"? This cannot be undone.`)) return;
     this.taskService.remove(task._id).subscribe({
       next: () => {
-        this.toast.success('Task deleted');
+        this.toast.success('Task deleted permanently');
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),

@@ -10,6 +10,9 @@ export interface WishlistItem {
   targetDate?: string | null;
   link?: string;
   status: WishlistStatus;
+  tags?: string[];
+  archived?: boolean;
+  trashed?: boolean;
   createdAt?: string;
 }
 
@@ -35,11 +38,15 @@ export interface Goal {
   user: string;
   title: string;
   description?: string;
+  kind?: 'general' | 'savings';
   target?: number | null;
   unit?: string;
   progress: number;
   deadline?: string | null;
   completed: boolean;
+  tags?: string[];
+  archived?: boolean;
+  trashed?: boolean;
   createdAt?: string;
 }
 

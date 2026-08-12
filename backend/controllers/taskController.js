@@ -1,5 +1,13 @@
 const Task = require('../models/Task');
 const Category = require('../models/Category');
+const { nextOccurrence } = require('../services/taskScheduler');
+
+/** Recompute nextOccurrence from a task's due date + recurring config. */
+function computeNextOccurrence(dueDate, recurring) {
+  if (!recurring || !recurring.isRecurring) return null;
+  const base = dueDate ? new Date(dueDate) : new Date();
+  return nextOccurrence(base, recurring.frequency || 'monthly', recurring.daysOfWeek);
+}
 
 /** Reject category references that do not belong to the user. */
 async function validateCategory(userId, category) {
@@ -14,12 +22,15 @@ async function validateCategory(userId, category) {
 
 const getTasks = async (req, res, next) => {
   try {
-    const { status, category, search, archived, sort } = req.query;
+    const { status, category, search, archived, trashed, tag, sort } = req.query;
     const filter = { user: req.user._id };
 
     if (status) filter.status = status;
     if (category) filter.category = category;
+    if (trashed !== undefined) filter.trashed = trashed === 'true';
+    else filter.trashed = { $ne: true };
     if (archived !== undefined) filter.archived = archived === 'true';
+    if (tag) filter.tags = tag;
 
     if (search) {
       filter.$or = [
@@ -63,9 +74,14 @@ const getTaskById = async (req, res, next) => {
 const createTask = async (req, res, next) => {
   try {
     await validateCategory(req.user._id, req.body.category);
+    const body = { ...req.body };
+    if (body.recurring !== undefined) {
+      body.recurring = { isRecurring: false, frequency: 'monthly', daysOfWeek: [], ...body.recurring };
+      body.nextOccurrence = computeNextOccurrence(body.dueDate, body.recurring);
+    }
     const task = await Task.create({
       user: req.user._id,
-      ...req.body,
+      ...body,
     });
     res.status(201).json(task);
   } catch (err) {
@@ -99,6 +115,20 @@ const updateTask = async (req, res, next) => {
       const newTime = body.reminder ? new Date(body.reminder).getTime() : null;
       const oldTime = task.reminder ? new Date(task.reminder).getTime() : null;
       if (newTime !== oldTime) body.reminderSentAt = null;
+    }
+
+    // Keep the recurrence schedule in sync with due date / recurrence edits.
+    if (body.recurring !== undefined) {
+      body.recurring = { ...task.recurring?.toObject?.() ?? {}, ...body.recurring };
+      body.nextOccurrence = computeNextOccurrence(
+        body.dueDate !== undefined ? body.dueDate : task.dueDate,
+        body.recurring
+      );
+    } else if (body.dueDate !== undefined && task.recurring?.isRecurring) {
+      body.nextOccurrence = computeNextOccurrence(body.dueDate, task.recurring);
+    }
+    if (body.recurring && body.recurring.isRecurring === false) {
+      body.nextOccurrence = null;
     }
 
     Object.assign(task, body);

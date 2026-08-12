@@ -28,7 +28,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/layout.component').then((m) => m.LayoutComponent),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: '', pathMatch: 'full', redirectTo: 'today' },
+      {
+        path: 'today',
+        loadComponent: () =>
+          import('./features/today/today.component').then((m) => m.TodayComponent),
+      },
       {
         path: 'dashboard',
         loadComponent: () =>
@@ -83,6 +88,13 @@ export const routes: Routes = [
         path: 'statistics',
         loadComponent: () =>
           import('./features/statistics/statistics.component').then((m) => m.StatisticsComponent),
+      },
+      {
+        path: 'weekly-review',
+        loadComponent: () =>
+          import('./features/weekly-review/weekly-review.component').then(
+            (m) => m.WeeklyReviewComponent
+          ),
       },
       {
         path: 'settings',

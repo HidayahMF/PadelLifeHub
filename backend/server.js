@@ -11,6 +11,7 @@ const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { startReminderScheduler } = require('./services/reminderScheduler');
 const { startRecurringScheduler } = require('./services/recurringScheduler');
+const { startTaskScheduler } = require('./services/taskScheduler');
 
 const app = express();
 
@@ -18,6 +19,7 @@ connectDB().then(() => {
   // Schedulers run only after the database is reachable.
   startReminderScheduler();
   startRecurringScheduler();
+  startTaskScheduler();
 });
 
 app.use(
@@ -55,6 +57,11 @@ app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/settings', require('./routes/settingRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/today', require('./routes/todayRoutes'));
+app.use('/api/insights', require('./routes/insightsRoutes'));
+app.use('/api/weekly-review', require('./routes/weeklyReviewRoutes'));
+app.use('/api/export', require('./routes/exportRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);

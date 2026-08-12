@@ -26,6 +26,22 @@ const settingSchema = new mongoose.Schema(
       habitReminders: { type: Boolean, default: true },
       emailUpdates: { type: Boolean, default: false },
     },
+    // Ordered list of visible dashboard widget keys — per user, not global.
+    dashboardWidgets: {
+      type: [String],
+      default: [
+        'stats',
+        'finance',
+        'today',
+        'upcoming',
+        'habits',
+        'chart',
+        'budget',
+        'goals',
+        'wishlist',
+        'recent',
+      ],
+    },
   },
   { timestamps: true }
 );

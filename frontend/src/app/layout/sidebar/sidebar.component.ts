@@ -26,7 +26,7 @@ import { AuthService } from '../../core/services/auth.service';
         <span
           class="flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-primary text-ink shadow-soft"
         >
-          <app-icon name="zap" [size]="22" [strokeWidth]="2.6" />
+          <img src="assets/logolifehub.png" alt="LifeHub logo" class="h-6 w-6 object-contain" />
         </span>
         <div class="min-w-0">
           <p class="font-display text-base leading-tight text-ink">LifeHub</p>

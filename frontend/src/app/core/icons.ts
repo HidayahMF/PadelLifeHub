@@ -29,6 +29,7 @@ import {
   LucideCoins,
   LucideCreditCard,
   LucideDumbbell,
+  LucideDownload,
   LucideExternalLink,
   LucideEye,
   LucideEyeOff,
@@ -188,5 +189,6 @@ export const ICONS: Record<string, LucideIconData> = {
   package: LucidePackage.icon,
   utensils: LucideUtensils.icon,
   dumbbell: LucideDumbbell.icon,
+  download: LucideDownload.icon,
   'book-open': LucideBookOpen.icon,
 };

@@ -45,7 +45,7 @@ import { ToastService } from '../../../core/services/toast.service';
             <span
               class="flex h-12 w-12 items-center justify-center rounded-[14px] border-2 border-ink bg-primary text-ink shadow-soft"
             >
-              <app-icon name="zap" [size]="26" [strokeWidth]="2.6" />
+              <img src="assets/logolifehub.png" alt="LifeHub logo" class="h-7 w-7 object-contain" />
             </span>
             <div>
               <p class="font-display text-xl leading-none text-ink">LIFEHUB</p>
