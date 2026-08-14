@@ -19,7 +19,9 @@ import {
   TransactionService,
 } from '../../core/services/finance.service';
 import { CategoryService } from '../../core/services/category.service';
+import { SettingService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type {
   Account,
   Budget,
@@ -38,8 +40,6 @@ import {
   toDate,
 } from '../../core/utils/format';
 import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/date';
-
-const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
 
 @Component({
   selector: 'app-finance',
@@ -62,30 +62,30 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
   ],
   template: `
     <app-page-header
-      title="Finance"
-      subtitle="Track your money and stay on budget."
-      actionLabel="Add transaction"
+      [title]="t('Finance')"
+      [subtitle]="t('Track your money and stay on budget.')"
+      [actionLabel]="t('Add transaction')"
       actionIcon="plus"
       [action]="openCreate"
     ></app-page-header>
 
     <!-- Summary -->
     <div class="mb-3 flex items-center justify-between">
-      <p class="text-xs font-bold uppercase tracking-wider text-ink-soft">Summary</p>
+      <p class="text-xs font-bold uppercase tracking-wider text-ink-soft">{{ t('Summary') }}</p>
       <app-button
         size="icon"
         variant="ghost"
         [icon]="hideBalance() ? 'eye-off' : 'eye'"
-        [attr.aria-label]="hideBalance() ? 'Show balances' : 'Hide balances'"
-        [attr.title]="hideBalance() ? 'Show balances' : 'Hide balances'"
+        [attr.aria-label]="hideBalance() ? t('Show balances') : t('Hide balances')"
+        [attr.title]="hideBalance() ? t('Show balances') : t('Hide balances')"
         (click)="toggleHideBalance()"
       ></app-button>
     </div>
     <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
-      <app-stat-card label="Balance" [value]="displayBalance(balance())" icon="piggy-bank" tone="primary" />
-      <app-stat-card label="Income (month)" [value]="displayAmount(monthIncome())" icon="trending-up" tone="success" />
-      <app-stat-card label="Expenses (month)" [value]="displayAmount(monthExpense())" icon="trending-down" tone="danger" />
-      <app-stat-card label="Transactions" [value]="transactions().length" icon="receipt" />
+      <app-stat-card [label]="t('Balance')" [value]="displayBalance(balance())" icon="piggy-bank" tone="primary" />
+      <app-stat-card [label]="t('Income (month)')" [value]="displayAmount(monthIncome())" icon="trending-up" tone="success" />
+      <app-stat-card [label]="t('Expenses (month)')" [value]="displayAmount(monthExpense())" icon="trending-down" tone="danger" />
+      <app-stat-card [label]="t('Transactions')" [value]="transactions().length" icon="receipt" />
     </div>
 
     <!-- Accounts -->
@@ -99,7 +99,7 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
             (click)="openAccount()"
             class="min-w-0 text-left text-sm font-semibold text-ink hover:underline"
           >
-            Add account
+            {{ t('Add account') }}
           </button>
         </div>
       </app-card>
@@ -128,10 +128,10 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
             </div>
             <div class="flex shrink-0 items-center gap-0.5">
               <app-button size="icon" variant="ghost" icon="pencil"
-                [attr.aria-label]="'Edit ' + account.name"
+                [attr.aria-label]="t('Edit {name}', { name: account.name })"
                 (click)="openEditAccount(account)"></app-button>
               <app-button size="icon" variant="ghost" icon="trash-2"
-                [attr.aria-label]="'Delete ' + account.name"
+                [attr.aria-label]="t('Delete {name}', { name: account.name })"
                 (click)="removeAccount(account)"></app-button>
             </div>
           </div>
@@ -150,13 +150,13 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
           />
           <div class="ml-auto flex flex-wrap items-center gap-2">
             <app-select
-              placeholder="Account"
+              [placeholder]="t('Account')"
               [options]="accountOptions()"
               [ngModel]="accountFilter()"
               (ngModelChange)="accountFilter.set($event)"
             ></app-select>
             <app-select
-              placeholder="Category"
+              [placeholder]="t('Category')"
               [options]="categoryOptions()"
               [ngModel]="categoryFilter()"
               (ngModelChange)="categoryFilter.set($event)"
@@ -174,8 +174,8 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
           } @else if (filteredTransactions().length === 0) {
             <div class="px-6 py-14 text-center">
               <app-icon name="wallet" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
-              <p class="mt-3 text-sm font-semibold text-ink">No transactions</p>
-              <p class="mt-1 text-sm text-ink-soft">Add your first income or expense.</p>
+              <p class="mt-3 text-sm font-semibold text-ink">{{ t('No transactions') }}</p>
+              <p class="mt-1 text-sm text-ink-soft">{{ t('Add your first income or expense.') }}</p>
             </div>
           } @else {
             <ul class="divide-y divide-line">
@@ -197,7 +197,7 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
                   </span>
                   <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium text-ink">
-                      {{ txn.description || (txn.type === 'transfer' ? 'Transfer' : 'Transaction') }}
+                      {{ txn.description || (txn.type === 'transfer' ? t('Transfer') : t('Transaction')) }}
                     </p>
                     <p class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
                       @if (txn.type === 'transfer') {
@@ -207,7 +207,7 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
                       } @else {
                         <span class="flex items-center gap-1">
                           <span class="inline-block h-2 w-2 rounded-full" [style.background]="categoryColor(txn.category)"></span>
-                          {{ categoryName(txn.category) || 'Uncategorized' }}
+                          {{ categoryName(txn.category) || t('Uncategorized') }}
                         </span>
                       }
                       <span class="flex items-center gap-1">
@@ -215,7 +215,7 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
                         {{ formatDate(txn.date, 'short') }}
                       </span>
                       @if (txn.recurring?.isRecurring) {
-                        <app-badge tone="info" icon="repeat">{{ txn.recurring?.frequency }}</app-badge>
+                        <app-badge tone="info" icon="repeat">{{ t(txn.recurring?.frequency ?? '') }}</app-badge>
                       }
                     </p>
                   </div>
@@ -228,10 +228,10 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
                   </span>
                   <div class="flex shrink-0 items-center gap-0.5">
                     <app-button size="icon" variant="ghost" icon="pencil"
-                      [attr.aria-label]="'Edit transaction'"
+                      [attr.aria-label]="t('Edit transaction')"
                       (click)="openEdit(txn)"></app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Delete transaction'"
+                      [attr.aria-label]="t('Delete transaction')"
                       (click)="remove(txn)"></app-button>
                   </div>
                 </li>
@@ -245,35 +245,35 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
       <div class="space-y-6">
         <app-card [padding]="'none'">
           <div class="flex items-center justify-between px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Budgets</h2>
+            <h2 class="text-base font-semibold text-ink">{{ t('Budgets') }}</h2>
             <app-button size="sm" variant="secondary" icon="plus" (click)="openBudget()"></app-button>
           </div>
           <div class="p-5">
             <div class="mb-4 flex items-center gap-2">
               <app-button size="icon" variant="ghost" icon="chevron-left"
-                [attr.aria-label]="'Previous month'"
+                [attr.aria-label]="t('Previous month')"
                 (click)="shiftMonth(-1)"></app-button>
               <span class="flex-1 text-center text-sm font-medium text-ink">{{ monthLabel(budgetMonth()) }}</span>
               <app-button size="icon" variant="ghost" icon="chevron-right"
-                [attr.aria-label]="'Next month'"
+                [attr.aria-label]="t('Next month')"
                 (click)="shiftMonth(1)"></app-button>
             </div>
             @if (budgetsLoading()) {
               <div class="space-y-3">@for (_ of [1, 2]; track $index) { <app-skeleton size="field" /> }</div>
             } @else if (budgets().length === 0) {
-              <p class="py-6 text-center text-sm text-ink-soft">No budgets for this month.</p>
+              <p class="py-6 text-center text-sm text-ink-soft">{{ t('No budgets for this month.') }}</p>
             } @else {
               <div class="space-y-4">
                 @for (budget of budgets(); track budget._id) {
                   <div>
                     <div class="mb-1.5 flex items-center gap-2 text-sm">
-                      <span class="min-w-0 flex-1 truncate font-medium text-ink">{{ categoryName(budget.category) || 'Overall' }}</span>
+                      <span class="min-w-0 flex-1 truncate font-medium text-ink">{{ categoryName(budget.category) || t('Overall') }}</span>
                       <span class="shrink-0 text-xs text-ink-soft">{{ formatCurrency(budget.spent) }} / {{ formatCurrency(budget.amount) }}</span>
                       <app-button size="icon" variant="ghost" icon="pencil"
-                        [attr.aria-label]="'Edit budget'"
+                        [attr.aria-label]="t('Edit budget')"
                         (click)="openEditBudget(budget)"></app-button>
                       <app-button size="icon" variant="ghost" icon="trash-2"
-                        [attr.aria-label]="'Delete budget'"
+                        [attr.aria-label]="t('Delete budget')"
                         (click)="removeBudget(budget)"></app-button>
                     </div>
                     <app-progress [value]="percent(budget.spent, budget.amount)" />
@@ -286,11 +286,11 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
 
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Spending by category</h2>
-            <p class="text-xs text-ink-soft">This month</p>
+            <h2 class="text-base font-semibold text-ink">{{ t('Spending by category') }}</h2>
+            <p class="text-xs text-ink-soft">{{ t('This month') }}</p>
           </div>
           <div class="p-5">
-            <app-donut-chart [segments]="spendingSegments()" [totalLabel]="'spent'" />
+            <app-donut-chart [segments]="spendingSegments()" [totalLabel]="t('spent')" />
           </div>
         </app-card>
       </div>
@@ -299,7 +299,7 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
     <!-- Transaction modal -->
     <app-modal
       [open]="txnModalOpen()"
-      [title]="editingTxn() ? 'Edit transaction' : 'New transaction'"
+      [title]="editingTxn() ? t('Edit transaction') : t('New transaction')"
       (closed)="txnModalOpen.set(false)"
     >
       <form (ngSubmit)="saveTxn()" class="space-y-4">
@@ -309,7 +309,7 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
           (change)="setTxnType($event)"
         />
         <app-field
-          label="Amount"
+          [label]="t('Amount')"
           type="number"
           placeholder="0"
           [required]="true"
@@ -317,24 +317,24 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
           name="amount"
         />
         <app-field
-          label="Description"
-          placeholder="e.g. Groceries"
+          [label]="t('Description')"
+          [placeholder]="t('e.g. Groceries')"
           [(ngModel)]="txnForm.description"
           name="description"
         />
         @if (txnForm.type === 'transfer') {
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <app-select
-              label="From account"
-              placeholder="Select account"
+              [label]="t('From account')"
+              [placeholder]="t('Select account')"
               [options]="accountOptions()"
               [required]="true"
               [(ngModel)]="txnForm.fromAccount"
               name="fromAccount"
             />
             <app-select
-              label="To account"
-              placeholder="Select account"
+              [label]="t('To account')"
+              [placeholder]="t('Select account')"
               [options]="accountOptions()"
               [required]="true"
               [(ngModel)]="txnForm.toAccount"
@@ -344,27 +344,27 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
         } @else {
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <app-select
-              label="Category"
-              placeholder="Select category"
+              [label]="t('Category')"
+              [placeholder]="t('Select category')"
               [options]="categoryOptions()"
               [required]="isExpense()"
-              [hint]="isExpense() ? 'Updates your budget progress.' : ''"
+              [hint]="isExpense() ? t('Updates your budget progress.') : ''"
               [(ngModel)]="txnForm.category"
               name="category"
             />
             <app-select
-              label="Account"
-              placeholder="Select account"
+              [label]="t('Account')"
+              [placeholder]="t('Select account')"
               [options]="accountOptions()"
               [required]="true"
-              [hint]="'Updates the balance of this bank or e-wallet.'"
+              [hint]="t('Updates the balance of this bank or e-wallet.')"
               [(ngModel)]="txnForm.account"
               name="account"
             />
           </div>
         }
         <app-field
-          label="Date"
+          [label]="t('Date')"
           type="date"
           [required]="true"
           [(ngModel)]="txnForm.date"
@@ -372,16 +372,16 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
         />
         @if (txnForm.type !== 'transfer') {
           <app-select
-            label="Repeat"
+            [label]="t('Repeat')"
             [options]="recurringOptions()"
-            [hint]="'Generates a new transaction on schedule.'"
+            [hint]="t('Generates a new transaction on schedule.')"
             [(ngModel)]="txnRecurring"
             name="recurring"
           />
         }
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="txnModalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="savingTxn()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="txnModalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="savingTxn()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -389,19 +389,19 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
     <!-- Account modal -->
     <app-modal
       [open]="accountModalOpen()"
-      [title]="editingAccount() ? 'Edit account' : 'New account'"
+      [title]="editingAccount() ? t('Edit account') : t('New account')"
       (closed)="accountModalOpen.set(false)"
     >
       <form (ngSubmit)="saveAccount()" class="space-y-4">
-        <app-field label="Name" placeholder="e.g. Main bank" [required]="true"
+        <app-field [label]="t('Name')" [placeholder]="t('e.g. Main bank')" [required]="true"
           [(ngModel)]="accountForm.name" name="name" />
-        <app-select label="Type" [options]="accountTypeOptions()"
+        <app-select [label]="t('Type')" [options]="accountTypeOptions()"
           [(ngModel)]="accountForm.type" name="type" />
-        <app-field label="Balance" type="number" placeholder="0"
+        <app-field [label]="t('Balance')" type="number" placeholder="0"
           [(ngModel)]="accountForm.balance" name="balance" />
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="accountModalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="savingAccount()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="accountModalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="savingAccount()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -409,18 +409,18 @@ const HIDE_BALANCE_KEY = 'lifehub_hide_balance';
     <!-- Budget modal -->
     <app-modal
       [open]="budgetModalOpen()"
-      [title]="editingBudget() ? 'Edit budget' : 'New budget'"
+      [title]="editingBudget() ? t('Edit budget') : t('New budget')"
       (closed)="budgetModalOpen.set(false)"
     >
       <form (ngSubmit)="saveBudget()" class="space-y-4">
-        <app-select label="Category" placeholder="Overall (all categories)"
+        <app-select [label]="t('Category')" [placeholder]="t('Overall (all categories)')"
           [options]="categoryOptions()" [(ngModel)]="budgetForm.category" name="category" />
-        <app-field label="Amount" type="number" placeholder="0" [required]="true"
+        <app-field [label]="t('Amount')" type="number" placeholder="0" [required]="true"
           [(ngModel)]="budgetForm.amount" name="amount" />
-        <p class="text-xs text-ink-soft">Budget for {{ monthLabel(budgetMonth()) }}.</p>
+        <p class="text-xs text-ink-soft">{{ t('Budget for {month}.', { month: monthLabel(budgetMonth()) }) }}</p>
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="budgetModalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="savingBudget()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="budgetModalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="savingBudget()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -431,7 +431,11 @@ export class FinanceComponent implements OnInit {
   private accountService = inject(AccountService);
   private budgetService = inject(BudgetService);
   private categoryService = inject(CategoryService);
+  private settingService = inject(SettingService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly transactions = this.txnService.transactions;
   protected readonly transactionsLoading = this.txnService.loading;
@@ -440,7 +444,7 @@ export class FinanceComponent implements OnInit {
   protected readonly budgetsLoading = this.budgetService.loading;
   protected readonly categories = this.categoryService.categories;
   protected readonly failedLogos = signal<string[]>([]);
-  protected readonly hideBalance = signal<boolean>(localStorage.getItem(HIDE_BALANCE_KEY) === '1');
+  protected readonly hideBalance = signal(false);
 
   protected readonly typeFilter = signal<TransactionType | 'all'>('all');
   protected readonly accountFilter = signal('');
@@ -463,10 +467,10 @@ export class FinanceComponent implements OnInit {
   protected budgetForm: Partial<Budget> = {};
 
   protected readonly typeOptions = computed(() => [
-    { value: 'all', label: 'All' },
-    { value: 'income', label: 'Income' },
-    { value: 'expense', label: 'Expense' },
-    { value: 'transfer', label: 'Transfer' },
+    { value: 'all', label: this.t('All') },
+    { value: 'income', label: this.t('Income') },
+    { value: 'expense', label: this.t('Expense') },
+    { value: 'transfer', label: this.t('Transfer') },
   ]);
 
   protected readonly accountOptions = computed<{ value: string; label: string }[]>(() =>
@@ -480,16 +484,16 @@ export class FinanceComponent implements OnInit {
   );
 
   protected readonly accountTypeOptions = computed(() => [
-    { value: 'cash', label: 'Cash' },
-    { value: 'bank', label: 'Bank' },
-    { value: 'ewallet', label: 'E-wallet' },
+    { value: 'cash', label: this.t('Cash') },
+    { value: 'bank', label: this.t('Bank') },
+    { value: 'ewallet', label: this.t('E-wallet') },
   ]);
 
   protected readonly recurringOptions = computed(() => [
-    { value: 'none', label: 'No repeat' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
+    { value: 'none', label: this.t('No repeat') },
+    { value: 'daily', label: this.t('Daily') },
+    { value: 'weekly', label: this.t('Weekly') },
+    { value: 'monthly', label: this.t('Monthly') },
   ]);
 
   protected readonly filteredTransactions = computed(() =>
@@ -511,7 +515,11 @@ export class FinanceComponent implements OnInit {
   protected toggleHideBalance(): void {
     const value = !this.hideBalance();
     this.hideBalance.set(value);
-    localStorage.setItem(HIDE_BALANCE_KEY, value ? '1' : '0');
+    // Persist to the backend so Dashboard (which reads the same setting)
+    // stays in sync — this used to live in localStorage only.
+    this.settingService.update({ hideBalance: value }).subscribe({
+      error: () => undefined,
+    });
   }
 
   protected displayBalance(value: number): string {
@@ -548,7 +556,7 @@ export class FinanceComponent implements OnInit {
     for (const t of this.transactions()) {
       if (t.type !== 'expense') continue;
       if (monthKey(toDate(t.date)) !== this.budgetMonth()) continue;
-      const name = this.categoryName(t.category) || 'Other';
+      const name = this.categoryName(t.category) || this.t('Other');
       spent.set(name, (spent.get(name) ?? 0) + t.amount);
     }
     const palette = [
@@ -567,6 +575,12 @@ export class FinanceComponent implements OnInit {
   ngOnInit(): void {
     this.categoryService.load({ type: 'transaction' });
     this.reload();
+    // Read the hide-balance preference from the backend (same source as
+    // Dashboard) instead of a stale localStorage copy.
+    this.settingService.get().subscribe({
+      next: (s) => this.hideBalance.set(!!s.hideBalance),
+      error: () => undefined,
+    });
   }
 
   private reload(): void {
@@ -631,16 +645,16 @@ export class FinanceComponent implements OnInit {
   protected saveTxn(): void {
     const amount = Number(this.txnForm.amount);
     if (!this.txnForm.type || !amount || amount <= 0) {
-      this.toast.error('Please enter a valid amount.');
+      this.toast.error(this.t('Please enter a valid amount.'));
       return;
     }
     if (this.txnForm.type === 'transfer') {
       if (!this.txnForm.fromAccount || !this.txnForm.toAccount) {
-        this.toast.error('Select both accounts for the transfer.');
+        this.toast.error(this.t('Select both accounts for the transfer.'));
         return;
       }
       if (this.txnForm.fromAccount === this.txnForm.toAccount) {
-        this.toast.error('Pick two different accounts.');
+        this.toast.error(this.t('Pick two different accounts.'));
         return;
       }
       this.savingTxn.set(true);
@@ -658,7 +672,7 @@ export class FinanceComponent implements OnInit {
       obs.subscribe({
         next: () => {
           this.savingTxn.set(false);
-          this.toast.success(this.editingTxn() ? 'Transfer updated' : 'Transfer added');
+          this.toast.success(this.editingTxn() ? this.t('Transfer updated') : this.t('Transfer added'));
           this.txnModalOpen.set(false);
           this.reload();
         },
@@ -670,11 +684,11 @@ export class FinanceComponent implements OnInit {
       return;
     }
     if (!this.txnForm.account) {
-      this.toast.error('Select an account so the balance is updated.');
+      this.toast.error(this.t('Select an account so the balance is updated.'));
       return;
     }
     if (this.isExpense() && !this.txnForm.category) {
-      this.toast.error('Select a category so your budget is updated.');
+      this.toast.error(this.t('Select a category so your budget is updated.'));
       return;
     }
     const isRecurring = this.txnRecurring !== 'none';
@@ -697,7 +711,7 @@ export class FinanceComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.savingTxn.set(false);
-        this.toast.success(this.editingTxn() ? 'Transaction updated' : 'Transaction added');
+        this.toast.success(this.editingTxn() ? this.t('Transaction updated') : this.t('Transaction added'));
         this.txnModalOpen.set(false);
         this.reload();
       },
@@ -726,12 +740,12 @@ export class FinanceComponent implements OnInit {
 
   protected saveAccount(): void {
     if (!this.accountForm.name?.trim()) {
-      this.toast.error('Account name is required.');
+      this.toast.error(this.t('Account name is required.'));
       return;
     }
     const balance = Number(this.accountForm.balance ?? 0);
     if (!Number.isFinite(balance)) {
-      this.toast.error('Please enter a valid balance.');
+      this.toast.error(this.t('Please enter a valid balance.'));
       return;
     }
     this.savingAccount.set(true);
@@ -746,7 +760,7 @@ export class FinanceComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.savingAccount.set(false);
-        this.toast.success(this.editingAccount() ? 'Account updated' : 'Account added');
+        this.toast.success(this.editingAccount() ? this.t('Account updated') : this.t('Account added'));
         this.editingAccount.set(null);
         this.accountModalOpen.set(false);
         this.accountService.load();
@@ -759,10 +773,10 @@ export class FinanceComponent implements OnInit {
   }
 
   protected removeAccount(account: Account): void {
-    if (!confirm(`Delete account "${account.name}"? This cannot be undone.`)) return;
+    if (!confirm(this.t('Delete account "{name}"? This cannot be undone.', { name: account.name }))) return;
     this.accountService.remove(account._id).subscribe({
       next: () => {
-        this.toast.success('Account deleted');
+        this.toast.success(this.t('Account deleted'));
         this.failedLogos.set(this.failedLogos().filter((id) => id !== account._id));
         this.accountService.load();
       },
@@ -789,7 +803,7 @@ export class FinanceComponent implements OnInit {
   protected saveBudget(): void {
     const amount = Number(this.budgetForm.amount);
     if (!amount || amount <= 0) {
-      this.toast.error('Please enter a valid budget amount.');
+      this.toast.error(this.t('Please enter a valid budget amount.'));
       return;
     }
     this.savingBudget.set(true);
@@ -804,7 +818,7 @@ export class FinanceComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.savingBudget.set(false);
-        this.toast.success(this.editingBudget() ? 'Budget updated' : 'Budget created');
+        this.toast.success(this.editingBudget() ? this.t('Budget updated') : this.t('Budget created'));
         this.editingBudget.set(null);
         this.budgetModalOpen.set(false);
         this.budgetService.load({ month: this.budgetMonth() });
@@ -813,7 +827,7 @@ export class FinanceComponent implements OnInit {
         this.savingBudget.set(false);
         this.toast.error(
           /duplicate/i.test(err.message)
-            ? 'A budget for this category already exists this month.'
+            ? this.t('A budget for this category already exists this month.')
             : err.message
         );
       },
@@ -821,11 +835,11 @@ export class FinanceComponent implements OnInit {
   }
 
   protected removeBudget(budget: Budget): void {
-    const label = this.categoryName(budget.category) || 'Overall';
-    if (!confirm(`Delete budget for ${label}?`)) return;
+    const label = this.categoryName(budget.category) || this.t('Overall');
+    if (!confirm(this.t('Delete budget for {label}?', { label }))) return;
     this.budgetService.remove(budget._id).subscribe({
       next: () => {
-        this.toast.success('Budget deleted');
+        this.toast.success(this.t('Budget deleted'));
         this.budgetService.load({ month: this.budgetMonth() });
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -833,10 +847,10 @@ export class FinanceComponent implements OnInit {
   }
 
   protected remove(txn: Transaction): void {
-    if (!confirm('Delete this transaction?')) return;
+    if (!confirm(this.t('Delete this transaction?'))) return;
     this.txnService.remove(txn._id).subscribe({
       next: () => {
-        this.toast.success('Transaction deleted');
+        this.toast.success(this.t('Transaction deleted'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),

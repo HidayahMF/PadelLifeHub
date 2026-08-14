@@ -32,6 +32,18 @@ const settingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // First-run onboarding / interactive tour state.
+    onboarding: {
+      status: {
+        type: String,
+        enum: ['not_started', 'in_progress', 'completed', 'skipped'],
+        default: 'not_started',
+      },
+      completedAt: {
+        type: Date,
+        default: null,
+      },
+    },
     dashboardWidgets: {
       type: [String],
       default: [

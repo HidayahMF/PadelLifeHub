@@ -1,5 +1,7 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { IconComponent } from '../../../layout/components/icon.component';
+import { I18nService } from '../../../core/services/i18n.service';
+import { getLocale } from '../../../core/utils/locale';
 import type { InsightsData } from '../../../core/models/misc.model';
 import { formatCurrency } from '../../../core/utils/format';
 
@@ -25,12 +27,12 @@ const TONE_CLASS: Record<InsightCard['tone'], string> = {
   template: `
     <div>
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <h2 class="text-base font-bold text-ink">Financial insights</h2>
-        <span class="text-xs font-medium text-ink-faint">Computed from your data · {{ month() }}</span>
+        <h2 class="text-base font-bold text-ink">{{ t('Financial insights') }}</h2>
+        <span class="text-xs font-medium text-ink-faint">{{ t('Computed from your data · {month}', { month: month() }) }}</span>
       </div>
       @if (cards().length === 0) {
         <p class="py-6 text-center text-sm text-ink-soft">
-          Add a few transactions to unlock financial insights.
+          {{ t('Add a few transactions to unlock financial insights.') }}
         </p>
       } @else {
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -54,6 +56,9 @@ const TONE_CLASS: Record<InsightCard['tone'], string> = {
 })
 export class InsightsComponent {
   readonly insights = input<InsightsData | null>(null);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly TONE_CLASS = TONE_CLASS;
 
@@ -61,7 +66,7 @@ export class InsightsComponent {
     const m = this.insights()?.month;
     if (!m) return '';
     const [y, mo] = m.split('-').map(Number);
-    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(
+    return new Intl.DateTimeFormat(getLocale(), { month: 'long', year: 'numeric' }).format(
       new Date(y, mo - 1, 1)
     );
   });
@@ -78,7 +83,14 @@ export class InsightsComponent {
       out.push({
         icon: 'calendar-days',
         tone: 'primary',
-        text: `You spend ${Math.abs(pct).toFixed(0)}% ${pct >= 0 ? 'more' : 'less'} per day on weekends than on weekdays.`,
+        text:
+          pct >= 0
+            ? this.t('You spend {pct}% more per day on weekends than on weekdays.', {
+                pct: Math.abs(pct).toFixed(0),
+              })
+            : this.t('You spend {pct}% less per day on weekends than on weekdays.', {
+                pct: Math.abs(pct).toFixed(0),
+              }),
       });
     }
 
@@ -88,7 +100,16 @@ export class InsightsComponent {
       out.push({
         icon: 'piggy-bank',
         tone: delta >= 0 ? 'success' : 'warning',
-        text: `Your savings rate is ${i.savingsRate.toFixed(0)}% of income this month, ${delta >= 0 ? 'up' : 'down'} ${Math.abs(delta).toFixed(1)} pts vs last month.`,
+        text:
+          delta >= 0
+            ? this.t('Your savings rate is {rate}% of income this month, up {delta} pts vs last month.', {
+                rate: i.savingsRate.toFixed(0),
+                delta: Math.abs(delta).toFixed(1),
+              })
+            : this.t('Your savings rate is {rate}% of income this month, down {delta} pts vs last month.', {
+                rate: i.savingsRate.toFixed(0),
+                delta: Math.abs(delta).toFixed(1),
+              }),
       });
     }
 
@@ -97,7 +118,10 @@ export class InsightsComponent {
       out.push({
         icon: 'receipt',
         tone: 'warning',
-        text: `${i.largestCategory.name} is your largest expense category — ${i.largestCategory.pct.toFixed(0)}% of spending in the last 30 days.`,
+        text: this.t('{name} is your largest expense category — {pct}% of spending in the last 30 days.', {
+          name: i.largestCategory.name,
+          pct: i.largestCategory.pct.toFixed(0),
+        }),
       });
     }
 
@@ -107,7 +131,16 @@ export class InsightsComponent {
       out.push({
         icon: diff > 0 ? 'trending-up' : 'trending-down',
         tone: diff > 0 ? 'danger' : 'success',
-        text: `You spent ${formatCurrency(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than last month (${Math.abs(i.monthOverMonth.pct).toFixed(0)}%).`,
+        text:
+          diff > 0
+            ? this.t('You spent {amount} more than last month ({pct}%).', {
+                amount: formatCurrency(Math.abs(diff)),
+                pct: Math.abs(i.monthOverMonth.pct).toFixed(0),
+              })
+            : this.t('You spent {amount} less than last month ({pct}%).', {
+                amount: formatCurrency(Math.abs(diff)),
+                pct: Math.abs(i.monthOverMonth.pct).toFixed(0),
+              }),
       });
     }
 
@@ -118,8 +151,17 @@ export class InsightsComponent {
         tone: i.budget.overBudget.length > 0 ? 'danger' : 'primary',
         text:
           i.budget.overBudget.length > 0
-            ? `Heads up: ${i.budget.overBudget.slice(0, 2).join(', ')} ${i.budget.overBudget.length > 2 ? `+${i.budget.overBudget.length - 2} more ` : ''}is over budget — ${i.budget.pct.toFixed(0)}% of your total budget is used.`
-            : `You've used ${i.budget.pct.toFixed(0)}% of this month's budget.`,
+            ? this.t('Heads up: {list} is over budget — {pct}% of your total budget is used.', {
+                list:
+                  i.budget.overBudget.slice(0, 2).join(', ') +
+                  (i.budget.overBudget.length > 2
+                    ? ' ' + this.t('+{n} more', { n: i.budget.overBudget.length - 2 })
+                    : ''),
+                pct: i.budget.pct.toFixed(0),
+              })
+            : this.t("You've used {pct}% of this month's budget.", {
+                pct: i.budget.pct.toFixed(0),
+              }),
       });
     }
 
@@ -131,7 +173,10 @@ export class InsightsComponent {
       out.push({
         icon: 'bar-chart-3',
         tone: trend ? 'success' : 'danger',
-        text: `Your cash flow was positive in ${positive} of the last ${flows.length} months.`,
+        text: this.t('Your cash flow was positive in {n} of the last {m} months.', {
+          n: positive,
+          m: flows.length,
+        }),
       });
     }
 

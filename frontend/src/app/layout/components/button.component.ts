@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, ElementRef, inject, input } from '@angular/core';
 import { NgClass, NgIf } from '@angular/common';
 import { IconComponent } from './icon.component';
 import { SpinnerComponent } from './spinner.component';
@@ -14,6 +14,8 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
     <button
       [type]="type()"
       [disabled]="disabled() || loading()"
+      [attr.aria-label]="hostAriaLabel"
+      [attr.title]="hostTitle"
       class="inline-flex select-none items-center justify-center gap-2 rounded-button font-bold transition-all duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
       [ngClass]="classes()"
     >
@@ -33,6 +35,19 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
   `,
 })
 export class ButtonComponent {
+  private host = inject(ElementRef);
+
+  // Forward aria-label / title set on <app-button> to the real <button> so
+  // icon buttons stay accessible (screen readers + tooltips). Without this,
+  // the attributes sat uselessly on the custom element host.
+  protected get hostAriaLabel(): string | null {
+    return this.host.nativeElement.getAttribute('aria-label');
+  }
+
+  protected get hostTitle(): string | null {
+    return this.host.nativeElement.getAttribute('title');
+  }
+
   readonly variant = input<ButtonVariant>('primary');
   readonly size = input<ButtonSize>('md');
   readonly type = input<'button' | 'submit' | 'reset'>('button');

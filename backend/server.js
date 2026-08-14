@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
@@ -14,6 +15,9 @@ const { startRecurringScheduler } = require('./services/recurringScheduler');
 const { startTaskScheduler } = require('./services/taskScheduler');
 
 const app = express();
+
+// Ensure the avatar upload directory exists before multer tries to write files.
+fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
 
 connectDB().then(() => {
   // Schedulers run only after the database is reachable.

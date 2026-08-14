@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CommandService } from '../../core/services/command.service';
 import { SearchService } from '../../core/services/search.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconComponent } from './icon.component';
 import { SkeletonComponent } from './skeleton.component';
 import type { SearchResults } from '../../core/models/misc.model';
@@ -78,7 +79,7 @@ function highlightSegments(text: string, query: string): { text: string; hit: bo
           class="relative mx-auto flex h-full w-full flex-col border-ink bg-surface sm:mt-14 sm:h-auto sm:max-h-[78vh] sm:w-[min(640px,92vw)] sm:rounded-card sm:border-2 sm:shadow-pop animate-scale-in"
           role="dialog"
           aria-modal="true"
-          aria-label="Global search"
+          [attr.aria-label]="t('Global search')"
         >
           <!-- Search input -->
           <div class="flex items-center gap-3 border-b-2 border-ink px-4 sm:px-5">
@@ -86,19 +87,19 @@ function highlightSegments(text: string, query: string): { text: string; hit: bo
             <input
               #searchInput
               type="text"
-              placeholder="Search tasks, transactions, notes…"
+              [placeholder]="t('Search tasks, transactions, notes…')"
               (input)="onInput($any($event.target).value)"
               (keydown.arrowdown)="move(1)"
               (keydown.arrowup)="move(-1)"
               (keydown.enter)="openActive()"
               class="h-14 w-full bg-transparent text-base font-medium text-ink placeholder:text-ink-faint focus:outline-none"
-              [attr.aria-label]="'Search LifeHub'"
+              [attr.aria-label]="t('Search LifeHub')"
             />
             @if (query()) {
               <button
                 (click)="clear()"
                 class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-surface-2 text-ink transition-all hover:bg-danger hover:text-white"
-                aria-label="Clear search"
+                [attr.aria-label]="t('Clear search')"
               >
                 <app-icon name="x" [size]="14" [strokeWidth]="3" />
               </button>
@@ -121,27 +122,26 @@ function highlightSegments(text: string, query: string): { text: string; hit: bo
             } @else if (error()) {
               <div class="px-6 py-12 text-center">
                 <app-icon name="alert-circle" [size]="30" class="mx-auto text-ink-faint" />
-                <p class="mt-3 font-display text-lg text-ink">Something went wrong</p>
-                <p class="mt-1 text-sm text-ink-soft">Try again in a moment.</p>
+                <p class="mt-3 font-display text-lg text-ink">{{ t('Something went wrong') }}</p>
+                <p class="mt-1 text-sm text-ink-soft">{{ t('Try again in a moment.') }}</p>
                 <button
                   (click)="onInput(query())"
                   class="mt-4 rounded-button border-2 border-ink bg-primary px-4 py-2 text-sm font-bold text-ink shadow-soft hover:bg-primary-strong"
                 >
-                  Try again
+                  {{ t('Try again') }}
                 </button>
               </div>
             } @else if (searched() && rows().length === 0) {
               <div class="px-6 py-12 text-center">
                 <app-icon name="search" [size]="30" class="mx-auto text-ink-faint" />
-                <p class="mt-3 font-display text-lg text-ink">No results for “{{ query() }}”</p>
-                <p class="mt-1 text-sm text-ink-soft">Try a different keyword.</p>
+                <p class="mt-3 font-display text-lg text-ink">{{ t('No results for “{q}”', { q: query() }) }}</p>
+                <p class="mt-1 text-sm text-ink-soft">{{ t('Try a different keyword.') }}</p>
               </div>
             } @else if (!searched()) {
               <div class="px-6 py-12 text-center">
                 <app-icon name="sparkles" [size]="30" class="mx-auto text-ink-faint" />
                 <p class="mt-3 text-sm font-medium text-ink-soft">
-                  Search your tasks, notes, transactions, goals, habits, wishlist, needs and
-                  reminders.
+                  {{ t('Search your tasks, notes, transactions, goals, habits, wishlist, needs and reminders.') }}
                 </p>
               </div>
             } @else {
@@ -152,7 +152,7 @@ function highlightSegments(text: string, query: string): { text: string; hit: bo
                       class="flex items-center gap-2 px-5 pb-1.5 pt-4 text-[11px] font-bold uppercase tracking-widest text-ink-faint"
                     >
                       <app-icon [name]="row.icon" [size]="13" />
-                      {{ row.label }}
+                      {{ t(row.label) }}
                     </li>
                   } @else {
                     <li>
@@ -209,13 +209,13 @@ function highlightSegments(text: string, query: string): { text: string; hit: bo
             class="hidden items-center gap-4 border-t-2 border-ink px-5 py-2.5 text-[11px] font-medium text-ink-faint sm:flex"
           >
             <span class="flex items-center gap-1">
-              <kbd class="rounded border-2 border-ink bg-surface-2 px-1 font-bold">↑↓</kbd> navigate
+              <kbd class="rounded border-2 border-ink bg-surface-2 px-1 font-bold">↑↓</kbd> {{ t('navigate') }}
             </span>
             <span class="flex items-center gap-1">
-              <kbd class="rounded border-2 border-ink bg-surface-2 px-1 font-bold">↵</kbd> open
+              <kbd class="rounded border-2 border-ink bg-surface-2 px-1 font-bold">↵</kbd> {{ t('open') }}
             </span>
             <span class="flex items-center gap-1">
-              <kbd class="rounded border-2 border-ink bg-surface-2 px-1 font-bold">esc</kbd> close
+              <kbd class="rounded border-2 border-ink bg-surface-2 px-1 font-bold">esc</kbd> {{ t('close') }}
             </span>
           </div>
         </div>
@@ -227,6 +227,9 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   private searchService = inject(SearchService);
   private command = inject(CommandService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly open = this.command.searchOpen;
   protected readonly query = signal('');
@@ -388,7 +391,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
       case 'transactions':
         return {
           ...base,
-          title: item.description || 'Transaction',
+          title: item.description || this.t('Transaction'),
           subtitle: `${item.type === 'income' ? '+' : '−'}${formatCurrency(item.amount)} · ${formatDate(item.date, 'short')}`,
         };
       case 'notes':
@@ -410,7 +413,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
         return {
           ...base,
           title: item.name,
-          subtitle: `${item.streak ?? 0}-day streak`,
+          subtitle: this.t('{n}-day streak', { n: item.streak ?? 0 }),
         };
       case 'wishlist':
         return {

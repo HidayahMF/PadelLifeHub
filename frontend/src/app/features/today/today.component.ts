@@ -12,6 +12,8 @@ import { TaskService } from '../../core/services/task.service';
 import { HabitService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CommandService } from '../../core/services/command.service';
+import { I18nService } from '../../core/services/i18n.service';
+import { getLocale } from '../../core/utils/locale';
 import type { TodayData, TodayHabit } from '../../core/models/misc.model';
 import type { Task } from '../../core/models/task.model';
 import { formatCurrency, formatDate, formatTime, percent } from '../../core/utils/format';
@@ -43,15 +45,15 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
         </div>
         <div class="flex flex-wrap gap-2">
           <app-button size="sm" variant="secondary" icon="plus" (click)="quickAdd('task')">
-            Task
+            {{ t('Task') }}
           </app-button>
           <app-button size="sm" variant="secondary" icon="receipt" (click)="quickAdd('transaction')">
-            Transaction
+            {{ t('Transaction') }}
           </app-button>
           <app-button size="sm" variant="secondary" icon="sticky-note" (click)="quickAdd('note')">
-            Note
+            {{ t('Note') }}
           </app-button>
-          <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> Focus </app-button>
+          <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> {{ t('Focus') }} </app-button>
         </div>
       </div>
 
@@ -66,38 +68,38 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
           <div class="flex flex-col items-center gap-3 py-8 text-center">
             <app-icon name="alert-circle" [size]="32" class="text-danger" />
             <div>
-              <p class="font-display text-lg text-ink">Something went wrong</p>
-              <p class="text-sm text-ink-soft">We couldn't load your day.</p>
+              <p class="font-display text-lg text-ink">{{ t('Something went wrong') }}</p>
+              <p class="text-sm text-ink-soft">{{ t("We couldn't load your day.") }}</p>
             </div>
-            <app-button variant="secondary" icon="refresh-cw" (click)="load()">Try again</app-button>
+            <app-button variant="secondary" icon="refresh-cw" (click)="load()">{{ t('Try again') }}</app-button>
           </div>
         </app-card>
       } @else if (data(); as today) {
         <!-- Progress overview -->
         <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <app-card [padding]="'sm'">
-            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Tasks today</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Tasks today') }}</p>
             <p class="mt-1 font-display text-2xl text-ink">
               {{ today.progress.totalTasksToday }}
             </p>
             <app-progress class="mt-2" [value]="taskProgress()" />
           </app-card>
           <app-card [padding]="'sm'">
-            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Completed</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Completed') }}</p>
             <p class="mt-1 font-display text-2xl text-success">
               {{ today.progress.completedTasksToday }}
             </p>
             <app-progress class="mt-2" [value]="taskProgress()" color="var(--color-success)" />
           </app-card>
           <app-card [padding]="'sm'">
-            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Habits done</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Habits done') }}</p>
             <p class="mt-1 font-display text-2xl text-secondary">
               {{ today.progress.habitsDone }}/{{ today.progress.habitsTotal }}
             </p>
             <app-progress class="mt-2" [value]="habitProgress()" color="var(--color-secondary)" />
           </app-card>
           <app-card [padding]="'sm'">
-            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Net today</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Net today') }}</p>
             <p class="mt-1 font-display text-2xl" [class.text-success]="today.finance.net >= 0">
               {{ formatCurrency(today.finance.net) }}
             </p>
@@ -112,10 +114,10 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
           <app-card class="lg:col-span-2" [padding]="'none'">
             <div class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
               <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-                <app-icon name="target" [size]="18" /> Today's focus
+                <app-icon name="target" [size]="18" /> {{ t("Today's focus") }}
               </h2>
               <button (click)="go('/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
-                All tasks
+                {{ t('All tasks') }}
               </button>
             </div>
             <div class="p-4">
@@ -123,7 +125,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
                 <div class="mb-4 rounded-card border-2 border-danger/60 bg-danger/5 p-3">
                   <p class="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-danger">
                     <app-icon name="alert-circle" [size]="13" />
-                    {{ today.overdue.length }} overdue
+                    {{ t('{n} overdue', { n: today.overdue.length }) }}
                   </p>
                   <ul class="space-y-1">
                     @for (task of today.overdue; track task._id) {
@@ -131,7 +133,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
                         <button
                           (click)="toggleTask(task)"
                           class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-danger text-transparent transition-colors hover:text-danger"
-                          [attr.aria-label]="'Complete ' + task.title"
+                          [attr.aria-label]="t('Complete {title}', { title: task.title })"
                         >
                           <app-icon name="check" [size]="12" [strokeWidth]="3" />
                         </button>
@@ -150,8 +152,8 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
               @if (today.focus.length === 0) {
                 <div class="px-2 py-8 text-center">
                   <app-icon name="sparkles" [size]="30" class="mx-auto text-ink-faint" />
-                  <p class="mt-2 text-sm font-medium text-ink">No tasks due today 🎉</p>
-                  <p class="text-xs text-ink-soft">Enjoy the calm, or add something small.</p>
+                  <p class="mt-2 text-sm font-medium text-ink">{{ t('No tasks due today 🎉') }}</p>
+                  <p class="text-xs text-ink-soft">{{ t('Enjoy the calm, or add something small.') }}</p>
                 </div>
               } @else {
                 <ul class="space-y-1">
@@ -168,10 +170,10 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
                         {{ task.title }}
                       </span>
                       @if (task.priority === 'high') {
-                        <app-badge tone="danger" icon="flag">High</app-badge>
+                        <app-badge tone="danger" icon="flag">{{ t('High') }}</app-badge>
                       }
                       @if (task.priority === 'low') {
-                        <app-badge tone="neutral">Low</app-badge>
+                        <app-badge tone="neutral">{{ t('Low') }}</app-badge>
                       }
                       @if (task.reminder) {
                         <span class="hidden items-center gap-1 text-xs text-ink-faint sm:flex">
@@ -190,27 +192,27 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
             <app-card [padding]="'none'">
               <div class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
                 <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-                  <app-icon name="wallet" [size]="18" /> Today's money
+                  <app-icon name="wallet" [size]="18" /> {{ t("Today's money") }}
                 </h2>
                 <button (click)="go('/finance')" class="text-xs font-medium text-primary-strong hover:underline">
-                  Finance
+                  {{ t('Finance') }}
                 </button>
               </div>
               <div class="grid grid-cols-3 divide-x-2 divide-ink/10 p-4">
                 <div class="px-2 text-center">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">In</p>
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">{{ t('In') }}</p>
                   <p class="mt-1 truncate text-sm font-bold text-success">
                     {{ formatCurrency(today.finance.income) }}
                   </p>
                 </div>
                 <div class="px-2 text-center">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">Out</p>
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">{{ t('Out') }}</p>
                   <p class="mt-1 truncate text-sm font-bold text-danger">
                     {{ formatCurrency(today.finance.expense) }}
                   </p>
                 </div>
                 <div class="px-2 text-center">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">Net</p>
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">{{ t('Net') }}</p>
                   <p
                     class="mt-1 truncate text-sm font-bold"
                     [class.text-success]="today.finance.net >= 0"
@@ -224,15 +226,15 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
             <app-card [padding]="'none'">
               <div class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
                 <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-                  <app-icon name="target" [size]="18" /> Goals
+                  <app-icon name="target" [size]="18" /> {{ t('Goals') }}
                 </h2>
                 <button (click)="go('/goals')" class="text-xs font-medium text-primary-strong hover:underline">
-                  All
+                  {{ t('All') }}
                 </button>
               </div>
               <div class="space-y-4 p-5">
                 @if (today.goals.length === 0) {
-                  <p class="py-3 text-center text-sm text-ink-soft">No active goals.</p>
+                  <p class="py-3 text-center text-sm text-ink-soft">{{ t('No active goals.') }}</p>
                 }
                 @for (goal of today.goals; track goal._id) {
                   <div>
@@ -253,18 +255,18 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
           <app-card class="lg:col-span-2" [padding]="'none'">
             <div class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
               <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-                <app-icon name="flame" [size]="18" /> Habits
+                <app-icon name="flame" [size]="18" /> {{ t('Habits') }}
               </h2>
               <button (click)="go('/habits')" class="text-xs font-medium text-primary-strong hover:underline">
-                All habits
+                {{ t('All habits') }}
               </button>
             </div>
             <div class="p-4">
               @if (today.habits.length === 0) {
                 <div class="px-2 py-8 text-center">
                   <app-icon name="flame" [size]="30" class="mx-auto text-ink-faint" />
-                  <p class="mt-2 text-sm font-medium text-ink">No habits yet</p>
-                  <p class="text-xs text-ink-soft">Build your first streak to see it here.</p>
+                  <p class="mt-2 text-sm font-medium text-ink">{{ t('No habits yet') }}</p>
+                  <p class="text-xs text-ink-soft">{{ t('Build your first streak to see it here.') }}</p>
                 </div>
               } @else {
                 <ul class="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -317,20 +319,20 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
           <app-card [padding]="'none'">
             <div class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
               <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-                <app-icon name="clock" [size]="18" /> Upcoming
+                <app-icon name="clock" [size]="18" /> {{ t('Upcoming') }}
               </h2>
               <button (click)="go('/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
-                Calendar
+                {{ t('Calendar') }}
               </button>
             </div>
             <div class="max-h-80 space-y-4 overflow-y-auto p-4">
               @if (today.upcomingReminders.length === 0 && today.upcomingTasks.length === 0) {
-                <p class="py-6 text-center text-sm text-ink-soft">Nothing scheduled ahead.</p>
+                <p class="py-6 text-center text-sm text-ink-soft">{{ t('Nothing scheduled ahead.') }}</p>
               }
               @if (today.upcomingReminders.length > 0) {
                 <div>
                   <p class="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-widest text-ink-faint">
-                    Reminders
+                    {{ t('Reminders') }}
                   </p>
                   <ul class="space-y-1">
                     @for (reminder of today.upcomingReminders; track reminder._id) {
@@ -354,7 +356,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
               @if (today.upcomingTasks.length > 0) {
                 <div>
                   <p class="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-widest text-ink-faint">
-                    Tasks
+                    {{ t('Tasks') }}
                   </p>
                   <ul class="space-y-1">
                     @for (task of today.upcomingTasks; track task._id) {
@@ -389,13 +391,16 @@ export class TodayComponent implements OnInit {
   private toast = inject(ToastService);
   private command = inject(CommandService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly data = signal<TodayData | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal(false);
 
   protected readonly todayLabel = computed(() =>
-    new Intl.DateTimeFormat('en-US', {
+    new Intl.DateTimeFormat(getLocale(), {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -404,10 +409,10 @@ export class TodayComponent implements OnInit {
 
   protected readonly greetingText = computed(() => {
     const h = new Date().getHours();
-    if (h >= 5 && h < 12) return 'Good morning ☀️';
-    if (h >= 12 && h < 17) return 'Good afternoon 🌤️';
-    if (h >= 17 && h < 21) return 'Good evening 🌆';
-    return 'Good night 🌙';
+    if (h >= 5 && h < 12) return this.t('Good morning ☀️');
+    if (h >= 12 && h < 17) return this.t('Good afternoon 🌤️');
+    if (h >= 17 && h < 21) return this.t('Good evening 🌆');
+    return this.t('Good night 🌙');
   });
 
   protected readonly taskProgress = computed(() => {
@@ -445,7 +450,7 @@ export class TodayComponent implements OnInit {
       .update(task._id, { status: completed ? 'todo' : 'completed' })
       .subscribe({
         next: () => {
-          this.toast.success(completed ? 'Task reopened' : 'Task completed 🎉');
+          this.toast.success(completed ? this.t('Task reopened') : this.t('Task completed 🎉'));
           this.load();
         },
         error: (err: Error) => this.toast.error(err.message),
@@ -455,7 +460,7 @@ export class TodayComponent implements OnInit {
   protected toggleHabit(habit: TodayHabit): void {
     this.habitService.toggle(habit._id).subscribe({
       next: () => {
-        this.toast.success(habit.doneToday ? 'Habit unchecked' : 'Habit done 🔥');
+        this.toast.success(habit.doneToday ? this.t('Habit unchecked') : this.t('Habit done 🔥'));
         this.load();
       },
       error: (err: Error) => this.toast.error(err.message),

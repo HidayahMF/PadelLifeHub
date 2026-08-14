@@ -1,10 +1,13 @@
-import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
+import { Component, effect, HostListener, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TopbarComponent } from './topbar/topbar.component';
 import { GlobalSearchComponent } from './components/global-search.component';
 import { QuickAddComponent } from './components/quick-add.component';
 import { ShortcutsService } from '../core/services/shortcuts.service';
+import { OnboardingService } from '../core/services/onboarding.service';
+import { WelcomeComponent } from '../features/onboarding/welcome.component';
+import { TourOverlayComponent } from '../features/onboarding/tour-overlay.component';
 
 @Component({
   selector: 'app-layout',
@@ -15,6 +18,8 @@ import { ShortcutsService } from '../core/services/shortcuts.service';
     TopbarComponent,
     GlobalSearchComponent,
     QuickAddComponent,
+    WelcomeComponent,
+    TourOverlayComponent,
   ],
   template: `
     <div class="flex h-dvh overflow-hidden bg-bg">
@@ -51,17 +56,31 @@ import { ShortcutsService } from '../core/services/shortcuts.service';
       <!-- Global overlays -->
       <app-global-search />
       <app-quick-add />
+
+      <!-- First-run onboarding -->
+      <app-welcome />
+      <app-tour-overlay />
     </div>
   `,
 })
 export class LayoutComponent implements OnInit {
   private shortcuts = inject(ShortcutsService);
+  private onboarding = inject(OnboardingService);
 
   protected readonly mobileOpen = signal(false);
   protected readonly collapsed = signal(false);
 
+  constructor() {
+    // The tour requests the mobile drawer when a step highlights a sidebar item
+    // on small screens — mirror that request into the drawer state.
+    effect(() => {
+      this.mobileOpen.set(this.onboarding.needsDrawer());
+    });
+  }
+
   ngOnInit(): void {
     this.shortcuts.init();
+    this.onboarding.init();
   }
 
   @HostListener('window:keydown', ['$event'])

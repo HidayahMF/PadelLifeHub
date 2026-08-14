@@ -8,6 +8,7 @@ import { AvatarComponent } from './components/avatar.component';
 import { FieldComponent } from '../../layout/components/field.component';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { formatDate } from '../../core/utils/format';
 
 @Component({
@@ -23,17 +24,17 @@ import { formatDate } from '../../core/utils/format';
     FieldComponent,
   ],
   template: `
-    <app-page-header title="Profile" subtitle="Manage your personal information."
+    <app-page-header [title]="t('Profile')" [subtitle]="t('Manage your personal information.')"
       actionLabel="" [action]="noop"></app-page-header>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <app-card class="lg:col-span-1" [padding]="'none'">
         <div class="flex flex-col items-center p-6 text-center">
           <div class="relative">
-            <app-avatar [name]="user()?.name ?? 'User'" [src]="user()?.avatar ?? ''" [size]="96" />
+            <app-avatar [name]="user()?.name ?? t('User')" [src]="user()?.avatar ?? ''" [size]="96" />
             <button
               class="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface bg-primary text-ink shadow-soft transition-transform hover:scale-105"
-              [attr.aria-label]="'Change avatar'"
+              [attr.aria-label]="t('Change avatar')"
               (click)="avatarOpen.set(!avatarOpen())"
             >
               <app-icon name="camera" [size]="16" />
@@ -42,7 +43,7 @@ import { formatDate } from '../../core/utils/format';
           <h2 class="mt-4 text-lg font-bold text-ink">{{ user()?.name }}</h2>
           <p class="text-sm text-ink-soft">{{ user()?.email }}</p>
           @if (user()?.createdAt) {
-            <p class="mt-2 text-xs text-ink-faint">Member since {{ formatDate(user()!.createdAt, 'medium') }}</p>
+            <p class="mt-2 text-xs text-ink-faint">{{ t('Member since {date}', { date: formatDate(user()!.createdAt, 'medium') }) }}</p>
           }
 
           @if (avatarOpen()) {
@@ -54,9 +55,9 @@ import { formatDate } from '../../core/utils/format';
                   class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-ink bg-surface"
                 >
                   @if (avatarPreview()) {
-                    <img [src]="avatarPreview()" alt="Avatar preview" class="h-full w-full object-cover" />
+                    <img [src]="avatarPreview()" [alt]="t('Avatar preview')" class="h-full w-full object-cover" />
                   } @else if (user()?.avatar) {
-                    <img [src]="user()!.avatar" alt="Avatar" class="h-full w-full object-cover" />
+                    <img [src]="user()!.avatar" [alt]="t('Avatar')" class="h-full w-full object-cover" />
                   } @else {
                     <app-icon name="user-round" [size]="24" class="text-ink-faint" />
                   }
@@ -69,7 +70,7 @@ import { formatDate } from '../../core/utils/format';
                     icon="image"
                     (click)="fileInput.click()"
                   >
-                    Choose image
+                    {{ t('Choose image') }}
                   </app-button>
                   <input
                     #fileInput
@@ -79,18 +80,18 @@ import { formatDate } from '../../core/utils/format';
                     (change)="onFileSelected($event)"
                   />
                   <p class="mt-1.5 text-[11px] font-medium text-ink-faint">
-                    JPG, PNG, WebP or GIF · max 3MB
+                    {{ t('JPG, PNG, WebP or GIF · max 3MB') }}
                   </p>
                 </div>
               </div>
               @if (avatarPreview()) {
                 <div class="flex justify-end gap-2">
-                  <app-button type="button" size="sm" variant="ghost" (click)="cancelAvatar()">Cancel</app-button>
-                  <app-button type="button" size="sm" [loading]="savingAvatar()" (click)="uploadAvatar()">Save</app-button>
+                  <app-button type="button" size="sm" variant="ghost" (click)="cancelAvatar()">{{ t('Cancel') }}</app-button>
+                  <app-button type="button" size="sm" [loading]="savingAvatar()" (click)="uploadAvatar()">{{ t('Save') }}</app-button>
                 </div>
               } @else if (user()?.avatar) {
                 <div class="flex justify-end">
-                  <app-button type="button" size="sm" variant="ghost" [loading]="removingAvatar()" (click)="removeAvatar()">Remove</app-button>
+                  <app-button type="button" size="sm" variant="ghost" [loading]="removingAvatar()" (click)="removeAvatar()">{{ t('Remove') }}</app-button>
                 </div>
               }
             </div>
@@ -100,27 +101,27 @@ import { formatDate } from '../../core/utils/format';
 
       <div class="space-y-6 lg:col-span-2">
         <app-card>
-          <h2 class="text-base font-semibold text-ink">Personal information</h2>
+          <h2 class="text-base font-semibold text-ink">{{ t('Personal information') }}</h2>
           <form (ngSubmit)="saveProfile()" class="mt-5 space-y-4">
-            <app-field label="Full name" placeholder="Your name" [required]="true"
+            <app-field [label]="t('Full name')" [placeholder]="t('Your name')" [required]="true"
               [(ngModel)]="profileForm.name" name="name" />
-            <app-field label="Email" type="email" placeholder="you@example.com"
+            <app-field [label]="t('Email')" type="email" placeholder="you@example.com"
               [disabled]="true" [ngModel]="user()?.email" name="email" />
             <div class="flex justify-end">
-              <app-button type="submit" icon="check" [loading]="savingProfile()">Save</app-button>
+              <app-button type="submit" icon="check" [loading]="savingProfile()">{{ t('Save') }}</app-button>
             </div>
           </form>
         </app-card>
 
         <app-card>
-          <h2 class="text-base font-semibold text-ink">Change password</h2>
+          <h2 class="text-base font-semibold text-ink">{{ t('Change password') }}</h2>
           <form (ngSubmit)="changePassword()" class="mt-5 space-y-4">
-            <app-field label="Current password" type="password" autocomplete="current-password"
+            <app-field [label]="t('Current password')" type="password" autocomplete="current-password"
               [(ngModel)]="passwordForm.current" name="current" />
-            <app-field label="New password" type="password" autocomplete="new-password"
+            <app-field [label]="t('New password')" type="password" autocomplete="new-password"
               [(ngModel)]="passwordForm.next" name="next" />
             <div class="flex justify-end">
-              <app-button type="submit" icon="lock" [loading]="savingPassword()">Update password</app-button>
+              <app-button type="submit" icon="lock" [loading]="savingPassword()">{{ t('Update password') }}</app-button>
             </div>
           </form>
         </app-card>
@@ -131,6 +132,9 @@ import { formatDate } from '../../core/utils/format';
 export class ProfileComponent {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly user = this.auth.user;
   protected readonly avatarOpen = signal(false);
@@ -153,12 +157,12 @@ export class ProfileComponent {
     if (!file) return;
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowed.includes(file.type)) {
-      this.toast.error('Only JPG, PNG, WebP or GIF images are allowed.');
+      this.toast.error(this.t('Only JPG, PNG, WebP or GIF images are allowed.'));
       input.value = '';
       return;
     }
     if (file.size > 3 * 1024 * 1024) {
-      this.toast.error('Image is too large (max 3MB).');
+      this.toast.error(this.t('Image is too large (max 3MB).'));
       input.value = '';
       return;
     }
@@ -176,7 +180,7 @@ export class ProfileComponent {
         this.savingAvatar.set(false);
         this.avatarOpen.set(false);
         this.resetAvatar();
-        this.toast.success('Avatar updated');
+        this.toast.success(this.t('Avatar updated'));
       },
       error: (err: Error) => {
         this.savingAvatar.set(false);
@@ -191,7 +195,7 @@ export class ProfileComponent {
       next: () => {
         this.removingAvatar.set(false);
         this.avatarOpen.set(false);
-        this.toast.success('Avatar removed');
+        this.toast.success(this.t('Avatar removed'));
       },
       error: (err: Error) => {
         this.removingAvatar.set(false);
@@ -211,14 +215,14 @@ export class ProfileComponent {
 
   protected saveProfile(): void {
     if (!this.profileForm.name.trim()) {
-      this.toast.error('Name cannot be empty.');
+      this.toast.error(this.t('Name cannot be empty.'));
       return;
     }
     this.savingProfile.set(true);
     this.auth.updateProfile({ name: this.profileForm.name.trim() }).subscribe({
       next: () => {
         this.savingProfile.set(false);
-        this.toast.success('Profile updated');
+        this.toast.success(this.t('Profile updated'));
         this.profileForm.name = this.auth.user()?.name ?? '';
       },
       error: (err: Error) => {
@@ -230,18 +234,18 @@ export class ProfileComponent {
 
   protected changePassword(): void {
     if (!this.passwordForm.current || !this.passwordForm.next) {
-      this.toast.error('Fill in both password fields.');
+      this.toast.error(this.t('Fill in both password fields.'));
       return;
     }
     if (this.passwordForm.next.length < 6) {
-      this.toast.error('New password must be at least 6 characters.');
+      this.toast.error(this.t('New password must be at least 6 characters.'));
       return;
     }
     this.savingPassword.set(true);
     this.auth.changePassword(this.passwordForm.current, this.passwordForm.next).subscribe({
       next: () => {
         this.savingPassword.set(false);
-        this.toast.success('Password updated');
+        this.toast.success(this.t('Password updated'));
         this.passwordForm = { current: '', next: '' };
       },
       error: (err: Error) => {

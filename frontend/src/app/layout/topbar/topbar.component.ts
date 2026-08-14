@@ -7,6 +7,8 @@ import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CommandService } from '../../core/services/command.service';
+import { SettingService } from '../../core/services/data.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { formatDateTime } from '../../core/utils/format';
 import type { NotificationItem } from '../../core/models/misc.model';
 
@@ -19,7 +21,7 @@ import type { NotificationItem } from '../../core/models/misc.model';
       <button
         (click)="menu.emit()"
         class="flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-surface text-ink shadow-soft transition-all duration-150 hover:bg-primary active:translate-x-[1px] active:translate-y-[1px] active:shadow-none lg:hidden"
-        aria-label="Toggle navigation"
+        [attr.aria-label]="t('Toggle navigation')"
       >
         <app-icon name="menu" [size]="20" />
       </button>
@@ -34,10 +36,10 @@ import type { NotificationItem } from '../../core/models/misc.model';
       <button
         (click)="command.openSearch()"
         class="hidden h-10 w-full max-w-md items-center gap-2.5 rounded-field border-2 border-ink bg-surface-2/70 px-3.5 text-sm font-medium text-ink-faint transition-all duration-150 hover:border-primary hover:bg-surface hover:text-ink-soft hover:shadow-soft md:flex"
-        aria-label="Open global search (Ctrl+K)"
+        [attr.aria-label]="t('Open global search (Ctrl+K)')"
       >
         <app-icon name="search" [size]="17" />
-        <span class="flex-1 text-left">Search LifeHub…</span>
+        <span class="flex-1 text-left">{{ t('Search LifeHub…') }}</span>
         <span class="flex items-center gap-0.5 rounded-md border-2 border-ink bg-surface px-1.5 py-0.5 font-display text-[10px] text-ink-soft">
           CTRL K
         </span>
@@ -45,7 +47,7 @@ import type { NotificationItem } from '../../core/models/misc.model';
       <button
         (click)="command.openSearch()"
         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border-2 border-ink bg-surface text-ink-soft shadow-soft transition-all duration-150 hover:bg-primary hover:text-ink active:translate-x-[1px] active:translate-y-[1px] active:shadow-none md:hidden"
-        aria-label="Search"
+        [attr.aria-label]="t('Search')"
       >
         <app-icon name="search" [size]="18" />
       </button>
@@ -55,16 +57,16 @@ import type { NotificationItem } from '../../core/models/misc.model';
         <button
           (click)="command.openQuickAdd()"
           class="hidden h-10 items-center gap-2 rounded-[10px] border-2 border-ink bg-primary px-3.5 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:bg-primary-strong hover:-translate-y-[1px] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none lg:flex"
-          aria-label="Quick add"
+          [attr.aria-label]="t('Quick add')"
         >
           <app-icon name="plus" [size]="18" [strokeWidth]="2.6" />
-          Add
+          {{ t('Add') }}
         </button>
 
         <button
           (click)="toggleTheme()"
           class="flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-surface text-ink-soft shadow-soft transition-all duration-150 hover:bg-primary hover:text-ink active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-          [attr.aria-label]="dark() ? 'Switch to light mode' : 'Switch to dark mode'"
+          [attr.aria-label]="dark() ? t('Switch to light mode') : t('Switch to dark mode')"
         >
           <app-icon [name]="dark() ? 'sun' : 'moon'" [size]="18" />
         </button>
@@ -76,7 +78,7 @@ import type { NotificationItem } from '../../core/models/misc.model';
             class="relative flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-surface text-ink-soft shadow-soft transition-all duration-150 hover:bg-primary hover:text-ink active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
             [attr.aria-expanded]="notifOpen"
             aria-haspopup="dialog"
-            aria-label="Notifications"
+            [attr.aria-label]="t('Notifications')"
           >
             <app-icon name="bell" [size]="18" />
             @if (unreadCount() > 0) {
@@ -92,24 +94,24 @@ import type { NotificationItem } from '../../core/models/misc.model';
             <div
               class="absolute right-0 top-full z-50 mt-2 w-[92vw] max-w-sm overflow-hidden rounded-card border-2 border-ink bg-surface shadow-pop animate-scale-in sm:w-96"
               role="dialog"
-              aria-label="Notifications"
+              [attr.aria-label]="t('Notifications')"
             >
               <div class="flex items-center justify-between gap-2 border-b-2 border-ink px-4 py-3">
-                <p class="text-sm font-bold text-ink">Notifications</p>
+                <p class="text-sm font-bold text-ink">{{ t('Notifications') }}</p>
                 <div class="flex items-center gap-2">
                   <button
                     (click)="showUnread.set(!showUnread())"
                     class="rounded-md border-2 border-ink px-2 py-0.5 text-[11px] font-bold transition-colors"
                     [class]="showUnread() ? 'bg-primary text-ink' : 'bg-surface-2 text-ink-soft hover:text-ink'"
                   >
-                    Unread
+                    {{ t('Unread') }}
                   </button>
                   @if (unreadCount() > 0) {
                     <button
                       (click)="markAllRead()"
                       class="text-xs font-medium text-primary-strong hover:underline"
                     >
-                      Mark all read
+                      {{ t('Mark all read') }}
                     </button>
                   }
                 </div>
@@ -119,9 +121,9 @@ import type { NotificationItem } from '../../core/models/misc.model';
                   <div class="px-4 py-10 text-center">
                     <app-icon name="bell" [size]="28" class="mx-auto text-ink-faint" />
                     <p class="mt-2 text-sm font-medium text-ink">
-                      {{ showUnread() ? 'Nothing unread' : 'All caught up' }}
+                      {{ showUnread() ? t('Nothing unread') : t('All caught up') }}
                     </p>
-                    <p class="mt-0.5 text-xs text-ink-soft">Reminders and alerts will show up here.</p>
+                    <p class="mt-0.5 text-xs text-ink-soft">{{ t('Reminders and alerts will show up here.') }}</p>
                   </div>
                 }
                 @for (item of visibleNotifications(); track item._id) {
@@ -157,7 +159,7 @@ import type { NotificationItem } from '../../core/models/misc.model';
                     <button
                       (click)="removeNotification(item)"
                       class="mt-1 hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-danger hover:text-white group-hover:flex"
-                      [attr.aria-label]="'Delete notification'"
+                      [attr.aria-label]="t('Delete notification')"
                     >
                       <app-icon name="x" [size]="14" [strokeWidth]="2.6" />
                     </button>
@@ -174,9 +176,9 @@ import type { NotificationItem } from '../../core/models/misc.model';
             class="flex items-center gap-2 rounded-full p-0.5 transition-all duration-150 hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             [attr.aria-expanded]="menuOpen"
             aria-haspopup="menu"
-            aria-label="Account menu"
+            [attr.aria-label]="t('Account menu')"
           >
-            <app-avatar [name]="user()?.name ?? 'User'" [src]="user()?.avatar ?? ''" [size]="36" />
+            <app-avatar [name]="user()?.name ?? t('User')" [src]="user()?.avatar ?? ''" [size]="36" />
           </button>
 
           @if (menuOpen) {
@@ -189,14 +191,17 @@ import type { NotificationItem } from '../../core/models/misc.model';
                 <p class="truncate text-xs font-medium text-ink-soft">{{ user()?.email }}</p>
               </div>
               <button role="menuitem" (click)="go('/profile')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
-                <app-icon name="user-round" [size]="17" /> Profile
+                <app-icon name="user-round" [size]="17" /> {{ t('Profile') }}
               </button>
               <button role="menuitem" (click)="go('/settings')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
-                <app-icon name="settings" [size]="17" /> Settings
+                <app-icon name="settings" [size]="17" /> {{ t('Settings') }}
+              </button>
+              <button role="menuitem" (click)="go('/help')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
+                <app-icon name="book-open" [size]="17" /> {{ t('Help & guide') }}
               </button>
               <div class="my-1 border-t-2 border-ink/20"></div>
               <button role="menuitem" (click)="logout()" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-danger transition-colors hover:bg-danger/10">
-                <app-icon name="log-out" [size]="17" /> Log out
+                <app-icon name="log-out" [size]="17" /> {{ t('Log out') }}
               </button>
             </div>
           }
@@ -209,10 +214,14 @@ export class TopbarComponent implements OnInit, OnDestroy {
   readonly menu = output<void>();
 
   private theme = inject(ThemeService);
+  private settings = inject(SettingService);
   private auth = inject(AuthService);
   private router = inject(Router);
   private notifService = inject(NotificationService);
   protected readonly command = inject(CommandService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly dark = this.theme.dark;
   protected readonly user = this.auth.user;
@@ -241,6 +250,13 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   protected toggleTheme(): void {
     this.theme.toggle();
+    // Keep the stored preference in sync so the Settings page (and other
+    // devices) reflect the theme the user actually chose. Without this, the
+    // stale backend value would fight the live theme.
+    const dark = this.theme.dark();
+    this.settings
+      .update({ darkMode: dark, theme: dark ? 'dark' : 'light' })
+      .subscribe({ error: () => undefined });
   }
 
   protected toggleNotif(): void {

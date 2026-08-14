@@ -8,6 +8,7 @@ import { ProgressComponent } from '../../layout/components/progress.component';
 import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { WeeklyReviewService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type { WeeklyReviewData } from '../../core/models/misc.model';
 import { formatCurrency, formatDate } from '../../core/utils/format';
 
@@ -25,8 +26,8 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
   ],
   template: `
     <app-page-header
-      title="Weekly Review"
-      subtitle="Look back at your week, celebrate wins, and plan the next one."
+      [title]="t('Weekly Review')"
+      [subtitle]="t('Look back at your week, celebrate wins, and plan the next one.')"
       actionLabel=""
       [action]="noop"
     ></app-page-header>
@@ -41,8 +42,8 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
       <app-card>
         <div class="flex flex-col items-center gap-3 py-10 text-center">
           <app-icon name="alert-circle" [size]="32" class="text-danger" />
-          <p class="font-display text-lg text-ink">Something went wrong</p>
-          <app-button variant="secondary" icon="refresh-cw" (click)="load()">Try again</app-button>
+          <p class="font-display text-lg text-ink">{{ t('Something went wrong') }}</p>
+          <app-button variant="secondary" icon="refresh-cw" (click)="load()">{{ t('Try again') }}</app-button>
         </div>
       </app-card>
     } @else if (data(); as review) {
@@ -56,25 +57,25 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
         <!-- Productivity -->
         <app-card>
           <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-            <app-icon name="list-todo" [size]="18" /> Productivity
+            <app-icon name="list-todo" [size]="18" /> {{ t('Productivity') }}
           </h2>
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Completed</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Completed') }}</p>
               <p class="mt-1 font-display text-2xl text-success">{{ review.productivity.completed }}</p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Created</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Created') }}</p>
               <p class="mt-1 font-display text-2xl text-ink">{{ review.productivity.created }}</p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Overdue now</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Overdue now') }}</p>
               <p class="mt-1 font-display text-2xl" [class.text-danger]="review.productivity.overdue > 0">
                 {{ review.productivity.overdue }}
               </p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Completion</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Completion') }}</p>
               <p class="mt-1 font-display text-2xl text-ink">{{ review.productivity.completionRate }}%</p>
             </div>
           </div>
@@ -84,47 +85,46 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
         <!-- Habits -->
         <app-card>
           <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-            <app-icon name="flame" [size]="18" /> Habits
+            <app-icon name="flame" [size]="18" /> {{ t('Habits') }}
           </h2>
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Best streak</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Best streak') }}</p>
               <p class="mt-1 font-display text-2xl text-secondary">
                 {{ review.habits.bestStreak }}<span class="text-sm">d</span>
               </p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Avg completion</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Avg completion') }}</p>
               <p class="mt-1 font-display text-2xl text-ink">{{ review.habits.averageCompletion }}%</p>
             </div>
           </div>
           <app-progress class="mt-4" [value]="review.habits.averageCompletion" color="var(--color-secondary)" />
-          <p class="mt-2 text-xs text-ink-soft">{{ review.habits.tracked }} habit(s) tracked this week.</p>
+          <p class="mt-2 text-xs text-ink-soft">{{ t('{n} habit(s) tracked this week.', { n: review.habits.tracked }) }}</p>
         </app-card>
 
         <!-- Finance -->
         <app-card>
           <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-            <app-icon name="wallet" [size]="18" /> Finance
+            <app-icon name="wallet" [size]="18" /> {{ t('Finance') }}
           </h2>
           <div class="mt-4 grid grid-cols-3 gap-3">
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Income</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Income') }}</p>
               <p class="mt-1 truncate text-sm font-bold text-success">{{ formatCurrency(review.finance.income) }}</p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Expense</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Expense') }}</p>
               <p class="mt-1 truncate text-sm font-bold text-danger">{{ formatCurrency(review.finance.expense) }}</p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Saved</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Saved') }}</p>
               <p class="mt-1 truncate text-sm font-bold text-ink">{{ formatCurrency(review.finance.saved) }}</p>
             </div>
           </div>
           @if (review.topCategory) {
             <p class="mt-3 text-sm text-ink-soft">
-              Top spending: <span class="font-bold text-ink">{{ review.topCategory.name }}</span>
-              ({{ formatCurrency(review.topCategory.total) }})
+              {{ t('Top spending: {name} ({amount})', { name: review.topCategory.name, amount: formatCurrency(review.topCategory.total) }) }}
             </p>
           }
         </app-card>
@@ -132,11 +132,11 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
         <!-- Goals -->
         <app-card>
           <h2 class="flex items-center gap-2 text-base font-bold text-ink">
-            <app-icon name="target" [size]="18" /> Goals
+            <app-icon name="target" [size]="18" /> {{ t('Goals') }}
           </h2>
           <div class="mt-4 grid grid-cols-2 gap-3">
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Progressed</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Progressed') }}</p>
               <p class="mt-1 font-display text-2xl text-ink">{{ review.goals.progressed }}</p>
             </div>
             <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
@@ -149,32 +149,32 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
 
       <!-- Reflection -->
       <app-card class="mt-6">
-        <h2 class="text-base font-bold text-ink">Reflection</h2>
-        <p class="mt-1 text-xs text-ink-soft">Saved privately to your account for this week.</p>
+        <h2 class="text-base font-bold text-ink">{{ t('Reflection') }}</h2>
+        <p class="mt-1 text-xs text-ink-soft">{{ t('Saved privately to your account for this week.') }}</p>
         <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div class="space-y-1.5">
-            <label class="block text-sm font-bold text-ink">What went well?</label>
+            <label class="block text-sm font-bold text-ink">{{ t('What went well?') }}</label>
             <textarea
               [(ngModel)]="wentWell"
               name="wentWell"
               rows="5"
-              placeholder="Celebrate your wins this week…"
+              [placeholder]="t('Celebrate your wins this week…')"
               class="w-full resize-y rounded-field border-2 border-ink bg-surface px-3.5 py-2.5 text-sm font-medium text-ink placeholder:text-ink-faint focus:border-primary focus:shadow-soft focus:outline-none"
             ></textarea>
           </div>
           <div class="space-y-1.5">
-            <label class="block text-sm font-bold text-ink">What should you improve next week?</label>
+            <label class="block text-sm font-bold text-ink">{{ t('What should you improve next week?') }}</label>
             <textarea
               [(ngModel)]="improve"
               name="improve"
               rows="5"
-              placeholder="One small thing you'll do differently…"
+              [placeholder]="t('One small thing you’ll do differently…')"
               class="w-full resize-y rounded-field border-2 border-ink bg-surface px-3.5 py-2.5 text-sm font-medium text-ink placeholder:text-ink-faint focus:border-primary focus:shadow-soft focus:outline-none"
             ></textarea>
           </div>
         </div>
         <div class="mt-4 flex justify-end">
-          <app-button icon="check" [loading]="saving()" (click)="save()">Save review</app-button>
+          <app-button icon="check" [loading]="saving()" (click)="save()">{{ t('Save review') }}</app-button>
         </div>
       </app-card>
     }
@@ -183,6 +183,9 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
 export class WeeklyReviewComponent implements OnInit {
   private service = inject(WeeklyReviewService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly data = signal<WeeklyReviewData | null>(null);
   protected readonly loading = signal(true);
@@ -228,7 +231,7 @@ export class WeeklyReviewComponent implements OnInit {
       .subscribe({
         next: () => {
           this.saving.set(false);
-          this.toast.success('Review saved');
+          this.toast.success(this.t('Review saved'));
         },
         error: (err: Error) => {
           this.saving.set(false);

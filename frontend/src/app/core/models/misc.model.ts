@@ -29,6 +29,10 @@ export interface Setting {
   };
   dashboardWidgets?: string[];
   hideBalance?: boolean;
+  onboarding?: {
+    status: 'not_started' | 'in_progress' | 'completed' | 'skipped';
+    completedAt?: string;
+  };
 }
 
 export interface TaskSummary {

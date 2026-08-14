@@ -5,6 +5,7 @@ import { FieldComponent } from '../../../layout/components/field.component';
 import { ButtonComponent } from '../../../layout/components/button.component';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { ApiService } from '../../../core/services/api.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
@@ -23,15 +24,15 @@ import { ToastService } from '../../../core/services/toast.service';
               <app-icon name="key-round" [size]="20" />
             </span>
             <div>
-              <h2 class="font-display text-xl text-ink">RESET PASSWORD</h2>
-              <p class="mt-0.5 text-xs font-medium text-ink-soft">Get back into LifeHub.</p>
+              <h2 class="font-display text-xl text-ink">{{ t('RESET PASSWORD') }}</h2>
+              <p class="mt-0.5 text-xs font-medium text-ink-soft">{{ t('Get back into LifeHub.') }}</p>
             </div>
           </div>
 
           @if (!requested()) {
             <form class="mt-6 space-y-4" (ngSubmit)="requestReset()">
               <app-field
-                label="Email"
+                [label]="t('Email')"
                 type="email"
                 placeholder="you@example.com"
                 [required]="true"
@@ -40,11 +41,10 @@ import { ToastService } from '../../../core/services/toast.service';
                 name="email"
               />
               <p class="text-xs font-medium text-ink-soft">
-                Enter the email linked to your account. If the account exists, a reset token
-                will be issued so you can set a new password.
+                {{ t('Enter the email linked to your account. If the account exists, a reset token will be issued so you can set a new password.') }}
               </p>
               <app-button type="submit" [block]="true" [loading]="sending()" icon="mail">
-                Request reset
+                {{ t('Request reset') }}
               </app-button>
             </form>
           } @else {
@@ -54,31 +54,31 @@ import { ToastService } from '../../../core/services/toast.service';
 
             <form class="mt-5 space-y-4" (ngSubmit)="doReset()">
               <app-field
-                label="Reset token"
-                placeholder="Paste the reset token"
+                [label]="t('Reset token')"
+                [placeholder]="t('Paste the reset token')"
                 [required]="true"
                 [(ngModel)]="token"
                 name="token"
               />
               <app-field
-                label="New password"
+                [label]="t('New password')"
                 type="password"
-                placeholder="At least 6 characters"
+                [placeholder]="t('At least 6 characters')"
                 [required]="true"
                 autocomplete="new-password"
                 [(ngModel)]="newPassword"
                 name="newPassword"
               />
               <app-button type="submit" [block]="true" [loading]="resetting()" icon="lock">
-                Set new password
+                {{ t('Set new password') }}
               </app-button>
             </form>
           }
 
           <p class="mt-6 text-center text-sm font-medium text-ink-soft">
-            Remembered it?
+            {{ t('Remembered it?') }}
             <a routerLink="/login" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">
-              Back to sign in
+              {{ t('Back to sign in') }}
             </a>
           </p>
         </div>
@@ -90,6 +90,9 @@ export class ForgotPasswordComponent {
   private api = inject(ApiService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected email = '';
   protected token = '';
@@ -101,7 +104,7 @@ export class ForgotPasswordComponent {
 
   protected requestReset(): void {
     if (!this.email.trim()) {
-      this.toast.error('Please enter your email.');
+      this.toast.error(this.t('Please enter your email.'));
       return;
     }
     this.sending.set(true);
@@ -116,12 +119,13 @@ export class ForgotPasswordComponent {
         if (res.resetToken) {
           this.token = res.resetToken;
           this.infoMessage.set(
-            'No email service is configured yet, so here is your reset token (development mode). ' +
-              'Use it below to set a new password.'
+            this.t(
+              'No email service is configured yet, so here is your reset token (development mode). Use it below to set a new password.'
+            )
           );
         } else {
           this.infoMessage.set(
-            res.message || 'If that email is registered, a reset was initiated.'
+            res.message || this.t('If that email is registered, a reset was initiated.')
           );
         }
       },
@@ -134,11 +138,11 @@ export class ForgotPasswordComponent {
 
   protected doReset(): void {
     if (!this.token.trim() || !this.newPassword) {
-      this.toast.error('Token and new password are required.');
+      this.toast.error(this.t('Token and new password are required.'));
       return;
     }
     if (this.newPassword.length < 6) {
-      this.toast.error('New password must be at least 6 characters.');
+      this.toast.error(this.t('New password must be at least 6 characters.'));
       return;
     }
     this.resetting.set(true);
@@ -148,7 +152,7 @@ export class ForgotPasswordComponent {
     }).subscribe({
       next: () => {
         this.resetting.set(false);
-        this.toast.success('Password reset — sign in with your new password.');
+        this.toast.success(this.t('Password reset — sign in with your new password.'));
         this.router.navigate(['/login']);
       },
       error: (err: Error) => {

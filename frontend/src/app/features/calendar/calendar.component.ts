@@ -13,6 +13,8 @@ import { SegmentedComponent } from '../../layout/components/segmented.component'
 import { TaskService } from '../../core/services/task.service';
 import { HabitService, ReminderService, GoalService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
+import { getLocale } from '../../core/utils/locale';
 import type { Task } from '../../core/models/task.model';
 import type { Goal, Habit, Reminder } from '../../core/models/lifestyle.model';
 import { formatDate, formatTime, toDate } from '../../core/utils/format';
@@ -91,17 +93,17 @@ const RECURRING_OPTIONS = [
   template: `
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">Calendar</h1>
-        <p class="mt-1 text-sm text-ink-soft">Tasks, goals, habits and reminders — Asia/Jakarta time.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">{{ t('Calendar') }}</h1>
+        <p class="mt-1 text-sm text-ink-soft">{{ t('Tasks, goals, habits and reminders — Asia/Jakarta time.') }}</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <app-segmented [options]="viewOptions()" [model]="view()" (change)="setView($event)" />
-        <app-button icon="bell-ring" (click)="openCreate()">New reminder</app-button>
+        <app-button icon="bell-ring" (click)="openCreate()">{{ t('New reminder') }}</app-button>
         <app-button size="icon" variant="secondary" icon="chevron-left"
-          [attr.aria-label]="'Previous'" (click)="shift(-1)"></app-button>
-        <app-button variant="secondary" (click)="goToday()">Today</app-button>
+          [attr.aria-label]="t('Previous')" (click)="shift(-1)"></app-button>
+        <app-button variant="secondary" (click)="goToday()">{{ t('Today') }}</app-button>
         <app-button size="icon" variant="secondary" icon="chevron-right"
-          [attr.aria-label]="'Next'" (click)="shift(1)"></app-button>
+          [attr.aria-label]="t('Next')" (click)="shift(1)"></app-button>
       </div>
     </div>
 
@@ -118,7 +120,7 @@ const RECURRING_OPTIONS = [
           <div class="grid grid-cols-7 border-b border-line">
             @for (day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; track day) {
               <div class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                {{ day }}
+                {{ t(day) }}
               </div>
             }
           </div>
@@ -153,7 +155,7 @@ const RECURRING_OPTIONS = [
                     </span>
                   }
                   @if (cell.tasks.length > 3) {
-                    <span class="px-1 text-[10px] font-bold text-ink-faint">+{{ cell.tasks.length - 3 }} more</span>
+                    <span class="px-1 text-[10px] font-bold text-ink-faint">{{ t('+{n} more', { n: cell.tasks.length - 3 }) }}</span>
                   }
                   @for (r of cell.reminders.slice(0, 2); track r._id) {
                     <span class="max-w-full truncate rounded-md bg-warning/25 px-1.5 py-0.5 text-[11px] text-ink">
@@ -167,7 +169,7 @@ const RECURRING_OPTIONS = [
                   }
                   @if (cell.habits.length > 0) {
                     <span class="flex items-center gap-1 rounded-md bg-success/15 px-1.5 py-0.5 text-[11px] font-semibold text-success">
-                      <app-icon name="flame" [size]="10" /> {{ cell.habits.length }} habit{{ cell.habits.length === 1 ? '' : 's' }}
+                      <app-icon name="flame" [size]="10" /> {{ t(cell.habits.length === 1 ? '{n} habit' : '{n} habits', { n: cell.habits.length }) }}
                     </span>
                   }
                 </span>
@@ -182,7 +184,7 @@ const RECURRING_OPTIONS = [
             @for (cell of weekCells(); track cell.key) {
               <div class="border-r border-line px-2 py-2 text-center last:border-r-0">
                 <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
-                  {{ cell.date.toLocaleDateString('en-US', { weekday: 'short' }) }}
+                  {{ cell.date.toLocaleDateString(getLocale(), { weekday: 'short' }) }}
                 </p>
                 <span
                   class="mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full text-sm"
@@ -235,7 +237,7 @@ const RECURRING_OPTIONS = [
           <div class="p-4">
             <p class="mb-3 font-display text-lg text-ink">{{ formatDate(dayDate(), 'long') }}</p>
             @if (dayItems().length === 0) {
-              <p class="py-10 text-center text-sm text-ink-soft">Nothing scheduled for this day.</p>
+              <p class="py-10 text-center text-sm text-ink-soft">{{ t('Nothing scheduled for this day.') }}</p>
             }
             <ul class="space-y-1.5">
               @for (item of dayItems(); track item.id) {
@@ -248,7 +250,7 @@ const RECURRING_OPTIONS = [
                     <app-icon [name]="kindIcon(item.kind)" [size]="17" class="shrink-0 text-ink-soft" />
                     <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ item.title }}</span>
                     @if (item.status) {
-                      <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'neutral'">{{ item.status }}</app-badge>
+                      <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'neutral'">{{ t(item.status ?? '') }}</app-badge>
                     }
                   </button>
                 </li>
@@ -262,13 +264,13 @@ const RECURRING_OPTIONS = [
           <div class="p-4">
             <p class="mb-3 text-sm font-medium text-ink-soft">{{ agendaRangeLabel() }}</p>
             @if (agendaItems().length === 0) {
-              <p class="py-10 text-center text-sm text-ink-soft">Nothing scheduled in this period.</p>
+              <p class="py-10 text-center text-sm text-ink-soft">{{ t('Nothing scheduled in this period.') }}</p>
             }
             @for (group of agendaGroups(); track group.dateKey) {
               <div class="mb-4">
                 <p class="mb-1.5 text-xs font-bold uppercase tracking-widest text-ink-faint">
                   {{ formatDate(group.dateKey, 'long') }}
-                  @if (group.isToday) { · today }
+                  @if (group.isToday) { · {{ t('today') }} }
                 </p>
                 <ul class="space-y-1.5">
                   @for (item of group.items; track item.id) {
@@ -284,7 +286,7 @@ const RECURRING_OPTIONS = [
                           <span class="hidden shrink-0 text-xs text-ink-faint sm:block">{{ item.subtitle }}</span>
                         }
                         @if (item.status) {
-                          <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'neutral'">{{ item.status }}</app-badge>
+                          <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'neutral'">{{ t(item.status) }}</app-badge>
                         }
                       </button>
                     </li>
@@ -302,15 +304,15 @@ const RECURRING_OPTIONS = [
             <h2 class="text-base font-semibold text-ink">{{ formatDate(selectedDate(), 'long') }}</h2>
             <div class="flex items-center gap-2">
               <app-button size="sm" variant="secondary" icon="bell-ring" (click)="openCreateForSelected()">
-                Add reminder
+                {{ t('Add reminder') }}
               </app-button>
               <app-button size="sm" variant="ghost" icon="calendar-days" (click)="setView('day')">
-                Day view
+                {{ t('Day view') }}
               </app-button>
             </div>
           </div>
           @if (dayItems().length === 0) {
-            <p class="mt-3 text-sm text-ink-soft">Nothing scheduled for this day.</p>
+            <p class="mt-3 text-sm text-ink-soft">{{ t('Nothing scheduled for this day.') }}</p>
           }
           <ul class="mt-3 divide-y divide-line">
             @for (item of dayItems(); track item.id) {
@@ -322,15 +324,15 @@ const RECURRING_OPTIONS = [
                     <span class="shrink-0 text-xs text-ink-faint">{{ item.time }}</span>
                   }
                   @if (item.status) {
-                    <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'warning'">{{ item.status }}</app-badge>
+                    <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'warning'">{{ t(item.status) }}</app-badge>
                   }
                 </button>
                 @if (item.reminder) {
                   <div class="flex shrink-0 items-center gap-0.5">
                     <app-button size="icon" variant="ghost" icon="pencil"
-                      [attr.aria-label]="'Edit reminder'" (click)="openEdit(item.reminder!)"></app-button>
+                      [attr.aria-label]="t('Edit reminder')" (click)="openEdit(item.reminder!)"></app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Delete reminder'" (click)="removeReminder(item.reminder!)"></app-button>
+                      [attr.aria-label]="t('Delete reminder')" (click)="removeReminder(item.reminder!)"></app-button>
                   </div>
                 }
               </li>
@@ -341,39 +343,39 @@ const RECURRING_OPTIONS = [
     }
 
     <!-- Item detail modal -->
-    <app-modal [open]="detailOpen()" title="Event details" (closed)="detailOpen.set(false)">
+    <app-modal [open]="detailOpen()" [title]="t('Event details')" (closed)="detailOpen.set(false)">
       @if (detail(); as item) {
         <div class="space-y-4">
           <div class="flex flex-wrap items-center gap-2">
-            <app-badge [tone]="detailTone(item.kind)">{{ titleCase(item.kind) }}</app-badge>
+            <app-badge [tone]="detailTone(item.kind)">{{ t(titleCase(item.kind)) }}</app-badge>
             @if (item.status) {
-              <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'neutral'">{{ item.status }}</app-badge>
+              <app-badge [tone]="item.status === 'done' || item.status === 'sent' ? 'success' : 'neutral'">{{ t(item.status) }}</app-badge>
             }
           </div>
           <div>
-            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Title</p>
+            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Title') }}</p>
             <p class="mt-1 text-sm font-medium text-ink">{{ item.title }}</p>
           </div>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Date</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Date') }}</p>
               <p class="mt-1 text-sm text-ink">{{ formatDate(item.dateKey, 'long') }}</p>
             </div>
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Time</p>
-              <p class="mt-1 text-sm text-ink">{{ item.time || 'All day' }}</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Time') }}</p>
+              <p class="mt-1 text-sm text-ink">{{ item.time || t('All day') }}</p>
             </div>
           </div>
           @if (item.subtitle) {
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Details</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Details') }}</p>
               <p class="mt-1 text-sm text-ink">{{ item.subtitle }}</p>
             </div>
           }
           @if (item.task) {
             <div class="flex justify-end gap-2 pt-1">
               @if (item.task.status !== 'completed') {
-                <app-button icon="circle-check" (click)="completeTask(item.task!)">Mark complete</app-button>
+                <app-button icon="circle-check" (click)="completeTask(item.task!)">{{ t('Mark complete') }}</app-button>
               }
             </div>
           }
@@ -384,23 +386,23 @@ const RECURRING_OPTIONS = [
     <!-- Reminder create/edit modal -->
     <app-modal
       [open]="modalOpen()"
-      [title]="editing() ? 'Edit reminder' : 'New reminder'"
+      [title]="editing() ? t('Edit reminder') : t('New reminder')"
       (closed)="modalOpen.set(false)"
     >
       <form (ngSubmit)="saveReminder()" class="space-y-4">
-        <app-field label="Title" placeholder="e.g. Pay electricity bill" [required]="true"
+        <app-field [label]="t('Title')" [placeholder]="t('e.g. Pay electricity bill')" [required]="true"
           [(ngModel)]="form.title" name="title" />
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <app-field label="Date & time" type="datetime-local" [required]="true"
+          <app-field [label]="t('Date & time')" type="datetime-local" [required]="true"
             [(ngModel)]="form.datetime" name="datetime" />
-          <app-select label="Type" [options]="reminderTypeOptions()"
+          <app-select [label]="t('Type')" [options]="reminderTypeOptions()"
             [(ngModel)]="form.type" name="type" />
         </div>
-        <app-select label="Repeat" [options]="recurringOptions()" [hint]="'Daily, weekly, monthly or yearly'"
+        <app-select [label]="t('Repeat')" [options]="recurringOptions()" [hint]="t('Daily, weekly, monthly or yearly')"
           [(ngModel)]="form.frequency" name="frequency" />
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="saving()">Save reminder</app-button>
+          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="saving()">{{ t('Save reminder') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -412,6 +414,9 @@ export class CalendarComponent implements OnInit {
   private goalService = inject(GoalService);
   private habitService = inject(HabitService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly loading = signal(true);
   protected readonly view = signal<ViewMode>('month');
@@ -438,9 +443,15 @@ export class CalendarComponent implements OnInit {
 
   private pendingRequests = 0;
 
-  protected readonly viewOptions = computed(() => VIEW_OPTIONS);
-  protected readonly reminderTypeOptions = computed(() => REMINDER_TYPE_OPTIONS);
-  protected readonly recurringOptions = computed(() => RECURRING_OPTIONS);
+  protected readonly viewOptions = computed(() =>
+    VIEW_OPTIONS.map((o) => ({ ...o, label: this.t(o.label) }))
+  );
+  protected readonly reminderTypeOptions = computed(() =>
+    REMINDER_TYPE_OPTIONS.map((o) => ({ ...o, label: this.t(o.label) }))
+  );
+  protected readonly recurringOptions = computed(() =>
+    RECURRING_OPTIONS.map((o) => ({ ...o, label: this.t(o.label) }))
+  );
 
   ngOnInit(): void {
     this.beginLoad();
@@ -574,7 +585,7 @@ export class CalendarComponent implements OnInit {
         id: `reminder-${r._id}`,
         kind: 'reminder' as const,
         title: r.title,
-        subtitle: r.sent ? 'Already notified' : 'Upcoming reminder',
+        subtitle: r.sent ? this.t('Already notified') : this.t('Upcoming reminder'),
         time: formatTime(r.datetime),
         dateKey: cell.key,
         status: r.sent ? 'sent' : 'upcoming',
@@ -640,7 +651,7 @@ export class CalendarComponent implements OnInit {
 
   protected readonly agendaRangeLabel = computed(() => {
     const month = this.viewDate();
-    return month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return month.toLocaleDateString(getLocale(), { month: 'long', year: 'numeric' });
   });
 
   protected setView(value: string): void {
@@ -696,7 +707,7 @@ export class CalendarComponent implements OnInit {
   protected completeTask(task: Task): void {
     this.taskService.update(task._id, { status: 'completed' }).subscribe({
       next: () => {
-        this.toast.success('Task completed 🎉');
+        this.toast.success(this.t('Task completed 🎉'));
         this.detailOpen.set(false);
         this.taskService.getAll().subscribe((res) => {
           this.tasks.set(res.filter((t) => !t.archived));
@@ -737,7 +748,7 @@ export class CalendarComponent implements OnInit {
 
   protected saveReminder(): void {
     if (!this.form.title?.trim() || !this.form.datetime) {
-      this.toast.error('Title and date/time are required.');
+      this.toast.error(this.t('Title and date/time are required.'));
       return;
     }
     const isRecurring = this.form.frequency !== 'none';
@@ -754,7 +765,7 @@ export class CalendarComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success(this.editing() ? 'Reminder updated' : 'Reminder created');
+        this.toast.success(this.editing() ? this.t('Reminder updated') : this.t('Reminder created'));
         this.modalOpen.set(false);
         this.reminderService.getAll().subscribe((res) => this.reminders.set(res));
       },
@@ -766,10 +777,10 @@ export class CalendarComponent implements OnInit {
   }
 
   protected removeReminder(reminder: Reminder): void {
-    if (!confirm(`Delete reminder "${reminder.title}"?`)) return;
+    if (!confirm(this.t('Delete reminder "{title}"?', { title: reminder.title }))) return;
     this.reminderService.remove(reminder._id).subscribe({
       next: () => {
-        this.toast.success('Reminder deleted');
+        this.toast.success(this.t('Reminder deleted'));
         this.reminders.update((list) => list.filter((r) => r._id !== reminder._id));
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -802,4 +813,5 @@ export class CalendarComponent implements OnInit {
 
   protected readonly formatDate = formatDate;
   protected readonly formatTime = formatTime;
+  protected readonly getLocale = getLocale;
 }

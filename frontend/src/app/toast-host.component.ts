@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ToastService } from './core/services/toast.service';
+import { I18nService } from './core/services/i18n.service';
 import { NgClass } from '@angular/common';
 import { IconComponent } from './layout/components/icon.component';
 
@@ -36,7 +37,7 @@ import { IconComponent } from './layout/components/icon.component';
           <button
             (click)="dismiss(toast.id)"
             class="rounded-[8px] border-2 border-transparent p-1 text-ink-faint transition-colors hover:border-ink hover:bg-surface-2 hover:text-ink"
-            aria-label="Dismiss notification"
+            [attr.aria-label]="t('Dismiss notification')"
           >
             <app-icon name="x" [size]="16" />
           </button>
@@ -47,7 +48,9 @@ import { IconComponent } from './layout/components/icon.component';
 })
 export class ToastHostComponent {
   private toastService = inject(ToastService);
+  private i18n = inject(I18nService);
   protected readonly toasts = this.toastService.toasts;
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected iconBg(type: string): string {
     if (type === 'success') return 'var(--color-success)';

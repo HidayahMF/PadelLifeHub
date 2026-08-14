@@ -5,6 +5,7 @@ import { FieldComponent } from '../../../layout/components/field.component';
 import { ButtonComponent } from '../../../layout/components/button.component';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
@@ -26,13 +27,13 @@ import { ToastService } from '../../../core/services/toast.service';
           class="absolute right-[12%] top-[24%] -rotate-3 rounded-[14px] border-2 border-ink bg-success px-4 py-2 font-bold text-sm text-ink shadow-soft animate-float"
           style="--tilt: -3deg"
         >
-          ✦ PRODUCTIVITY
+          ✦ {{ t('PRODUCTIVITY') }}
         </div>
         <div
           class="absolute right-[18%] bottom-[22%] rotate-3 rounded-[14px] border-2 border-ink bg-primary px-4 py-2 font-bold text-sm text-ink shadow-soft animate-float-slow"
           style="--tilt: 3deg"
         >
-          ✦ FINANCE
+          ✦ {{ t('FINANCE') }}
         </div>
         <div class="absolute bottom-[8%] right-[38%] h-10 w-10 rotate-45 rounded-[8px] border-2 border-ink bg-secondary shadow-soft"></div>
       </div>
@@ -51,28 +52,28 @@ import { ToastService } from '../../../core/services/toast.service';
             <div>
               <p class="font-display text-xl leading-none text-ink">LIFEHUB</p>
               <p class="mt-1 text-xs font-bold uppercase tracking-widest text-ink-faint">
-                Productivity & finance
+                {{ t('Productivity & finance') }}
               </p>
             </div>
           </div>
 
           <h1 class="mt-10 font-display text-5xl leading-[1.04] tracking-tight text-ink sm:text-6xl">
-            ORGANIZE YOUR
+            {{ t('ORGANIZE YOUR') }}
             <span class="relative inline-block">
               <span
                 class="absolute -inset-x-1 -inset-y-1 -rotate-1 border-2 border-ink bg-primary shadow-[5px_5px_0_0_var(--color-ink)]"
               ></span>
-              <span class="relative px-2">WHOLE LIFE</span>
+              <span class="relative px-2">{{ t('WHOLE LIFE') }}</span>
             </span>
-            IN ONE PLACE.
+            {{ t('IN ONE PLACE.') }}
           </h1>
 
           <p class="mt-6 max-w-md text-base font-medium text-ink-soft">
-            Tasks, finance, habits, goals &amp; more — a brutal-simple dashboard to run your day.
+            {{ t('Tasks, finance, habits, goals & more — a brutal-simple dashboard to run your day.') }}
           </p>
 
           <ul class="mt-8 flex flex-wrap gap-2.5">
-            @for (chip of chips; track chip) {
+            @for (chip of chips(); track chip) {
               <li
                 class="rounded-[10px] border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-[2px_2px_0_0_var(--color-ink)]"
               >
@@ -85,14 +86,14 @@ import { ToastService } from '../../../core/services/toast.service';
         <!-- Form -->
         <div class="w-full max-w-md justify-self-center lg:justify-self-end">
           <div class="rounded-card border-2 border-ink bg-surface p-8 shadow-pop">
-            <h2 class="font-display text-2xl text-ink">WELCOME BACK</h2>
+            <h2 class="font-display text-2xl text-ink">{{ t('WELCOME BACK') }}</h2>
             <p class="mt-1.5 text-sm font-medium text-ink-soft">
-              Sign in to LifeHub to continue your journey.
+              {{ t('Sign in to LifeHub to continue your journey.') }}
             </p>
 
             <form class="mt-6 space-y-4" (ngSubmit)="onSubmit()">
               <app-field
-                label="Email"
+                [label]="t('Email')"
                 type="email"
                 placeholder="you@example.com"
                 [required]="true"
@@ -102,9 +103,9 @@ import { ToastService } from '../../../core/services/toast.service';
               />
               <div class="relative">
                 <app-field
-                  label="Password"
+                  [label]="t('Password')"
                   [type]="showPassword() ? 'text' : 'password'"
-                  placeholder="Your password"
+                  [placeholder]="t('Your password')"
                   [required]="true"
                   autocomplete="current-password"
                   [(ngModel)]="password"
@@ -114,7 +115,7 @@ import { ToastService } from '../../../core/services/toast.service';
                   type="button"
                   (click)="showPassword.set(!showPassword())"
                   class="absolute right-3 top-[40px] text-ink-faint transition-colors hover:text-ink"
-                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                  [attr.aria-label]="showPassword() ? t('Hide password') : t('Show password')"
                 >
                   <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" />
                 </button>
@@ -122,12 +123,12 @@ import { ToastService } from '../../../core/services/toast.service';
 
               <div class="text-sm">
                 <a routerLink="/register" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">
-                  Create an account
+                  {{ t('Create an account') }}
                 </a>
               </div>
 
               <app-button type="submit" [block]="true" [loading]="loading()" icon="log-in">
-                Sign in
+                {{ t('Sign in') }}
               </app-button>
             </form>
           </div>
@@ -140,14 +141,15 @@ export class LoginComponent {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
 
-  protected readonly chips = [
-    '✅ Task manager',
-    '💰 Finance tracker',
-    '🎯 Goals & habits',
-    '⏱ Pomodoro focus',
-    '📝 Notes',
-  ];
+  protected readonly t = this.i18n.t.bind(this.i18n);
+
+  protected chips(): string[] {
+    return ['✅ Task manager', '💰 Finance tracker', '🎯 Goals & habits', '⏱ Pomodoro focus', '📝 Notes'].map((c) =>
+      this.t(c)
+    );
+  }
 
   protected email = '';
   protected password = '';
@@ -156,14 +158,14 @@ export class LoginComponent {
 
   protected onSubmit(): void {
     if (!this.email.trim() || !this.password) {
-      this.toast.error('Please fill in your email and password.');
+      this.toast.error(this.t('Please fill in your email and password.'));
       return;
     }
     this.loading.set(true);
     this.auth.login(this.email.trim(), this.password).subscribe({
       next: () => {
         this.loading.set(false);
-        this.toast.success('Welcome back!');
+        this.toast.success(this.t('Welcome back!'));
         this.router.navigate(['/dashboard']);
       },
       error: (err: Error) => {

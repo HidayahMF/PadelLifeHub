@@ -38,4 +38,5 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
 export const NAV_BOTTOM: NavItem[] = [
   { label: 'Settings', route: '/settings', icon: 'settings' },
   { label: 'Profile', route: '/profile', icon: 'user-round' },
+  { label: 'Help', route: '/help', icon: 'book-open' },
 ];

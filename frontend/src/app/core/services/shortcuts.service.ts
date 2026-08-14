@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommandService } from './command.service';
+import { OnboardingService } from './onboarding.service';
 
 /**
  * Global keyboard shortcuts (Ctrl+K → search, / → search, N → new task, and
@@ -11,6 +12,7 @@ import { CommandService } from './command.service';
 export class ShortcutsService {
   private command = inject(CommandService);
   private router = inject(Router);
+  private onboarding = inject(OnboardingService);
   private initialized = false;
 
   /** Register the window-level keydown listener once. */
@@ -37,6 +39,9 @@ export class ShortcutsService {
 
     // Never hijack keys while the search or quick-add overlays are open.
     if (this.command.searchOpen() || this.command.quickAddOpen()) return;
+
+    // Keep first-run onboarding/tour focused: don't navigate away behind it.
+    if (this.onboarding.welcomeOpen() || this.onboarding.tourActive()) return;
 
     const key = event.key.toLowerCase();
     const mod = event.ctrlKey || event.metaKey;

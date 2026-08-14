@@ -10,6 +10,8 @@ import { InsightsComponent } from './components/insights.component';
 import { DashboardService, InsightsService } from '../../core/services/data.service';
 import type { InsightsData, Statistics } from '../../core/models/misc.model';
 import { formatCurrency } from '../../core/utils/format';
+import { getLocale } from '../../core/utils/locale';
+import { I18nService } from '../../core/services/i18n.service';
 
 type RangeKey = 'thisMonth' | 'lastMonth' | '7d' | '30d' | 'thisYear' | 'all';
 
@@ -37,9 +39,9 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
   template: `
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">Statistics</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">{{ t('Statistics') }}</h1>
         <p class="mt-1 text-sm text-ink-soft">
-          Insights into your productivity and finances.
+          {{ t('Insights into your productivity and finances.') }}
         </p>
       </div>
       <app-segmented
@@ -55,30 +57,30 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
       </div>
     } @else if (stats()) {
       <div class="mb-6 grid grid-cols-2 gap-5 xl:grid-cols-4">
-        <app-stat-card label="Total tasks" [value]="stats()!.productivity.totalTasks" icon="list-todo" />
-        <app-stat-card label="Completed tasks" [value]="stats()!.productivity.completedTasks" icon="circle-check" tone="success" />
-        <app-stat-card label="Completed this week" [value]="stats()!.productivity.weeklyCompleted" icon="trending-up" />
-        <app-stat-card label="Completed this month" [value]="stats()!.productivity.monthlyCompleted" icon="calendar-check" />
+        <app-stat-card [label]="t('Total tasks')" [value]="stats()!.productivity.totalTasks" icon="list-todo" />
+        <app-stat-card [label]="t('Completed tasks')" [value]="stats()!.productivity.completedTasks" icon="circle-check" tone="success" />
+        <app-stat-card [label]="t('Completed this week')" [value]="stats()!.productivity.weeklyCompleted" icon="trending-up" />
+        <app-stat-card [label]="t('Completed this month')" [value]="stats()!.productivity.monthlyCompleted" icon="calendar-check" />
       </div>
 
       <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Weekly activity</h2>
-            <p class="text-xs text-ink-soft">Tasks completed per day (last 7 days)</p>
+            <h2 class="text-base font-semibold text-ink">{{ t('Weekly activity') }}</h2>
+            <p class="text-xs text-ink-soft">{{ t('Tasks completed per day (last 7 days)') }}</p>
           </div>
           <div class="p-4">
-            <app-line-chart [data]="weeklyActivity()" aria-label="Weekly completed tasks" />
+            <app-line-chart [data]="weeklyActivity()" [attr.aria-label]="t('Weekly completed tasks')" />
           </div>
         </app-card>
 
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Cash flow</h2>
+            <h2 class="text-base font-semibold text-ink">{{ t('Cash flow') }}</h2>
             <p class="text-xs text-ink-soft">{{ rangeLabel() }}</p>
           </div>
           <div class="p-4">
-            <app-line-chart [data]="cashFlow()" aria-label="Cash flow" />
+            <app-line-chart [data]="cashFlow()" [attr.aria-label]="t('Cash flow')" />
           </div>
         </app-card>
       </div>
@@ -86,11 +88,11 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Spending by category</h2>
+            <h2 class="text-base font-semibold text-ink">{{ t('Spending by category') }}</h2>
             <p class="text-xs text-ink-soft">{{ rangeLabel() }}</p>
           </div>
           <div class="p-5">
-            <app-donut-chart [segments]="categorySpending()" [totalLabel]="'spent'" />
+            <app-donut-chart [segments]="categorySpending()" [totalLabel]="t('spent')" />
           </div>
         </app-card>
 
@@ -109,27 +111,27 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
 
         <app-card [padding]="'none'">
           <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">Financial summary</h2>
+            <h2 class="text-base font-semibold text-ink">{{ t('Financial summary') }}</h2>
             <p class="text-xs text-ink-soft">{{ rangeLabel() }}</p>
           </div>
           <div class="space-y-3 p-5">
             <div class="flex items-center justify-between rounded-card bg-surface-2 px-4 py-3">
-              <span class="text-sm text-ink-soft">Total income</span>
+              <span class="text-sm text-ink-soft">{{ t('Total income') }}</span>
               <span class="text-sm font-semibold text-success">{{ formatCurrency(stats()!.finance.totalIncome) }}</span>
             </div>
             <div class="flex items-center justify-between rounded-card bg-surface-2 px-4 py-3">
-              <span class="text-sm text-ink-soft">Total expenses</span>
+              <span class="text-sm text-ink-soft">{{ t('Total expenses') }}</span>
               <span class="text-sm font-semibold text-danger">{{ formatCurrency(stats()!.finance.totalExpense) }}</span>
             </div>
             <div class="flex items-center justify-between rounded-card bg-primary/10 px-4 py-3">
-              <span class="text-sm font-medium text-ink">Balance (all accounts)</span>
+              <span class="text-sm font-medium text-ink">{{ t('Balance (all accounts)') }}</span>
               <span class="text-sm font-bold text-ink">{{ formatCurrency(stats()!.finance.balance) }}</span>
             </div>
             <p class="pt-1 text-xs text-ink-faint">
-              Balance is the current stored balance across your accounts, matching the Finance page.
+              {{ t('Balance is the current stored balance across your accounts, matching the Finance page.') }}
             </p>
             <p class="pt-1 text-xs text-ink-faint">
-              Completion rate: {{ completionRate() }}%
+              {{ t('Completion rate: {rate}%', { rate: completionRate() }) }}
             </p>
           </div>
         </app-card>
@@ -140,6 +142,9 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
 export class StatisticsComponent implements OnInit {
   private service = inject(DashboardService);
   private insightsService = inject(InsightsService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly stats = signal<Statistics | null>(null);
   protected readonly loading = signal(true);
@@ -147,15 +152,17 @@ export class StatisticsComponent implements OnInit {
   protected readonly insights = signal<InsightsData | null>(null);
   protected readonly insightsLoading = signal(true);
 
-  protected readonly rangeOptions = computed(() => RANGE_OPTIONS);
+  protected readonly rangeOptions = computed(() =>
+    RANGE_OPTIONS.map((o) => ({ ...o, label: this.t(o.label) }))
+  );
 
   protected readonly rangeLabel = computed(
-    () => RANGE_OPTIONS.find((o) => o.value === this.range())?.label.toLowerCase() ?? 'this month'
+    () => this.t(RANGE_OPTIONS.find((o) => o.value === this.range())?.label ?? 'This month')
   );
 
   protected readonly weeklyActivity = computed<ChartPoint[]>(() =>
     (this.stats()?.productivity.weeklyActivity ?? []).map((a) => ({
-      label: new Date(a.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      label: new Date(a.date).toLocaleDateString(getLocale(), { weekday: 'short' }),
       value: a.completed,
     }))
   );
@@ -178,7 +185,7 @@ export class StatisticsComponent implements OnInit {
       'var(--color-ink-soft)',
     ];
     return (this.stats()?.finance.categorySpending ?? []).map((c, i) => ({
-      label: c._id ?? 'Other',
+      label: c._id ?? this.t('Other'),
       value: c.total,
       color: palette[i % palette.length],
     }));

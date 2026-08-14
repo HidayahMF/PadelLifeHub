@@ -12,6 +12,7 @@ import { SegmentedComponent } from '../../layout/components/segmented.component'
 import { ToggleComponent } from './components/toggle.component';
 import { NeedService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type { Need } from '../../core/models/lifestyle.model';
 import { formatCurrency, formatDate } from '../../core/utils/format';
 
@@ -34,9 +35,9 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
   ],
   template: `
     <app-page-header
-      title="Needs"
-      subtitle="Household essentials and shopping lists."
-      actionLabel="Add item"
+      [title]="t('Needs')"
+      [subtitle]="t('Household essentials and shopping lists.')"
+      [actionLabel]="t('Add item')"
       actionIcon="plus"
       [action]="openCreate"
     ></app-page-header>
@@ -48,7 +49,7 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
         (change)="setView($event)"
       />
       <span class="ml-auto text-sm text-ink-soft">
-        {{ checkedCount() }} of {{ needs().length }} purchased
+        {{ t('{n} of {count} purchased', { n: checkedCount(), count: needs().length }) }}
       </span>
     </div>
 
@@ -58,8 +59,8 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
       <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="shopping-basket" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
-          <p class="mt-3 text-sm font-semibold text-ink">No needs yet</p>
-          <p class="mt-1 text-sm text-ink-soft">Keep track of what you need to buy.</p>
+          <p class="mt-3 text-sm font-semibold text-ink">{{ t('No needs yet') }}</p>
+          <p class="mt-1 text-sm text-ink-soft">{{ t('Keep track of what you need to buy.') }}</p>
         </div>
       </app-card>
     } @else {
@@ -75,7 +76,7 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
                     ? 'border-success bg-success text-surface'
                     : 'border-ink-faint hover:border-primary'
                 "
-                [attr.aria-label]="need.purchased ? 'Mark as needed' : 'Mark as purchased'"
+                [attr.aria-label]="need.purchased ? t('Mark as needed') : t('Mark as purchased')"
               >
                 <app-icon *ngIf="need.purchased" name="check" [size]="13" [strokeWidth]="3" />
               </button>
@@ -88,11 +89,11 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
                   {{ need.name }}
                 </p>
                 <p class="mt-0.5 text-xs text-ink-faint">
-                  {{ need.quantity }} {{ need.unit || 'pcs' }} · {{ need.category || 'General' }}
+                  {{ need.quantity }} {{ need.unit || t('pcs') }} · {{ need.category || t('General') }}
                 </p>
                 @if ((need.purchaseHistory ?? []).length > 0) {
                   <p class="mt-1 text-xs text-ink-soft">
-                    🛒 Purchased {{ (need.purchaseHistory ?? []).length }}× · last
+                    🛒 {{ t('Purchased {n}× · last', { n: (need.purchaseHistory ?? []).length }) }}
                     {{ formatDate(lastPurchase(need)?.date, 'short') }}
                   </p>
                 }
@@ -104,10 +105,10 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
 
               <div class="flex shrink-0 items-center gap-0.5">
                 <app-button size="icon" variant="ghost" icon="pencil"
-                  [attr.aria-label]="'Edit ' + need.name"
+                  [attr.aria-label]="t('Edit {name}', { name: need.name })"
                   (click)="openEdit(need)"></app-button>
                 <app-button size="icon" variant="ghost" icon="trash-2"
-                  [attr.aria-label]="'Delete ' + need.name"
+                  [attr.aria-label]="t('Delete {name}', { name: need.name })"
                   (click)="remove(need)"></app-button>
               </div>
             </li>
@@ -118,29 +119,29 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
 
     <app-modal
       [open]="modalOpen()"
-      [title]="editing() ? 'Edit item' : 'Add a need'"
+      [title]="editing() ? t('Edit item') : t('Add a need')"
       (closed)="modalOpen.set(false)"
     >
       <form (ngSubmit)="save()" class="space-y-4">
-        <app-field label="Name" placeholder="e.g. Rice" [required]="true"
+        <app-field [label]="t('Name')" [placeholder]="t('e.g. Rice')" [required]="true"
           [(ngModel)]="form.name" name="name" />
         <div class="grid grid-cols-2 gap-4">
-          <app-field label="Quantity" type="number" placeholder="1"
+          <app-field [label]="t('Quantity')" type="number" placeholder="1"
             [(ngModel)]="form.quantity" name="quantity" />
-          <app-field label="Unit" placeholder="kg / pcs / liter"
+          <app-field [label]="t('Unit')" [placeholder]="t('kg / pcs / liter')"
             [(ngModel)]="form.unit" name="unit" />
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <app-field label="Price" type="number" placeholder="0"
+          <app-field [label]="t('Price')" type="number" placeholder="0"
             [(ngModel)]="form.price" name="price" />
-          <app-field label="Category" placeholder="e.g. Kitchen"
+          <app-field [label]="t('Category')" [placeholder]="t('e.g. Kitchen')"
             [(ngModel)]="form.category" name="category" />
         </div>
-        <app-toggle label="Add to shopping list" [model]="form.onShoppingList ?? true"
+        <app-toggle [label]="t('Add to shopping list')" [model]="form.onShoppingList ?? true"
           (change)="form.onShoppingList = $event" />
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="saving()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="saving()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -149,6 +150,9 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
 export class NeedsComponent implements OnInit {
   private service = inject(NeedService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly needs = this.service.needs;
   protected readonly loading = this.service.loading;
@@ -161,9 +165,9 @@ export class NeedsComponent implements OnInit {
   protected form: Partial<Need> = {};
 
   protected readonly viewOptions = computed(() => [
-    { value: 'all', label: 'All' },
-    { value: 'shopping', label: 'Shopping list' },
-    { value: 'purchased', label: 'Purchased' },
+    { value: 'all', label: this.t('All') },
+    { value: 'shopping', label: this.t('Shopping list') },
+    { value: 'purchased', label: this.t('Purchased') },
   ]);
 
   protected readonly visibleNeeds = computed(() => {
@@ -209,7 +213,7 @@ export class NeedsComponent implements OnInit {
 
   protected save(): void {
     if (!this.form.name?.trim()) {
-      this.toast.error('Name is required.');
+      this.toast.error(this.t('Name is required.'));
       return;
     }
     const payload = {
@@ -225,7 +229,7 @@ export class NeedsComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success(this.editing() ? 'Item updated' : 'Item added');
+        this.toast.success(this.editing() ? this.t('Item updated') : this.t('Item added'));
         this.modalOpen.set(false);
         this.service.load();
       },
@@ -239,7 +243,7 @@ export class NeedsComponent implements OnInit {
   protected togglePurchased(need: Need): void {
     this.service.update(need._id, { purchased: !need.purchased }).subscribe({
       next: () => {
-        this.toast.success(need.purchased ? 'Back on the list' : 'Purchased');
+        this.toast.success(need.purchased ? this.t('Back on the list') : this.t('Purchased'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -252,10 +256,10 @@ export class NeedsComponent implements OnInit {
   }
 
   protected remove(need: Need): void {
-    if (!confirm(`Delete "${need.name}"?`)) return;
+    if (!confirm(this.t('Delete "{name}"?', { name: need.name }))) return;
     this.service.remove(need._id).subscribe({
       next: () => {
-        this.toast.success('Item deleted');
+        this.toast.success(this.t('Item deleted'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),

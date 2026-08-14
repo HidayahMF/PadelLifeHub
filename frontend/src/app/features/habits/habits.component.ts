@@ -13,6 +13,7 @@ import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { HabitService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type { Habit } from '../../core/models/lifestyle.model';
 import { addDays, startOfDay } from '../../core/utils/format';
 import {
@@ -40,16 +41,16 @@ import {
   ],
   template: `
     <app-page-header
-      title="Habits"
-      subtitle="Small actions, daily. Build streaks that stick."
-      actionLabel="New habit"
+      [title]="t('Habits')"
+      [subtitle]="t('Small actions, daily. Build streaks that stick.')"
+      [actionLabel]="t('New habit')"
       actionIcon="plus"
       [action]="openCreate"
     ></app-page-header>
 
     <app-segmented
       class="mb-6"
-      [options]="[ { value: 'active', label: 'Active' }, { value: 'archived', label: 'Archived' } ]"
+      [options]="viewOptions()"
       [model]="view()"
       (change)="setView($event)"
     ></app-segmented>
@@ -62,8 +63,8 @@ import {
       <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="flame" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
-          <p class="mt-3 text-sm font-semibold text-ink">{{ view() === 'archived' ? 'No archived habits' : 'No habits yet' }}</p>
-          <p class="mt-1 text-sm text-ink-soft">{{ view() === 'archived' ? 'Archived habits will appear here.' : 'Start with one small habit today.' }}</p>
+          <p class="mt-3 text-sm font-semibold text-ink">{{ view() === 'archived' ? t('No archived habits') : t('No habits yet') }}</p>
+          <p class="mt-1 text-sm text-ink-soft">{{ view() === 'archived' ? t('Archived habits will appear here.') : t('Start with one small habit today.') }}</p>
         </div>
       </app-card>
     } @else {
@@ -85,17 +86,17 @@ import {
                 <div>
                   <h3 class="text-base font-semibold text-ink">{{ habit.name }}</h3>
                   <p class="text-xs text-ink-soft">
-                    {{ titleCase(habit.frequency) }} · {{ habit.streak }} day streak
+                    {{ t(titleCase(habit.frequency)) }} · {{ t('{n} day streak', { n: habit.streak }) }}
                   </p>
                 </div>
               </div>
               @if (view() === 'active') {
               <app-badge class="shrink-0" [tone]="doneToday(habit) ? 'success' : 'neutral'" [icon]="doneToday(habit) ? 'check' : ''">
-                {{ doneToday(habit) ? 'Done today' : 'Not yet' }}
+                {{ doneToday(habit) ? t('Done today') : t('Not yet') }}
               </app-badge>
               } @else {
               <app-badge class="shrink-0" tone="neutral" icon="archive">
-                Archived
+                {{ t('Archived') }}
               </app-badge>
               }
             </div>
@@ -107,7 +108,7 @@ import {
                   class="flex flex-col items-center gap-1.5"
                   [class.cursor-not-allowed]="!day.today"
                   [disabled]="!day.today"
-                  [attr.aria-label]="'Toggle ' + habit.name + ' on ' + day.label"
+                  [attr.aria-label]="t('Toggle {name} on {day}', { name: habit.name, day: day.label })"
                   (click)="toggleDate(habit, day)"
                 >
                   <span class="text-[10px] font-medium uppercase text-ink-faint">{{ day.label }}</span>
@@ -129,20 +130,20 @@ import {
               <div class="mt-auto">
                 <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
                   @if (view() === 'archived') {
-                    <app-button size="sm" icon="archive-restore" (click)="restore(habit)">Restore</app-button>
+                    <app-button size="sm" icon="archive-restore" (click)="restore(habit)">{{ t('Restore') }}</app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Delete ' + habit.name"
+                      [attr.aria-label]="t('Delete {name}', { name: habit.name })"
                       (click)="remove(habit)"></app-button>
                   } @else {
                     <app-button size="sm" icon="check" (click)="toggleToday(habit)">
-                  {{ doneToday(habit) ? 'Undo today' : 'Mark done' }}
+                  {{ doneToday(habit) ? t('Undo today') : t('Mark done') }}
                 </app-button>
-                <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(habit)">Edit</app-button>
+                <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(habit)">{{ t('Edit') }}</app-button>
                 <app-button size="icon" variant="ghost" icon="archive"
-                  [attr.aria-label]="'Archive ' + habit.name"
+                  [attr.aria-label]="t('Archive {name}', { name: habit.name })"
                   (click)="archive(habit)"></app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Delete ' + habit.name"
+                      [attr.aria-label]="t('Delete {name}', { name: habit.name })"
                       (click)="remove(habit)"></app-button>
                   }
                 </div>
@@ -155,19 +156,19 @@ import {
 
     <app-modal
       [open]="modalOpen()"
-      [title]="editing() ? 'Edit habit' : 'New habit'"
+      [title]="editing() ? t('Edit habit') : t('New habit')"
       (closed)="modalOpen.set(false)"
     >
       <form (ngSubmit)="save()" class="space-y-4">
-        <app-field label="Name" placeholder="e.g. Morning walk" [required]="true"
+        <app-field [label]="t('Name')" [placeholder]="t('e.g. Morning walk')" [required]="true"
           [(ngModel)]="form.name" name="name" />
-        <app-field label="Description" placeholder="Optional details…"
+        <app-field [label]="t('Description')" [placeholder]="t('Optional details…')"
           [(ngModel)]="form.description" name="description" />
-        <app-select label="Frequency" [options]="frequencyOptions()"
+        <app-select [label]="t('Frequency')" [options]="frequencyOptions()"
           [(ngModel)]="form.frequency" name="frequency" />
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="saving()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="saving()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -176,6 +177,9 @@ import {
 export class HabitsComponent implements OnInit {
   private service = inject(HabitService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly habits = this.service.habits;
   protected readonly loading = this.service.loading;
@@ -186,6 +190,11 @@ export class HabitsComponent implements OnInit {
 
   protected readonly view = signal<'active' | 'archived'>('active');
 
+  protected readonly viewOptions = computed(() => [
+    { value: 'active', label: this.t('Active') },
+    { value: 'archived', label: this.t('Archived') },
+  ]);
+
   protected setView(value: string): void {
     if (value === 'active' || value === 'archived') {
       this.view.set(value);
@@ -195,9 +204,9 @@ export class HabitsComponent implements OnInit {
   protected form: Partial<Habit> = {};
 
   protected readonly frequencyOptions = computed(() => [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
+    { value: 'daily', label: this.t('Daily') },
+    { value: 'weekly', label: this.t('Weekly') },
+    { value: 'monthly', label: this.t('Monthly') },
   ]);
 
   protected readonly activeHabits = computed(() => this.habits().filter((h) => !h.archived));
@@ -246,7 +255,7 @@ export class HabitsComponent implements OnInit {
 
   protected save(): void {
     if (!this.form.name?.trim()) {
-      this.toast.error('Habit name is required.');
+      this.toast.error(this.t('Habit name is required.'));
       return;
     }
     const payload = { ...this.form, name: this.form.name.trim() };
@@ -257,7 +266,7 @@ export class HabitsComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success(this.editing() ? 'Habit updated' : 'Habit created');
+        this.toast.success(this.editing() ? this.t('Habit updated') : this.t('Habit created'));
         this.modalOpen.set(false);
         this.service.load();
       },
@@ -295,7 +304,7 @@ export class HabitsComponent implements OnInit {
         this.service.habits.update((list) =>
           list.map((h) => (h._id === updated._id ? updated : h))
         );
-        this.toast.success(wasDone ? 'Habit unmarked' : 'Habit done — keep it up! 🔥');
+        this.toast.success(wasDone ? this.t('Habit unmarked') : this.t('Habit done — keep it up! 🔥'));
       },
       error: (err: Error) => this.toast.error(err.message),
     });
@@ -304,7 +313,7 @@ export class HabitsComponent implements OnInit {
   protected archive(habit: Habit): void {
     this.service.update(habit._id, { archived: true }).subscribe({
       next: () => {
-        this.toast.success('Habit archived');
+        this.toast.success(this.t('Habit archived'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -314,7 +323,7 @@ export class HabitsComponent implements OnInit {
   protected restore(habit: Habit): void {
     this.service.update(habit._id, { archived: false }).subscribe({
       next: () => {
-        this.toast.success('Habit restored');
+        this.toast.success(this.t('Habit restored'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -322,10 +331,10 @@ export class HabitsComponent implements OnInit {
   }
 
   protected remove(habit: Habit): void {
-    if (!confirm(`Delete "${habit.name}"?`)) return;
+    if (!confirm(this.t('Delete "{name}"?', { name: habit.name }))) return;
     this.service.remove(habit._id).subscribe({
       next: () => {
-        this.toast.success('Habit deleted');
+        this.toast.success(this.t('Habit deleted'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),

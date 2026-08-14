@@ -5,6 +5,7 @@ import { NAV_BOTTOM, NAV_SECTIONS } from '../nav-items';
 import { IconComponent } from '../components/icon.component';
 import { AvatarComponent } from '../components/avatar.component';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -30,17 +31,17 @@ import { AuthService } from '../../core/services/auth.service';
         </span>
         <div class="min-w-0">
           <p class="font-display text-base leading-tight text-ink">LifeHub</p>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-ink-faint">Get it done</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{{ t('Get it done') }}</p>
         </div>
       </div>
 
-      <nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Main navigation">
+      <nav class="flex-1 overflow-y-auto px-3 py-4" [attr.aria-label]="t('Main navigation')">
         @for (section of sections; track section.title) {
           <p
             *ngIf="section.title"
             class="px-3 pb-2 pt-4 text-[11px] font-bold uppercase tracking-widest text-ink-faint"
           >
-            {{ section.title }}
+            {{ t(section.title) }}
           </p>
           <ul class="space-y-1">
             @for (item of section.items; track item.route) {
@@ -59,7 +60,7 @@ import { AuthService } from '../../core/services/auth.service';
                     [strokeWidth]="rla.isActive ? 2.5 : 2"
                     [color]="rla.isActive ? 'var(--color-ink)' : undefined"
                   />
-                  <span class="truncate">{{ item.label }}</span>
+                  <span class="truncate">{{ t(item.label) }}</span>
                 </a>
               </li>
             }
@@ -80,14 +81,14 @@ import { AuthService } from '../../core/services/auth.service';
                 [attr.aria-current]="rla.isActive ? 'page' : null"
               >
                 <app-icon [name]="item.icon" [size]="19" [strokeWidth]="rla.isActive ? 2.5 : 2" />
-                <span class="truncate">{{ item.label }}</span>
+                <span class="truncate">{{ t(item.label) }}</span>
               </a>
             </li>
           }
         </ul>
 
         <div class="mt-2 flex items-center gap-2.5 rounded-card border-2 border-ink bg-surface-2 p-3">
-          <app-avatar [name]="user()?.name ?? 'User'" [size]="32" />
+          <app-avatar [name]="user()?.name ?? t('User')" [size]="32" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-bold text-ink">{{ user()?.name }}</p>
             <p class="truncate text-xs font-medium text-ink-soft">{{ user()?.email }}</p>
@@ -95,7 +96,7 @@ import { AuthService } from '../../core/services/auth.service';
           <button
             (click)="logout()"
             class="rounded-lg border-2 border-ink bg-surface p-1.5 text-ink-soft transition-all duration-150 hover:bg-danger hover:text-white"
-            [attr.aria-label]="'Log out'"
+            [attr.aria-label]="t('Log out')"
           >
             <app-icon name="log-out" [size]="17" />
           </button>
@@ -113,8 +114,10 @@ export class SidebarComponent {
 
   private auth = inject(AuthService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
 
   protected readonly user = this.auth.user;
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected logout(): void {
     this.auth.logout();

@@ -106,6 +106,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),
       },
+      {
+        path: 'help',
+        loadComponent: () =>
+          import('./features/help/help.component').then((m) => m.HelpComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },

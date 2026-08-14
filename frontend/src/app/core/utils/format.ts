@@ -15,26 +15,29 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
+// Date/month labels follow the active UI language (set by I18nService).
+import { getLocale } from './locale';
+
 export function formatDate(value: string | Date | null | undefined, style: 'short' | 'long' | 'medium' = 'medium'): string {
   if (!value) return '';
   const date = toDate(value);
   if (style === 'short') {
-    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(date);
+    return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short' }).format(date);
   }
   if (style === 'long') {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(getLocale(), {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     }).format(date);
   }
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
 export function formatTime(value: string | Date | null | undefined): string {
   if (!value) return '';
-  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(toDate(value));
+  return new Intl.DateTimeFormat(getLocale(), { hour: '2-digit', minute: '2-digit' }).format(toDate(value));
 }
 
 export function formatDateTime(value: string | Date | null | undefined): string {
@@ -92,7 +95,7 @@ export function monthKey(date: Date = new Date()): string {
 export function monthLabel(month: string): string {
   const [year, m] = month.split('-').map(Number);
   const date = new Date(year, m - 1, 1);
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat(getLocale(), { month: 'long', year: 'numeric' }).format(date);
 }
 
 export function initials(name: string): string {

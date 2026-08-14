@@ -14,6 +14,7 @@ import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { GoalService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type { Goal } from '../../core/models/lifestyle.model';
 import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
@@ -37,9 +38,9 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
   ],
   template: `
     <app-page-header
-      title="Goals"
-      subtitle="Set targets and track your progress."
-      actionLabel="New goal"
+      [title]="t('Goals')"
+      [subtitle]="t('Set targets and track your progress.')"
+      [actionLabel]="t('New goal')"
       actionIcon="plus"
       [action]="openCreate"
     ></app-page-header>
@@ -57,7 +58,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
           (change)="setView($event)"
         />
       }
-      <span class="ml-auto text-sm text-ink-soft">{{ completedCount() }} completed</span>
+      <span class="ml-auto text-sm text-ink-soft">{{ t('{n} completed', { n: completedCount() }) }}</span>
     </div>
 
     @if (loading()) {
@@ -68,8 +69,8 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
       <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="target" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
-          <p class="mt-3 text-sm font-semibold text-ink">No goals yet</p>
-          <p class="mt-1 text-sm text-ink-soft">Define what you want to achieve.</p>
+          <p class="mt-3 text-sm font-semibold text-ink">{{ t('No goals yet') }}</p>
+          <p class="mt-1 text-sm text-ink-soft">{{ t('Define what you want to achieve.') }}</p>
         </div>
       </app-card>
     } @else {
@@ -84,7 +85,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
                 <app-icon name="target" [size]="22" [strokeWidth]="1.8" />
               </span>
               @if (goal.completed) {
-                <app-badge tone="success" icon="circle-check">Done</app-badge>
+                <app-badge tone="success" icon="circle-check">{{ t('Done') }}</app-badge>
               }
             </div>
             <h3 class="mt-4 text-base font-semibold text-ink">{{ goal.title }}</h3>
@@ -112,11 +113,11 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
             @if (isSavings(goal) && goal.target) {
               <div class="mt-3 space-y-1 rounded-button border-2 border-ink bg-surface-2 p-2.5 text-xs">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="text-ink-soft">Remaining</span>
+                  <span class="text-ink-soft">{{ t('Remaining') }}</span>
                   <span class="font-bold text-ink">{{ formatCurrency(goalRemaining(goal)) }}</span>
                 </div>
                 <div class="flex items-center justify-between gap-2">
-                  <span class="text-ink-soft">Needed / month</span>
+                  <span class="text-ink-soft">{{ t('Needed / month') }}</span>
                   <span class="font-bold text-ink">
                     {{ goal.deadline ? formatCurrency(requiredMonthly(goal)) : '—' }}
                   </span>
@@ -126,32 +127,32 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
             @if (goal.deadline) {
               <p class="mt-3 flex items-center gap-1.5 text-xs text-ink-faint">
-                <app-icon name="calendar" [size]="13" /> Target {{ formatDate(goal.deadline, 'medium') }}
+                <app-icon name="calendar" [size]="13" /> {{ t('Target {date}', { date: formatDate(goal.deadline, 'medium') }) }}
               </p>
             }
 
               <div class="mt-auto">
                 <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
                   @if (lifecycle() === 'active') {
-                    <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(goal)">Update</app-button>
+                    <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(goal)">{{ t('Update') }}</app-button>
                     @if (!goal.completed) {
-                      <app-button size="sm" icon="circle-check" (click)="complete(goal)">Complete</app-button>
+                      <app-button size="sm" icon="circle-check" (click)="complete(goal)">{{ t('Complete') }}</app-button>
                     }
                     <app-button size="icon" variant="ghost" icon="archive"
-                      [attr.aria-label]="'Archive ' + goal.title"
+                      [attr.aria-label]="t('Archive {title}', { title: goal.title })"
                       (click)="setFlag(goal, { archived: true })"></app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Move to trash'"
+                      [attr.aria-label]="t('Move to trash')"
                       (click)="setFlag(goal, { trashed: true, archived: false })"></app-button>
                   } @else if (lifecycle() === 'archived') {
-                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(goal, { archived: false })">Restore</app-button>
+                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(goal, { archived: false })">{{ t('Restore') }}</app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Move to trash'"
+                      [attr.aria-label]="t('Move to trash')"
                       (click)="setFlag(goal, { trashed: true, archived: false })"></app-button>
                   } @else {
-                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(goal, { trashed: false })">Restore</app-button>
+                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(goal, { trashed: false })">{{ t('Restore') }}</app-button>
                     <app-button size="icon" variant="danger" icon="trash-2"
-                      [attr.aria-label]="'Delete permanently'"
+                      [attr.aria-label]="t('Delete permanently')"
                       (click)="remove(goal)"></app-button>
                   }
                 </div>
@@ -164,53 +165,53 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
     <app-modal
       [open]="modalOpen()"
-      [title]="editing() ? 'Edit goal' : 'New goal'"
+      [title]="editing() ? t('Edit goal') : t('New goal')"
       (closed)="modalOpen.set(false)"
     >
       <form (ngSubmit)="save()" class="space-y-4">
-        <app-field label="Title" placeholder="e.g. Run a marathon" [required]="true"
+        <app-field [label]="t('Title')" [placeholder]="t('e.g. Run a marathon')" [required]="true"
           [(ngModel)]="form.title" name="title" />
-        <app-textarea label="Description" placeholder="Why does this matter?"
+        <app-textarea [label]="t('Description')" [placeholder]="t('Why does this matter?')"
           [(ngModel)]="form.description" name="description" />
         <app-select
-          label="Type"
+          [label]="t('Type')"
           [options]="goalKindOptions()"
-          [hint]="isSavingsForm() ? 'Financial target — progress counts in Rp.' : 'Anything you want to track.'"
+          [hint]="isSavingsForm() ? t('Financial target — progress counts in Rp.') : t('Anything you want to track.')"
           [(ngModel)]="form.kind"
           name="kind"
         />
         <div class="grid grid-cols-2 gap-4">
           <app-field
-            label="Target"
+            [label]="t('Target')"
             type="number"
-            placeholder="Optional"
-            [hint]="isSavingsForm() ? 'Target amount (Rp)' : ''"
+            [placeholder]="t('Optional')"
+            [hint]="isSavingsForm() ? t('Target amount (Rp)') : ''"
             [(ngModel)]="form.target"
             name="target"
           />
           <app-field
-            label="Unit"
-            placeholder="km / books / times"
-            [hint]="isSavingsForm() ? 'Fixed to Rupiah' : ''"
+            [label]="t('Unit')"
+            [placeholder]="t('km / books / times')"
+            [hint]="isSavingsForm() ? t('Fixed to Rupiah') : ''"
             [(ngModel)]="form.unit"
             [disabled]="isSavingsForm()"
             name="unit"
           />
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <app-field label="Progress" type="number" placeholder="0"
+          <app-field [label]="t('Progress')" type="number" placeholder="0"
             [(ngModel)]="form.progress" name="progress" />
-          <app-field label="Deadline" type="date" [(ngModel)]="form.deadline" name="deadline" />
+          <app-field [label]="t('Deadline')" type="date" [(ngModel)]="form.deadline" name="deadline" />
         </div>
         <app-field
-          label="Tags"
-          placeholder="health, work, finance… (comma separated)"
+          [label]="t('Tags')"
+          [placeholder]="t('health, work, finance… (comma separated)')"
           [(ngModel)]="tagsText"
           name="tags"
         />
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="saving()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="saving()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -219,6 +220,9 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 export class GoalsComponent implements OnInit {
   private service = inject(GoalService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly goals = this.service.goals;
   protected readonly loading = this.service.loading;
@@ -233,20 +237,20 @@ export class GoalsComponent implements OnInit {
   protected tagsText = '';
 
   protected readonly lifecycleOptions = computed(() => [
-    { value: 'active', label: 'Active' },
-    { value: 'archived', label: 'Archived' },
-    { value: 'trash', label: 'Trash' },
+    { value: 'active', label: this.t('Active') },
+    { value: 'archived', label: this.t('Archived') },
+    { value: 'trash', label: this.t('Trash') },
   ]);
 
   protected readonly viewOptions = computed(() => [
-    { value: 'all', label: 'All' },
-    { value: 'active', label: 'Active' },
-    { value: 'completed', label: 'Done' },
+    { value: 'all', label: this.t('All') },
+    { value: 'active', label: this.t('Active') },
+    { value: 'completed', label: this.t('Done') },
   ]);
 
   protected readonly goalKindOptions = computed(() => [
-    { value: 'general', label: 'General goal' },
-    { value: 'savings', label: 'Savings goal' },
+    { value: 'general', label: this.t('General goal') },
+    { value: 'savings', label: this.t('Savings goal') },
   ]);
 
   protected readonly visibleGoals = computed(() => {
@@ -307,7 +311,7 @@ export class GoalsComponent implements OnInit {
 
   protected save(): void {
     if (!this.form.title?.trim()) {
-      this.toast.error('Goal title is required.');
+      this.toast.error(this.t('Goal title is required.'));
       return;
     }
     const payload = {
@@ -327,7 +331,7 @@ export class GoalsComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success(this.editing() ? 'Goal updated' : 'Goal created');
+        this.toast.success(this.editing() ? this.t('Goal updated') : this.t('Goal created'));
         this.modalOpen.set(false);
         this.service.load();
       },
@@ -341,7 +345,7 @@ export class GoalsComponent implements OnInit {
   protected complete(goal: Goal): void {
     this.service.update(goal._id, { completed: true, progress: goal.target ?? goal.progress }).subscribe({
       next: () => {
-        this.toast.success('Goal completed — congrats! 🎉');
+        this.toast.success(this.t('Goal completed — congrats! 🎉'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -351,7 +355,7 @@ export class GoalsComponent implements OnInit {
   protected setFlag(goal: Goal, flags: Partial<Goal>): void {
     this.service.update(goal._id, flags).subscribe({
       next: () => {
-        this.toast.success(flags.trashed ? 'Moved to trash' : flags.archived ? 'Goal archived' : 'Goal restored');
+        this.toast.success(flags.trashed ? this.t('Moved to trash') : flags.archived ? this.t('Goal archived') : this.t('Goal restored'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -359,10 +363,10 @@ export class GoalsComponent implements OnInit {
   }
 
   protected remove(goal: Goal): void {
-    if (!confirm(`Permanently delete "${goal.title}"? This cannot be undone.`)) return;
+    if (!confirm(this.t('Permanently delete "{title}"? This cannot be undone.', { title: goal.title }))) return;
     this.service.remove(goal._id).subscribe({
       next: () => {
-        this.toast.success('Goal deleted permanently');
+        this.toast.success(this.t('Goal deleted permanently'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),

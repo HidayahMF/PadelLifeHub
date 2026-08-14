@@ -13,6 +13,7 @@ import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { SegmentedComponent } from '../../layout/components/segmented.component';
 import { WishlistService } from '../../core/services/lifestyle.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type { WishlistItem, WishlistStatus } from '../../core/models/lifestyle.model';
 import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
@@ -35,9 +36,9 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
   ],
   template: `
     <app-page-header
-      title="Wishlist"
-      subtitle="Dream it, save for it, buy it."
-      actionLabel="Add wish"
+      [title]="t('Wishlist')"
+      [subtitle]="t('Dream it, save for it, buy it.')"
+      [actionLabel]="t('Add wish')"
       actionIcon="plus"
       [action]="openCreate"
     ></app-page-header>
@@ -69,7 +70,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
         </div>
       }
       <span class="ml-auto text-sm text-ink-soft">
-        {{ savedTotal() }} saved of {{ total() }}
+        {{ t('{saved} saved of {total}', { saved: savedTotal(), total: total() }) }}
       </span>
     </div>
 
@@ -83,8 +84,8 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
       <app-card [padding]="'none'">
         <div class="px-6 py-16 text-center">
           <app-icon name="gift" [size]="36" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
-          <p class="mt-3 text-sm font-semibold text-ink">Nothing here yet</p>
-          <p class="mt-1 text-sm text-ink-soft">Add something you’re saving up for.</p>
+          <p class="mt-3 text-sm font-semibold text-ink">{{ t('Nothing here yet') }}</p>
+          <p class="mt-1 text-sm text-ink-soft">{{ t("Add something you're saving up for.") }}</p>
         </div>
       </app-card>
     } @else {
@@ -98,7 +99,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
               >
                 <app-icon name="gift" [size]="22" [strokeWidth]="1.8" />
               </span>
-              <app-badge [tone]="priorityTone(item.priority)">{{ titleCase(item.priority) }}</app-badge>
+              <app-badge [tone]="priorityTone(item.priority)">{{ t(titleCase(item.priority)) }}</app-badge>
             </div>
             <h3 class="mt-4 text-base font-semibold text-ink">{{ item.name }}</h3>
             <p class="mt-0.5 text-sm text-ink-soft">{{ formatCurrency(item.price) }}</p>
@@ -112,7 +113,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
             <div class="mt-4">
               <div class="mb-1.5 flex items-center justify-between text-xs">
-                <span class="text-ink-soft">Saved</span>
+                <span class="text-ink-soft">{{ t('Saved') }}</span>
                 <span class="font-medium text-ink">{{ percent(item.savingProgress, item.price) }}%</span>
               </div>
               <app-progress [value]="percent(item.savingProgress, item.price)" />
@@ -123,7 +124,7 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
             @if (item.targetDate) {
               <p class="mt-3 flex items-center gap-1.5 text-xs text-ink-faint">
-                <app-icon name="calendar" [size]="13" /> Target: {{ formatDate(item.targetDate, 'medium') }}
+                <app-icon name="calendar" [size]="13" /> {{ t('Target: {date}', { date: formatDate(item.targetDate, 'medium') }) }}
               </p>
             }
 
@@ -131,24 +132,24 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
                 <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
                   @if (view() === 'active') {
                     @if (item.status !== 'purchased') {
-                      <app-button size="sm" icon="check" (click)="markPurchased(item)">Purchased</app-button>
+                      <app-button size="sm" icon="check" (click)="markPurchased(item)">{{ t('Purchased') }}</app-button>
                     }
-                    <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(item)">Edit</app-button>
+                    <app-button size="sm" variant="secondary" icon="pencil" (click)="openEdit(item)">{{ t('Edit') }}</app-button>
                     <app-button size="icon" variant="ghost" icon="archive"
-                      [attr.aria-label]="'Archive ' + item.name"
+                      [attr.aria-label]="t('Archive {name}', { name: item.name })"
                       (click)="setFlag(item, { archived: true })"></app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Move to trash'"
+                      [attr.aria-label]="t('Move to trash')"
                       (click)="setFlag(item, { trashed: true, archived: false })"></app-button>
                   } @else if (view() === 'archived') {
-                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(item, { archived: false })">Restore</app-button>
+                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(item, { archived: false })">{{ t('Restore') }}</app-button>
                     <app-button size="icon" variant="ghost" icon="trash-2"
-                      [attr.aria-label]="'Move to trash'"
+                      [attr.aria-label]="t('Move to trash')"
                       (click)="setFlag(item, { trashed: true, archived: false })"></app-button>
                   } @else {
-                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(item, { trashed: false })">Restore</app-button>
+                    <app-button size="sm" variant="secondary" icon="rotate-ccw" (click)="setFlag(item, { trashed: false })">{{ t('Restore') }}</app-button>
                     <app-button size="icon" variant="danger" icon="trash-2"
-                      [attr.aria-label]="'Delete permanently'"
+                      [attr.aria-label]="t('Delete permanently')"
                       (click)="remove(item)"></app-button>
                   }
                 </div>
@@ -161,33 +162,33 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
     <app-modal
       [open]="modalOpen()"
-      [title]="editing() ? 'Edit wish' : 'Add a wish'"
+      [title]="editing() ? t('Edit wish') : t('Add a wish')"
       (closed)="modalOpen.set(false)"
     >
       <form (ngSubmit)="save()" class="space-y-4">
-        <app-field label="Name" placeholder="e.g. New laptop" [required]="true"
+        <app-field [label]="t('Name')" [placeholder]="t('e.g. New laptop')" [required]="true"
           [(ngModel)]="form.name" name="name" />
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <app-field label="Price" type="number" placeholder="0" [required]="true"
+          <app-field [label]="t('Price')" type="number" placeholder="0" [required]="true"
             [(ngModel)]="form.price" name="price" />
-          <app-field label="Saved so far" type="number" placeholder="0"
+          <app-field [label]="t('Saved so far')" type="number" placeholder="0"
             [(ngModel)]="form.savingProgress" name="savingProgress" />
         </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <app-select label="Priority" [options]="priorityOptions()"
+          <app-select [label]="t('Priority')" [options]="priorityOptions()"
             [(ngModel)]="form.priority" name="priority" />
-          <app-field label="Target date" type="date" [(ngModel)]="form.targetDate" name="targetDate" />
+          <app-field [label]="t('Target date')" type="date" [(ngModel)]="form.targetDate" name="targetDate" />
         </div>
-        <app-field label="Link" type="url" placeholder="https://…" [(ngModel)]="form.link" name="link" />
+        <app-field [label]="t('Link')" type="url" [placeholder]="t('https://…')" [(ngModel)]="form.link" name="link" />
         <app-field
-          label="Tags"
-          placeholder="travel, gadgets, home… (comma separated)"
+          [label]="t('Tags')"
+          [placeholder]="t('travel, gadgets, home… (comma separated)')"
           [(ngModel)]="tagsText"
           name="tags"
         />
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">Cancel</app-button>
-          <app-button type="submit" [loading]="saving()">Save</app-button>
+          <app-button type="button" variant="secondary" (click)="modalOpen.set(false)">{{ t('Cancel') }}</app-button>
+          <app-button type="submit" [loading]="saving()">{{ t('Save') }}</app-button>
         </div>
       </form>
     </app-modal>
@@ -196,6 +197,9 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 export class WishlistComponent implements OnInit {
   private service = inject(WishlistService);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly items = this.service.items;
   protected readonly loading = this.service.loading;
@@ -211,9 +215,9 @@ export class WishlistComponent implements OnInit {
   protected tagsText = '';
 
   protected readonly viewOptions = computed(() => [
-    { value: 'active', label: 'Active' },
-    { value: 'archived', label: 'Archived' },
-    { value: 'trash', label: 'Trash' },
+    { value: 'active', label: this.t('Active') },
+    { value: 'archived', label: this.t('Archived') },
+    { value: 'trash', label: this.t('Trash') },
   ]);
 
   protected readonly allTags = computed(() =>
@@ -221,15 +225,15 @@ export class WishlistComponent implements OnInit {
   );
 
   protected readonly statusOptions = computed(() => [
-    { value: 'all', label: 'All' },
-    { value: 'saved', label: 'Saving' },
-    { value: 'purchased', label: 'Purchased' },
+    { value: 'all', label: this.t('All') },
+    { value: 'saved', label: this.t('Saving') },
+    { value: 'purchased', label: this.t('Purchased') },
   ]);
 
   protected readonly priorityOptions = computed(() => [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
+    { value: 'low', label: this.t('Low') },
+    { value: 'medium', label: this.t('Medium') },
+    { value: 'high', label: this.t('High') },
   ]);
 
   protected readonly filteredItems = computed(() =>
@@ -293,7 +297,7 @@ export class WishlistComponent implements OnInit {
 
   protected save(): void {
     if (!this.form.name?.trim() || !Number(this.form.price)) {
-      this.toast.error('Name and price are required.');
+      this.toast.error(this.t('Name and price are required.'));
       return;
     }
     const payload = {
@@ -312,7 +316,7 @@ export class WishlistComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success(this.editing() ? 'Wish updated' : 'Wish added');
+        this.toast.success(this.editing() ? this.t('Wish updated') : this.t('Wish added'));
         this.modalOpen.set(false);
         this.service.load();
       },
@@ -326,7 +330,7 @@ export class WishlistComponent implements OnInit {
   protected markPurchased(item: WishlistItem): void {
     this.service.update(item._id, { status: 'purchased', savingProgress: item.price }).subscribe({
       next: () => {
-        this.toast.success('Enjoy your new purchase! 🎉');
+        this.toast.success(this.t('Enjoy your new purchase! 🎉'));
         this.service.load();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -336,7 +340,7 @@ export class WishlistComponent implements OnInit {
   protected setFlag(item: WishlistItem, flags: Partial<WishlistItem>): void {
     this.service.update(item._id, flags).subscribe({
       next: () => {
-        this.toast.success(flags.trashed ? 'Moved to trash' : flags.archived ? 'Item archived' : 'Item restored');
+        this.toast.success(flags.trashed ? this.t('Moved to trash') : flags.archived ? this.t('Item archived') : this.t('Item restored'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -344,10 +348,10 @@ export class WishlistComponent implements OnInit {
   }
 
   protected remove(item: WishlistItem): void {
-    if (!confirm(`Permanently delete "${item.name}"? This cannot be undone.`)) return;
+    if (!confirm(this.t('Permanently delete "{name}"? This cannot be undone.', { name: item.name }))) return;
     this.service.remove(item._id).subscribe({
       next: () => {
-        this.toast.success('Deleted permanently');
+        this.toast.success(this.t('Deleted permanently'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),

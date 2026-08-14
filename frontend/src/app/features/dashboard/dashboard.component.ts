@@ -14,6 +14,8 @@ import { DashboardService, SettingService } from '../../core/services/data.servi
 import { HabitService, WishlistService } from '../../core/services/lifestyle.service';
 import { BudgetService, TransactionService } from '../../core/services/finance.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
+import { getLocale } from '../../core/utils/locale';
 import { ToastService } from '../../core/services/toast.service';
 import type { DashboardSummary, TaskSummary } from '../../core/models/misc.model';
 import type { Budget } from '../../core/models/finance.model';
@@ -75,7 +77,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 class="font-display text-3xl leading-tight text-ink">
-            Good {{ greeting() }},
+            {{ greeting() }},
             <span class="relative inline-block">
               <span
                 class="absolute -inset-x-1 -inset-y-0.5 -rotate-1 border-2 border-ink bg-primary shadow-[3px_3px_0_0_var(--color-ink)]"
@@ -87,9 +89,9 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
         </div>
         <div class="flex flex-wrap gap-2">
           <app-button size="sm" variant="secondary" icon="layout-dashboard" (click)="openCustomize()">
-            Customize
+            {{ t('Customize') }}
           </app-button>
-          <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> Focus </app-button>
+          <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> {{ t('Focus') }} </app-button>
         </div>
       </div>
 
@@ -105,20 +107,20 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
             @switch (key) {
               @case ('stats') {
                 <div class="grid grid-cols-2 gap-4 lg:col-span-3 xl:grid-cols-4">
-                  <app-stat-card label="Pending tasks" [value]="taskSummary().pending" icon="list-todo" />
+                  <app-stat-card [label]="t('Pending tasks')" [value]="taskSummary().pending" icon="list-todo" />
                   <app-stat-card
-                    label="Completed today"
+                    [label]="t('Completed today')"
                     [value]="todayCompleted().length"
                     icon="circle-check"
                     tone="success"
                   />
                   <app-stat-card
-                    label="Tasks total"
+                    [label]="t('Tasks total')"
                     [value]="taskSummary().total"
                     icon="list-todo"
                   />
                   <app-stat-card
-                    label="Upcoming deadlines"
+                    [label]="t('Upcoming deadlines')"
                     [value]="taskSummary().upcoming.length"
                     icon="clock"
                   />
@@ -127,38 +129,38 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('finance') {
                 <div class="lg:col-span-3">
                   <div class="mb-3 flex items-center justify-between">
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-ink-soft">Finance summary</h2>
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-ink-soft">{{ t('Finance summary') }}</h2>
                     <button
                       type="button"
                       class="flex items-center gap-1.5 rounded-button border-2 border-ink bg-surface px-2.5 py-1 text-xs font-semibold text-ink transition-colors hover:bg-surface-2"
-                      [attr.aria-label]="hideBalance() ? 'Show balance' : 'Hide balance'"
+                      [attr.aria-label]="hideBalance() ? t('Show balance') : t('Hide balance')"
                       (click)="toggleHideBalance()"
                     >
                       <app-icon [name]="hideBalance() ? 'eye-off' : 'eye'" [size]="14" />
-                      {{ hideBalance() ? 'Show' : 'Hide' }}
+                      {{ hideBalance() ? t('Show') : t('Hide') }}
                     </button>
                   </div>
                   <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
                     <app-stat-card
-                      label="Balance"
+                      [label]="t('Balance')"
                       [value]="money(summary()!.financeSummary.balance)"
                       icon="piggy-bank"
                       tone="primary"
                     />
                     <app-stat-card
-                      label="Income (month)"
+                      [label]="t('Income (month)')"
                       [value]="money(summary()!.financeSummary.monthIncome)"
                       icon="trending-up"
                       tone="success"
                     />
                     <app-stat-card
-                      label="Expense (month)"
+                      [label]="t('Expense (month)')"
                       [value]="money(summary()!.financeSummary.monthExpense)"
                       icon="trending-down"
                       tone="danger"
                     />
                     <app-stat-card
-                      label="Net (month)"
+                      [label]="t('Net (month)')"
                       [value]="money(monthNet())"
                       icon="wallet"
                     />
@@ -168,15 +170,15 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('today') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Today’s tasks</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t("Today's tasks") }}</h2>
                     <button (click)="go('/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
-                      View all
+                      {{ t('View all') }}
                     </button>
                   </div>
                   <div class="p-4">
                     @if (todayTasks().length === 0) {
                       <p class="px-2 py-6 text-center text-sm text-ink-soft">
-                        Nothing due today. Enjoy the calm!
+                        {{ t('Nothing due today. Enjoy the calm!') }}
                       </p>
                     }
                     <ul class="space-y-1">
@@ -196,7 +198,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                               <span class="block truncate text-sm font-medium text-ink">{{ task.title }}</span>
                               <span class="mt-0.5 flex items-center gap-1.5 text-xs text-ink-faint">
                                 <app-icon name="clock" [size]="12" />
-                                {{ relativeDay(task.dueDate) }}
+                                {{ t(relativeDay(task.dueDate)) }}
                               </span>
                             </span>
                           </button>
@@ -209,14 +211,14 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('upcoming') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Upcoming deadlines</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Upcoming deadlines') }}</h2>
                     <button (click)="go('/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
-                      Calendar
+                      {{ t('Calendar') }}
                     </button>
                   </div>
                   <div class="p-4">
                     @if (upcomingTasks().length === 0) {
-                      <p class="px-2 py-6 text-center text-sm text-ink-soft">No upcoming deadlines.</p>
+                      <p class="px-2 py-6 text-center text-sm text-ink-soft">{{ t('No upcoming deadlines.') }}</p>
                     }
                     <ul class="space-y-1">
                       @for (task of upcomingTasks(); track task._id) {
@@ -234,7 +236,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                                 [class.text-ink-faint]="!isOverdue(task.dueDate)"
                               >
                                 <app-icon name="calendar" [size]="12" />
-                                {{ relativeDay(task.dueDate) }}
+                                {{ t(relativeDay(task.dueDate)) }}
                               </span>
                             </span>
                           </button>
@@ -247,14 +249,14 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('habits') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Habits</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Habits') }}</h2>
                     <button (click)="go('/habits')" class="text-xs font-medium text-primary-strong hover:underline">
-                      View all
+                      {{ t('View all') }}
                     </button>
                   </div>
                   <div class="p-4">
                     @if (habits().length === 0) {
-                      <p class="px-2 py-6 text-center text-sm text-ink-soft">No habits yet.</p>
+                      <p class="px-2 py-6 text-center text-sm text-ink-soft">{{ t('No habits yet.') }}</p>
                     }
                     <ul class="space-y-1.5">
                       @for (habit of habits(); track habit._id) {
@@ -267,7 +269,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                           </span>
                           <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ habit.name }}</span>
                           <span class="text-xs font-semibold text-primary-strong">
-                            {{ habit.streak }} day{{ habit.streak === 1 ? '' : 's' }}
+                            {{ t(habit.streak === 1 ? '{n} day' : '{n} days', { n: habit.streak }) }}
                           </span>
                         </li>
                       }
@@ -278,25 +280,25 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('chart') {
                 <app-card class="lg:col-span-2" [padding]="'none'">
                   <div class="px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Income vs expense</h2>
-                    <p class="text-xs text-ink-soft">Last 6 months</p>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Income vs expense') }}</h2>
+                    <p class="text-xs text-ink-soft">{{ t('Last 6 months') }}</p>
                   </div>
                   <div class="p-4">
-                    <app-bar-chart [data]="cashFlowData()" aria-label="Income and expenses over time" />
+                    <app-bar-chart [data]="cashFlowData()" [attr.aria-label]="t('Income and expenses over time')" />
                   </div>
                 </app-card>
               }
               @case ('budget') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Monthly budget</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Monthly budget') }}</h2>
                     <button (click)="go('/finance')" class="text-xs font-medium text-primary-strong hover:underline">
-                      Finance
+                      {{ t('Finance') }}
                     </button>
                   </div>
                   <div class="space-y-4 p-5">
                     @if (budgets().length === 0) {
-                      <p class="py-4 text-center text-sm text-ink-soft">No budgets set this month.</p>
+                      <p class="py-4 text-center text-sm text-ink-soft">{{ t('No budgets set this month.') }}</p>
                     }
                     @for (budget of budgets(); track budget._id) {
                       <div>
@@ -315,14 +317,14 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('goals') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Goals</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Goals') }}</h2>
                     <button (click)="go('/goals')" class="text-xs font-medium text-primary-strong hover:underline">
-                      View all
+                      {{ t('View all') }}
                     </button>
                   </div>
                   <div class="space-y-4 p-5">
                     @if (summary()!.activeGoals.length === 0) {
-                      <p class="py-4 text-center text-sm text-ink-soft">No active goals.</p>
+                      <p class="py-4 text-center text-sm text-ink-soft">{{ t('No active goals.') }}</p>
                     }
                     @for (goal of summary()!.activeGoals; track goal._id) {
                       <div>
@@ -339,14 +341,14 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('wishlist') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Wishlist</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Wishlist') }}</h2>
                     <button (click)="go('/wishlist')" class="text-xs font-medium text-primary-strong hover:underline">
-                      View all
+                      {{ t('View all') }}
                     </button>
                   </div>
                   <div class="space-y-4 p-5">
                     @if (wishlist().length === 0) {
-                      <p class="py-4 text-center text-sm text-ink-soft">No saved wishes yet.</p>
+                      <p class="py-4 text-center text-sm text-ink-soft">{{ t('No saved wishes yet.') }}</p>
                     }
                     @for (item of wishlist(); track item._id) {
                       <div>
@@ -365,14 +367,14 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               @case ('recent') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
-                    <h2 class="text-base font-semibold text-ink">Recent transactions</h2>
+                    <h2 class="text-base font-semibold text-ink">{{ t('Recent transactions') }}</h2>
                     <button (click)="go('/finance')" class="text-xs font-medium text-primary-strong hover:underline">
-                      Finance
+                      {{ t('Finance') }}
                     </button>
                   </div>
                   <div class="p-4">
                     @if (summary()!.recentTransactions.length === 0) {
-                      <p class="px-2 py-6 text-center text-sm text-ink-soft">No transactions yet.</p>
+                      <p class="px-2 py-6 text-center text-sm text-ink-soft">{{ t('No transactions yet.') }}</p>
                     }
                     <ul class="space-y-1">
                       @for (txn of summary()!.recentTransactions; track txn._id) {
@@ -392,7 +394,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                             />
                           </span>
                           <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm font-medium text-ink">{{ txn.description || 'Transaction' }}</span>
+                            <span class="block truncate text-sm font-medium text-ink">{{ txn.description || t('Transaction') }}</span>
                             <span class="text-xs text-ink-faint">
                               {{ categoryName(txn.category) }} · {{ formatDate(txn.date, 'short') }}
                             </span>
@@ -417,9 +419,9 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
     </div>
 
     <!-- Customize modal -->
-    <app-modal [open]="customizeOpen()" title="Customize dashboard" [width]="480" (closed)="customizeOpen.set(false)">
+    <app-modal [open]="customizeOpen()" [title]="t('Customize dashboard')" [width]="480" (closed)="customizeOpen.set(false)">
       <p class="mb-4 text-sm text-ink-soft">
-        Toggle widgets on and off, then drag to reorder (or use ↑ ↓). Saved per user.
+        {{ t('Toggle widgets on and off, then drag to reorder (or use ↑ ↓). Saved per user.') }}
       </p>
       <ul class="space-y-2">
         @for (widget of editList(); track widget.key; let i = $index) {
@@ -438,17 +440,17 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
             >
               <app-icon [name]="widget.icon" [size]="16" />
             </span>
-            <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ widget.label }}</span>
+            <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ t(widget.label) }}</span>
             <div class="flex shrink-0 items-center gap-0.5">
               <app-button size="icon" variant="ghost" icon="chevron-up"
-                [attr.aria-label]="'Move up'" (click)="moveWidget(i, -1)"></app-button>
+                [attr.aria-label]="t('Move up')" (click)="moveWidget(i, -1)"></app-button>
               <app-button size="icon" variant="ghost" icon="chevron-down"
-                [attr.aria-label]="'Move down'" (click)="moveWidget(i, 1)"></app-button>
+                [attr.aria-label]="t('Move down')" (click)="moveWidget(i, 1)"></app-button>
               <app-button
                 size="icon"
                 variant="ghost"
                 [icon]="widget.visible ? 'eye' : 'eye-off'"
-                [attr.aria-label]="widget.visible ? 'Hide widget' : 'Show widget'"
+                [attr.aria-label]="widget.visible ? t('Hide widget') : t('Show widget')"
                 (click)="toggleWidget(widget.key)"
               ></app-button>
             </div>
@@ -456,8 +458,8 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
         }
       </ul>
       <div class="mt-5 flex justify-end gap-2">
-        <app-button type="button" variant="secondary" (click)="resetWidgets()">Reset</app-button>
-        <app-button type="button" [loading]="savingWidgets()" (click)="saveWidgets()">Save layout</app-button>
+        <app-button type="button" variant="secondary" (click)="resetWidgets()">{{ t('Reset') }}</app-button>
+        <app-button type="button" [loading]="savingWidgets()" (click)="saveWidgets()">{{ t('Save layout') }}</app-button>
       </div>
     </app-modal>
   `,
@@ -470,6 +472,9 @@ export class DashboardComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly summary = signal<DashboardSummary | null>(null);
   protected readonly loading = signal(true);
@@ -498,17 +503,17 @@ export class DashboardComponent implements OnInit {
   private transactionService = inject(TransactionService);
   private wishlistService = inject(WishlistService);
 
-  protected readonly name = computed(() => this.auth.user()?.name?.split(' ')[0] ?? 'there');
+  protected readonly name = computed(() => this.auth.user()?.name?.split(' ')[0] ?? this.t('there'));
 
   protected readonly greeting = computed(() => {
     const h = new Date().getHours();
-    if (h < 12) return 'morning';
-    if (h < 18) return 'afternoon';
-    return 'evening';
+    if (h < 12) return this.t('Good morning');
+    if (h < 18) return this.t('Good afternoon');
+    return this.t('Good evening');
   });
 
   protected readonly todayLabel = computed(() =>
-    new Intl.DateTimeFormat('en-US', {
+    new Intl.DateTimeFormat(getLocale(), {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -535,7 +540,7 @@ export class DashboardComponent implements OnInit {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = monthKey(d);
-      const label = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d);
+      const label = new Intl.DateTimeFormat(getLocale(), { month: 'short' }).format(d);
       const income = this.cashFlow()[key]?.income ?? 0;
       const expense = this.cashFlow()[key]?.expense ?? 0;
       list.push({ label, value: income - expense });
@@ -598,8 +603,8 @@ export class DashboardComponent implements OnInit {
     const next = !this.hideBalance();
     this.hideBalance.set(next);
     this.settingService.update({ hideBalance: next }).subscribe({
-      next: () => this.toast.success(next ? 'Balance hidden' : 'Balance visible'),
-      error: () => this.toast.error('Failed to save preference'),
+      next: () => this.toast.success(next ? this.t('Balance hidden') : this.t('Balance visible')),
+      error: () => this.toast.error(this.t('Failed to save preference')),
     });
   }
 
@@ -644,7 +649,7 @@ export class DashboardComponent implements OnInit {
       next: () => {
         this.savingWidgets.set(false);
         this.customizeOpen.set(false);
-        this.toast.success('Dashboard layout saved');
+        this.toast.success(this.t('Dashboard layout saved'));
       },
       error: (err: Error) => {
         this.savingWidgets.set(false);

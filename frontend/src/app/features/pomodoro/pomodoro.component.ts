@@ -2,6 +2,7 @@ import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { CardComponent } from '../../layout/components/card.component';
 import { ButtonComponent } from '../../layout/components/button.component';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 
 type Mode = 'focus' | 'short' | 'long';
 const DURATIONS: Record<Mode, number> = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
@@ -14,8 +15,8 @@ const CYCLE_BREAK_EVERY = 4;
   template: `
     <div class="mx-auto max-w-lg">
       <div class="mb-6 text-center">
-        <h1 class="text-2xl font-bold tracking-tight text-ink">Pomodoro</h1>
-        <p class="mt-1 text-sm text-ink-soft">Focus in sprints, rest between.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">{{ t('Pomodoro') }}</h1>
+        <p class="mt-1 text-sm text-ink-soft">{{ t('Focus in sprints, rest between.') }}</p>
       </div>
 
       <app-card>
@@ -25,21 +26,21 @@ const CYCLE_BREAK_EVERY = 4;
             size="sm"
             (click)="setMode('focus')"
           >
-            Focus
+            {{ t('Focus') }}
           </app-button>
           <app-button
             [variant]="mode() === 'short' ? 'primary' : 'secondary'"
             size="sm"
             (click)="setMode('short')"
           >
-            Short break
+            {{ t('Short break') }}
           </app-button>
           <app-button
             [variant]="mode() === 'long' ? 'primary' : 'secondary'"
             size="sm"
             (click)="setMode('long')"
           >
-            Long break
+            {{ t('Long break') }}
           </app-button>
         </div>
 
@@ -78,7 +79,7 @@ const CYCLE_BREAK_EVERY = 4;
               class="fill-ink-soft"
               style="font-size:12px"
             >
-              {{ modeLabel() }} · session {{ session() }}/{{ cycleLength() }}
+              {{ modeLabel() }} · {{ t('session {n}/{m}', { n: session(), m: cycleLength() }) }}
             </text>
           </svg>
         </div>
@@ -89,16 +90,16 @@ const CYCLE_BREAK_EVERY = 4;
             [size]="'lg'"
             (click)="toggle()"
           >
-            {{ running() ? 'Pause' : 'Start' }}
+            {{ running() ? t('Pause') : t('Start') }}
           </app-button>
           <app-button size="icon" variant="secondary" icon="rotate-ccw"
-            [attr.aria-label]="'Reset timer'"
+            [attr.aria-label]="t('Reset timer')"
             (click)="reset()"></app-button>
         </div>
 
         @if (completedFocus()) {
           <p class="mt-6 text-center text-sm text-ink-soft">
-            🎉 {{ completedFocus() }} focus session{{ completedFocus() === 1 ? '' : 's' }} completed today
+            🎉 {{ t(completedFocus() === 1 ? '🎉 {n} focus session completed today' : '🎉 {n} focus sessions completed today', { n: completedFocus() }) }}
           </p>
         }
       </app-card>
@@ -107,6 +108,9 @@ const CYCLE_BREAK_EVERY = 4;
 })
 export class PomodoroComponent implements OnDestroy {
   private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly mode = signal<Mode>('focus');
   protected readonly running = signal(false);
@@ -133,9 +137,9 @@ export class PomodoroComponent implements OnDestroy {
   });
 
   protected readonly modeLabel = computed(() => {
-    if (this.mode() === 'focus') return 'Focus';
-    if (this.mode() === 'short') return 'Short break';
-    return 'Long break';
+    if (this.mode() === 'focus') return this.t('Focus');
+    if (this.mode() === 'short') return this.t('Short break');
+    return this.t('Long break');
   });
 
   protected readonly cycleLength = computed(() => CYCLE_BREAK_EVERY);
@@ -182,7 +186,7 @@ export class PomodoroComponent implements OnDestroy {
     this.running.set(false);
     if (this.mode() === 'focus') {
       this.completedFocus.update((c) => c + 1);
-      this.toast.success('Focus session complete — take a break!');
+      this.toast.success(this.t('Focus session complete — take a break!'));
       if (this.session() % CYCLE_BREAK_EVERY === 0) {
         this.mode.set('long');
       } else {
@@ -190,7 +194,7 @@ export class PomodoroComponent implements OnDestroy {
       }
       this.session.update((s) => s + 1);
     } else {
-      this.toast.success('Break over — back to focus!');
+      this.toast.success(this.t('Break over — back to focus!'));
       this.mode.set('focus');
     }
     this.remaining.set(DURATIONS[this.mode()]);

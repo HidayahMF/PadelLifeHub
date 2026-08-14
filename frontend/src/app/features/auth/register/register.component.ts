@@ -5,6 +5,7 @@ import { FieldComponent } from '../../../layout/components/field.component';
 import { ButtonComponent } from '../../../layout/components/button.component';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
@@ -25,13 +26,13 @@ import { ToastService } from '../../../core/services/toast.service';
           class="absolute right-[13%] top-[22%] rotate-3 rounded-[14px] border-2 border-ink bg-primary px-4 py-2 font-bold text-sm text-ink shadow-soft animate-float"
           style="--tilt: 3deg"
         >
-          ✦ START TODAY
+          ✦ {{ t('START TODAY') }}
         </div>
         <div
           class="absolute right-[17%] bottom-[24%] -rotate-3 rounded-[14px] border-2 border-ink bg-secondary px-4 py-2 font-bold text-sm text-ink shadow-soft animate-float-slow"
           style="--tilt: -3deg"
         >
-          ✦ NO EXCUSES
+          ✦ {{ t('NO EXCUSES') }}
         </div>
         <div class="neo-stripes absolute bottom-[9%] left-[30%] h-6 w-24 -rotate-6 border-2 border-ink"></div>
       </div>
@@ -50,28 +51,28 @@ import { ToastService } from '../../../core/services/toast.service';
             <div>
               <p class="font-display text-xl leading-none text-ink">LIFEHUB</p>
               <p class="mt-1 text-xs font-bold uppercase tracking-widest text-ink-faint">
-                Productivity & finance
+                {{ t('Productivity & finance') }}
               </p>
             </div>
           </div>
 
           <h1 class="mt-10 font-display text-5xl leading-[1.04] tracking-tight text-ink sm:text-6xl">
-            BUILD YOUR
+            {{ t('BUILD YOUR') }}
             <span class="relative inline-block">
               <span
                 class="absolute -inset-x-1 -inset-y-1 rotate-1 border-2 border-ink bg-secondary shadow-[5px_5px_0_0_var(--color-ink)]"
               ></span>
-              <span class="relative px-2">BEST SELF</span>
+              <span class="relative px-2">{{ t('BEST SELF') }}</span>
             </span>
-            ONE TASK AT A TIME.
+            {{ t('ONE TASK AT A TIME.') }}
           </h1>
 
           <p class="mt-6 max-w-md text-base font-medium text-ink-soft">
-            Track money, habits and goals. Everything you need to level up, in one dashboard.
+            {{ t('Track money, habits and goals. Everything you need to level up, in one dashboard.') }}
           </p>
 
           <ul class="mt-8 flex flex-wrap gap-2.5">
-            @for (chip of chips; track chip) {
+            @for (chip of chips(); track chip) {
               <li
                 class="rounded-[10px] border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-[2px_2px_0_0_var(--color-ink)]"
               >
@@ -84,22 +85,22 @@ import { ToastService } from '../../../core/services/toast.service';
         <!-- Form -->
         <div class="w-full max-w-md justify-self-center lg:justify-self-end">
           <div class="rounded-card border-2 border-ink bg-surface p-8 shadow-pop">
-            <h2 class="font-display text-2xl text-ink">CREATE ACCOUNT</h2>
+            <h2 class="font-display text-2xl text-ink">{{ t('CREATE ACCOUNT') }}</h2>
             <p class="mt-1.5 text-sm font-medium text-ink-soft">
-              Start organizing your tasks and finances.
+              {{ t('Start organizing your tasks and finances.') }}
             </p>
 
             <form class="mt-6 space-y-4" (ngSubmit)="onSubmit()">
               <app-field
-                label="Full name"
-                placeholder="Jane Doe"
+                [label]="t('Full name')"
+                [placeholder]="t('Jane Doe')"
                 [required]="true"
                 autocomplete="name"
                 [(ngModel)]="name"
                 name="name"
               />
               <app-field
-                label="Email"
+                [label]="t('Email')"
                 type="email"
                 placeholder="you@example.com"
                 [required]="true"
@@ -109,9 +110,9 @@ import { ToastService } from '../../../core/services/toast.service';
               />
               <div class="relative">
                 <app-field
-                  label="Password"
+                  [label]="t('Password')"
                   [type]="showPassword() ? 'text' : 'password'"
-                  placeholder="At least 6 characters"
+                  [placeholder]="t('At least 6 characters')"
                   [required]="true"
                   autocomplete="new-password"
                   [(ngModel)]="password"
@@ -121,19 +122,19 @@ import { ToastService } from '../../../core/services/toast.service';
                   type="button"
                   (click)="showPassword.set(!showPassword())"
                   class="absolute right-3 top-[40px] text-ink-faint transition-colors hover:text-ink"
-                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                  [attr.aria-label]="showPassword() ? t('Hide password') : t('Show password')"
                 >
                   <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" />
                 </button>
               </div>
 
               <app-button type="submit" [block]="true" [loading]="loading()" icon="user-plus">
-                Create account
+                {{ t('Create account') }}
               </app-button>
 
               <p class="text-center text-sm font-medium text-ink-soft">
-                Already have an account?
-                <a routerLink="/login" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">Sign in</a>
+                {{ t('Already have an account?') }}
+                <a routerLink="/login" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">{{ t('Sign in') }}</a>
               </p>
             </form>
           </div>
@@ -146,14 +147,15 @@ export class RegisterComponent {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
 
-  protected readonly chips = [
-    '✅ Task manager',
-    '💰 Finance tracker',
-    '🎯 Goals & habits',
-    '⏱ Pomodoro focus',
-    '📝 Notes',
-  ];
+  protected readonly t = this.i18n.t.bind(this.i18n);
+
+  protected chips(): string[] {
+    return ['✅ Task manager', '💰 Finance tracker', '🎯 Goals & habits', '⏱ Pomodoro focus', '📝 Notes'].map((c) =>
+      this.t(c)
+    );
+  }
 
   protected name = '';
   protected email = '';
@@ -163,11 +165,11 @@ export class RegisterComponent {
 
   protected onSubmit(): void {
     if (!this.name.trim() || !this.email.trim() || !this.password) {
-      this.toast.error('Please fill in all fields.');
+      this.toast.error(this.t('Please fill in all fields.'));
       return;
     }
     if (this.password.length < 6) {
-      this.toast.error('Password must be at least 6 characters.');
+      this.toast.error(this.t('Password must be at least 6 characters.'));
       return;
     }
     this.loading.set(true);
@@ -176,7 +178,7 @@ export class RegisterComponent {
       .subscribe({
         next: () => {
           this.loading.set(false);
-          this.toast.success('Account created — welcome to LifeHub!');
+          this.toast.success(this.t('Account created — welcome to LifeHub!'));
           this.router.navigate(['/dashboard']);
         },
         error: (err: Error) => {

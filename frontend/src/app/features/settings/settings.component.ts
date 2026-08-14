@@ -7,6 +7,7 @@ import { SelectComponent } from '../../layout/components/select.component';
 import { ToggleComponent } from './components/toggle.component';
 import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { SettingService } from '../../core/services/data.service';
+import { I18nService, type Lang } from '../../core/services/i18n.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ApiService } from '../../core/services/api.service';
@@ -25,7 +26,7 @@ import type { Setting } from '../../core/models/misc.model';
     SkeletonComponent,
   ],
   template: `
-    <app-page-header title="Settings" subtitle="Personalize your LifeHub experience."
+    <app-page-header [title]="t('Settings')" [subtitle]="t('Personalize your LifeHub experience.')"
       actionLabel="" [action]="noop"></app-page-header>
 
     @if (loading()) {
@@ -33,30 +34,29 @@ import type { Setting } from '../../core/models/misc.model';
     } @else {
       <div class="max-w-2xl space-y-6">
         <app-card>
-          <h2 class="text-base font-semibold text-ink">Appearance</h2>
+          <h2 class="text-base font-semibold text-ink">{{ t('Appearance') }}</h2>
           <div class="mt-5 flex items-center justify-between gap-4">
             <div class="min-w-0">
-              <p class="text-sm font-medium text-ink">Dark mode</p>
-              <p class="mt-0.5 text-sm text-ink-soft">Reduce eye strain in low light.</p>
+              <p class="text-sm font-medium text-ink">{{ t('Dark mode') }}</p>
+              <p class="mt-0.5 text-sm text-ink-soft">{{ t('Reduce eye strain in low light.') }}</p>
             </div>
-            <app-toggle [model]="dark()" label="Toggle dark mode" (change)="toggleDark($event)" />
+            <app-toggle [model]="dark()" [label]="t('Toggle dark mode')" (change)="toggleDark($event)" />
           </div>
           <div class="mt-5">
-            <app-select label="Theme" [options]="themeOptions()" [(ngModel)]="form.theme"
+            <app-select [label]="t('Theme')" [options]="themeOptions()" [(ngModel)]="form.theme"
               (ngModelChange)="form.theme = $event; syncTheme()"></app-select>
           </div>
           <div class="mt-5">
-            <app-select label="Language" [options]="languageOptions()" [disabled]="true"
-              [hint]="'Language switching is coming soon.'"
-              [(ngModel)]="form.language"></app-select>
+            <app-select [label]="t('Language')" [options]="languageOptions()"
+              [(ngModel)]="form.language" (ngModelChange)="setLanguage($event)"></app-select>
           </div>
         </app-card>
 
         <app-card>
-          <h2 class="text-base font-semibold text-ink">Keyboard shortcuts</h2>
-          <p class="mt-1 text-sm text-ink-soft">Active everywhere, except while typing in a field.</p>
+          <h2 class="text-base font-semibold text-ink">{{ t('Keyboard shortcuts') }}</h2>
+          <p class="mt-1 text-sm text-ink-soft">{{ t('Active everywhere, except while typing in a field.') }}</p>
           <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            @for (sc of shortcuts; track sc.keys) {
+            @for (sc of shortcuts(); track sc.keys) {
               <div class="flex items-center justify-between rounded-button border-2 border-ink bg-surface-2 px-3 py-2">
                 <span class="text-sm font-medium text-ink">{{ sc.action }}</span>
                 <kbd class="rounded-md border-2 border-ink bg-surface px-2 py-0.5 font-display text-[11px] text-ink">
@@ -68,59 +68,59 @@ import type { Setting } from '../../core/models/misc.model';
         </app-card>
 
         <app-card>
-          <h2 class="text-base font-semibold text-ink">Export data</h2>
-          <p class="mt-1 text-sm text-ink-soft">Download only your own data — no passwords or secrets.</p>
+          <h2 class="text-base font-semibold text-ink">{{ t('Export data') }}</h2>
+          <p class="mt-1 text-sm text-ink-soft">{{ t('Download only your own data — no passwords or secrets.') }}</p>
           <div class="mt-4 flex flex-wrap gap-2">
             <app-button variant="secondary" icon="receipt" (click)="exportCsv('transactions')">
-              Transactions CSV
+              {{ t('Transactions CSV') }}
             </app-button>
             <app-button variant="secondary" icon="list-todo" (click)="exportCsv('tasks')">
-              Tasks CSV
+              {{ t('Tasks CSV') }}
             </app-button>
-            <app-button icon="download" (click)="exportAll()">Export my LifeHub data</app-button>
+            <app-button icon="download" (click)="exportAll()">{{ t('Export my LifeHub data') }}</app-button>
           </div>
         </app-card>
 
         <app-card>
-          <h2 class="text-base font-semibold text-ink">Notifications</h2>
+          <h2 class="text-base font-semibold text-ink">{{ t('Notifications') }}</h2>
           <div class="mt-5 space-y-5">
             <div class="flex items-center justify-between gap-4">
               <div class="min-w-0">
-                <p class="text-sm font-medium text-ink">Task reminders</p>
-                <p class="mt-0.5 text-sm text-ink-soft">Notify before tasks are due.</p>
+                <p class="text-sm font-medium text-ink">{{ t('Task reminders') }}</p>
+                <p class="mt-0.5 text-sm text-ink-soft">{{ t('Notify before tasks are due.') }}</p>
               </div>
-              <app-toggle [model]="form.notifications.taskReminders" label="Task reminders"
+              <app-toggle [model]="form.notifications.taskReminders" [label]="t('Task reminders')"
                 (change)="setNotif('taskReminders', $event)" />
             </div>
             <div class="flex items-center justify-between gap-4">
               <div class="min-w-0">
-                <p class="text-sm font-medium text-ink">Bill reminders</p>
-                <p class="mt-0.5 text-sm text-ink-soft">Remind me about recurring bills.</p>
+                <p class="text-sm font-medium text-ink">{{ t('Bill reminders') }}</p>
+                <p class="mt-0.5 text-sm text-ink-soft">{{ t('Remind me about recurring bills.') }}</p>
               </div>
-              <app-toggle [model]="form.notifications.billReminders" label="Bill reminders"
+              <app-toggle [model]="form.notifications.billReminders" [label]="t('Bill reminders')"
                 (change)="setNotif('billReminders', $event)" />
             </div>
             <div class="flex items-center justify-between gap-4">
               <div class="min-w-0">
-                <p class="text-sm font-medium text-ink">Habit reminders</p>
-                <p class="mt-0.5 text-sm text-ink-soft">Keep your streaks going.</p>
+                <p class="text-sm font-medium text-ink">{{ t('Habit reminders') }}</p>
+                <p class="mt-0.5 text-sm text-ink-soft">{{ t('Keep your streaks going.') }}</p>
               </div>
-              <app-toggle [model]="form.notifications.habitReminders" label="Habit reminders"
+              <app-toggle [model]="form.notifications.habitReminders" [label]="t('Habit reminders')"
                 (change)="setNotif('habitReminders', $event)" />
             </div>
             <div class="flex items-center justify-between gap-4">
               <div class="min-w-0">
-                <p class="text-sm font-medium text-ink">Email updates</p>
-                <p class="mt-0.5 text-sm text-ink-soft">Occasional product news.</p>
+                <p class="text-sm font-medium text-ink">{{ t('Email updates') }}</p>
+                <p class="mt-0.5 text-sm text-ink-soft">{{ t('Occasional product news.') }}</p>
               </div>
-              <app-toggle [model]="form.notifications.emailUpdates" label="Email updates"
+              <app-toggle [model]="form.notifications.emailUpdates" [label]="t('Email updates')"
                 (change)="setNotif('emailUpdates', $event)" />
             </div>
           </div>
         </app-card>
 
         <div class="flex justify-end">
-          <app-button icon="check" [loading]="saving()" (click)="save()">Save changes</app-button>
+          <app-button icon="check" [loading]="saving()" (click)="save()">{{ t('Save changes') }}</app-button>
         </div>
       </div>
     }
@@ -129,26 +129,39 @@ import type { Setting } from '../../core/models/misc.model';
 export class SettingsComponent implements OnInit {
   private settingService = inject(SettingService);
   private themeService = inject(ThemeService);
+  private i18n = inject(I18nService);
   private toast = inject(ToastService);
   private api = inject(ApiService);
 
-  protected readonly shortcuts = [
-    { keys: 'Ctrl K', action: 'Global search' },
-    { keys: '/', action: 'Global search' },
-    { keys: 'N', action: 'New task (quick add)' },
-    { keys: 'D', action: 'Go to dashboard' },
-    { keys: 'T', action: 'Go to tasks' },
-    { keys: 'G', action: 'Go to goals' },
-  ];
+  protected readonly t = this.i18n.t.bind(this.i18n);
+
+  protected shortcuts(): { keys: string; action: string }[] {
+    return [
+      { keys: 'Ctrl K', action: this.t('Global search') },
+      { keys: '/', action: this.t('Global search') },
+      { keys: 'N', action: this.t('New task (quick add)') },
+      { keys: 'D', action: this.t('Go to dashboard') },
+      { keys: 'T', action: this.t('Go to tasks') },
+      { keys: 'G', action: this.t('Go to goals') },
+    ];
+  }
 
   protected readonly loading = this.settingService.loading;
   protected readonly dark = this.themeService.dark;
   protected readonly saving = signal(false);
 
+  /**
+   * Theme & language start from the values that are live right now (topbar
+   * toggle / OS preference / applied language) instead of hardcoded defaults.
+   * This is done synchronously at construction so the very first render is
+   * already correct — the backend merge below deliberately never overrides
+   * these three fields (that used to flip the theme on page load and caused an
+   * ExpressionChangedAfterItHasBeenCheckedError).
+   */
   protected form: Setting = {
-    theme: 'light',
-    darkMode: false,
-    language: 'en',
+    theme: this.themeService.dark() ? 'dark' : 'light',
+    darkMode: this.themeService.dark(),
+    language: this.i18n.lang(),
     notifications: {
       taskReminders: true,
       billReminders: true,
@@ -160,27 +173,35 @@ export class SettingsComponent implements OnInit {
   protected readonly noop = (): void => {};
 
   protected readonly themeOptions = () => [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'system', label: 'System' },
+    { value: 'light', label: this.t('Light') },
+    { value: 'dark', label: this.t('Dark') },
+    { value: 'system', label: this.t('System') },
   ];
 
   protected readonly languageOptions = () => [
     { value: 'en', label: 'English' },
     { value: 'id', label: 'Bahasa Indonesia' },
-    { value: 'ms', label: 'Bahasa Melayu' },
   ];
+
+  protected setLanguage(lang: Lang): void {
+    this.form.language = lang;
+    this.i18n.setLang(lang);
+  }
 
   ngOnInit(): void {
     this.settingService.load();
     this.settingService.get().subscribe({
       next: (s) => {
-        this.form = { ...this.form, ...s, notifications: { ...this.form.notifications, ...s.notifications } };
-        this.themeService.set(s.darkMode);
+        // Merge the persisted preferences, but keep theme / darkMode / language
+        // pointing at the values the user is actually seeing right now.
+        const { theme: _theme, darkMode: _darkMode, language: _language, ...rest } = s;
+        this.form = {
+          ...this.form,
+          ...rest,
+          notifications: { ...this.form.notifications, ...s.notifications },
+        };
       },
-      error: () => {
-        this.themeService.set(this.form.darkMode);
-      },
+      error: () => {},
     });
   }
 
@@ -191,8 +212,15 @@ export class SettingsComponent implements OnInit {
   }
 
   protected syncTheme(): void {
-    this.form.darkMode = this.form.theme === 'dark';
-    this.themeService.set(this.form.darkMode);
+    if (this.form.theme === 'system') {
+      // "System" should follow the OS, not silently fall back to light.
+      const system = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+      this.form.darkMode = system;
+      this.themeService.set(system);
+    } else {
+      this.form.darkMode = this.form.theme === 'dark';
+      this.themeService.set(this.form.darkMode);
+    }
   }
 
   protected setNotif(key: keyof Setting['notifications'], value: boolean): void {
@@ -204,7 +232,7 @@ export class SettingsComponent implements OnInit {
     this.settingService.update(this.form).subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success('Settings saved');
+        this.toast.success(this.t('Settings saved'));
       },
       error: (err: Error) => {
         this.saving.set(false);
@@ -236,6 +264,6 @@ export class SettingsComponent implements OnInit {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    this.toast.success('Download started');
+    this.toast.success(this.t('Download started'));
   }
 }

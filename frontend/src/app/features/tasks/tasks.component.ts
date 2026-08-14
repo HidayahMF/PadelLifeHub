@@ -17,6 +17,7 @@ import { SegmentedComponent } from '../../layout/components/segmented.component'
 import { TaskService } from '../../core/services/task.service';
 import { CategoryService } from '../../core/services/category.service';
 import { ToastService } from '../../core/services/toast.service';
+import { I18nService } from '../../core/services/i18n.service';
 import type {
   Category,
   Task,
@@ -49,9 +50,9 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
   ],
   template: `
     <app-page-header
-      title="Tasks"
-      subtitle="Plan, organize, and get things done."
-      actionLabel="Add task"
+      [title]="t('Tasks')"
+      [subtitle]="t('Plan, organize, and get things done.')"
+      [actionLabel]="t('Add task')"
       actionIcon="plus"
       [action]="openCreate"
     ></app-page-header>
@@ -75,13 +76,13 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
             type="text"
             [value]="search()"
             (input)="setSearch($any($event.target).value)"
-            placeholder="Search tasks…"
+            [placeholder]="t('Search tasks…')"
             name="search"
             class="h-10 w-56 rounded-field border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none"
           />
         </div>
         <app-select
-          placeholder="Category"
+          [placeholder]="t('Category')"
           [options]="categoryOptions()"
           [ngModel]="categoryFilter()"
           (ngModelChange)="categoryFilter.set($event)"
@@ -97,7 +98,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           class="rounded-md border-2 border-ink px-2 py-0.5 text-xs font-bold transition-colors"
           [class]="tagFilter() === '' ? 'bg-primary text-ink' : 'bg-surface text-ink-soft hover:text-ink'"
         >
-          All
+          {{ t('All') }}
         </button>
         @for (tag of allTags(); track tag) {
           <button
@@ -121,8 +122,8 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
       } @else if (filteredTasks().length === 0) {
         <app-empty-state
           icon="list-todo"
-          title="No tasks found"
-          message="Create your first task or adjust your filters."
+          [title]="t('No tasks found')"
+          [message]="t('Create your first task or adjust your filters.')"
           actionIcon="plus"
           actionRoute="/tasks"
         />
@@ -140,7 +141,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                     ? 'border-success bg-success text-surface'
                     : 'border-ink-faint hover:border-primary'
                 "
-                [attr.aria-label]="task.status === 'completed' ? 'Mark incomplete' : 'Mark complete'"
+                [attr.aria-label]="task.status === 'completed' ? t('Mark incomplete') : t('Mark complete')"
               >
                 <app-icon *ngIf="task.status === 'completed'" name="check" [size]="13" [strokeWidth]="3" />
               </button>
@@ -165,16 +166,16 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                       "
                     >
                       <app-icon name="calendar" [size]="12" />
-                      {{ relativeDay(task.dueDate) }}
+                      {{ t(relativeDay(task.dueDate)) }}
                       @if (isOverdue(task.dueDate) && task.status !== 'completed') {
-                        · overdue
+                        · {{ t('overdue') }}
                       }
                     </span>
                   }
                   @if (task.recurring?.isRecurring) {
                     <span class="flex items-center gap-1">
                       <app-icon name="repeat" [size]="12" />
-                      {{ task.recurring?.frequency }}
+                      {{ t(task.recurring?.frequency ?? '') }}
                       @if (task.recurring?.frequency === 'weekly' && (task.recurring?.daysOfWeek?.length ?? 0) > 0) {
                         · {{ dayNames(task.recurring!.daysOfWeek) }}
                       }
@@ -210,13 +211,13 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                   size="icon"
                   variant="ghost"
                   icon="eye"
-                  [attr.aria-label]="'View details of ' + task.title"
+                  [attr.aria-label]="t('View details of {title}', { title: task.title })"
                   (click)="openDetail(task)"
                 ></app-button>
                 <button
                   type="button"
                   (click)="togglePin(task)"
-                  [attr.aria-label]="task.pinned ? 'Unpin ' + task.title : 'Pin ' + task.title"
+                  [attr.aria-label]="task.pinned ? t('Unpin {title}', { title: task.title }) : t('Pin {title}', { title: task.title })"
                   class="flex h-10 w-10 items-center justify-center rounded-button transition-colors"
                   [ngClass]="
                     task.pinned ? 'text-primary' : 'text-ink-faint hover:text-ink'
@@ -228,7 +229,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                   size="icon"
                   variant="ghost"
                   icon="pencil"
-                  [attr.aria-label]="'Edit ' + task.title"
+                  [attr.aria-label]="t('Edit {title}', { title: task.title })"
                   (click)="openEdit(task)"
                 ></app-button>
                 @if (lifecycle() !== 'trash') {
@@ -236,7 +237,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                     size="icon"
                     variant="ghost"
                     icon="archive"
-                    [attr.aria-label]="'Archive ' + task.title"
+                    [attr.aria-label]="t('Archive {title}', { title: task.title })"
                     (click)="setFlag(task, { archived: true })"
                   ></app-button>
                 }
@@ -244,7 +245,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                   size="icon"
                   variant="ghost"
                   icon="trash-2"
-                  [attr.aria-label]="lifecycle() === 'trash' ? 'Delete permanently' : 'Move to trash'"
+                  [attr.aria-label]="lifecycle() === 'trash' ? t('Delete permanently') : t('Move to trash')"
                   (click)="lifecycle() === 'trash' ? remove(task) : setFlag(task, { trashed: true, archived: false })"
                 ></app-button>
               </div>
@@ -256,60 +257,60 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
 
     <app-modal
       [open]="modalOpen()"
-      [title]="editing() ? 'Edit task' : 'New task'"
+      [title]="editing() ? t('Edit task') : t('New task')"
       (closed)="closeModal()"
     >
       <form (ngSubmit)="save()" class="space-y-4">
         <app-field
-          label="Title"
-          placeholder="What needs to be done?"
+          [label]="t('Title')"
+          [placeholder]="t('What needs to be done?')"
           [required]="true"
           [(ngModel)]="form.title"
           name="title"
         />
         <app-textarea
-          label="Description"
-          placeholder="Optional details…"
+          [label]="t('Description')"
+          [placeholder]="t('Optional details…')"
           [(ngModel)]="form.description"
           name="description"
         />
         <app-select
-          label="Category"
-          placeholder="No category"
+          [label]="t('Category')"
+          [placeholder]="t('No category')"
           [options]="categoryOptions()"
           [(ngModel)]="form.category"
           name="category"
         />
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <app-field
-            label="Due date"
+            [label]="t('Due date')"
             type="date"
             [(ngModel)]="form.dueDate"
             name="dueDate"
           />
           <app-field
-            label="Reminder"
+            [label]="t('Reminder')"
             type="datetime-local"
             [(ngModel)]="form.reminder"
             name="reminder"
           />
         </div>
         <app-select
-          label="Repeat"
+          [label]="t('Repeat')"
           [options]="recurringOptions()"
           [hint]="recurringHint()"
           [(ngModel)]="formRecurring"
           name="recurring"
         />
         <app-field
-          label="Tags"
-          placeholder="work, urgent, school… (comma separated)"
+          [label]="t('Tags')"
+          [placeholder]="t('work, urgent, school… (comma separated)')"
           [(ngModel)]="tagsText"
           name="tags"
         />
         @if (formRecurring === 'weekly') {
           <div>
-            <label class="mb-1.5 block text-sm font-bold text-ink">Days of the week</label>
+            <label class="mb-1.5 block text-sm font-bold text-ink">{{ t('Days of the week') }}</label>
             <div class="flex flex-wrap gap-1.5">
               @for (day of weekDays; track day.value) {
                 <button
@@ -322,21 +323,21 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                       : 'border-ink bg-surface text-ink-soft hover:bg-surface-2'
                   "
                 >
-                  {{ day.label }}
+                  {{ t(day.label) }}
                 </button>
               }
             </div>
             @if (formDays.length > 0) {
               <p class="mt-1.5 text-xs font-medium text-ink-soft">
-                Every {{ dayNames(formDays) }}
+                {{ t('Every {days}', { days: dayNames(formDays) }) }}
               </p>
             }
           </div>
         }
         <div class="flex justify-end gap-2 pt-2">
-          <app-button type="button" variant="secondary" (click)="closeModal()">Cancel</app-button>
+          <app-button type="button" variant="secondary" (click)="closeModal()">{{ t('Cancel') }}</app-button>
           <app-button type="submit" [loading]="saving()">
-            {{ editing() ? 'Save changes' : 'Create task' }}
+            {{ editing() ? t('Save changes') : t('Create task') }}
           </app-button>
         </div>
       </form>
@@ -344,7 +345,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
 
     <app-modal
       [open]="detailOpen()"
-      title="Task details"
+      [title]="t('Task details')"
       [width]="672"
       (closed)="closeDetail()"
     >
@@ -352,14 +353,14 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
         <div class="space-y-4">
           <div class="flex flex-wrap items-center gap-2">
             <app-badge [tone]="statusTone(task.status)">
-              {{ titleCase(task.status) }}
+              {{ t(titleCase(task.status)) }}
             </app-badge>
             @if (task.pinned) {
               <span
                 class="inline-flex items-center gap-1 rounded-md border border-line bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink"
               >
                 <app-icon name="pin" [size]="12" />
-                Pinned
+                {{ t('Pinned') }}
               </span>
             }
             @if (categoryName(task.category)) {
@@ -376,20 +377,20 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           </div>
 
           <div>
-            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Title</p>
+            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Title') }}</p>
             <p class="mt-1 text-sm font-medium text-ink">{{ task.title }}</p>
           </div>
 
           <div>
-            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Description</p>
+            <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Description') }}</p>
             <p class="mt-1 break-words whitespace-pre-wrap text-sm text-ink">
-              {{ task.description || 'No description.' }}
+              {{ task.description || t('No description.') }}
             </p>
           </div>
 
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Due date</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Due date') }}</p>
               <p
                 class="mt-1 flex items-center gap-1 text-sm text-ink"
                 [ngClass]="
@@ -399,17 +400,17 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
                 "
               >
                 <app-icon name="calendar" [size]="14" />
-                {{ task.dueDate ? relativeDay(task.dueDate) : 'No due date' }}
+                {{ task.dueDate ? t(relativeDay(task.dueDate)) : t('No due date') }}
                 @if (task.dueDate && isOverdue(task.dueDate) && task.status !== 'completed') {
-                  · overdue
+                  · {{ t('overdue') }}
                 }
               </p>
             </div>
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">Reminder</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-ink-faint">{{ t('Reminder') }}</p>
               <p class="mt-1 flex items-center gap-1 text-sm text-ink">
                 <app-icon name="bell" [size]="14" />
-                {{ task.reminder ? formatDateTime(task.reminder) : 'No reminder' }}
+                {{ task.reminder ? formatDateTime(task.reminder) : t('No reminder') }}
               </p>
             </div>
           </div>
@@ -417,17 +418,17 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           @if (task.completedAt || task.createdAt) {
             <div class="border-t border-line pt-3 text-xs text-ink-faint">
               @if (task.createdAt) {
-                <p>Created {{ formatDateTime(task.createdAt) }}</p>
+                <p>{{ t('Created {time}', { time: formatDateTime(task.createdAt) }) }}</p>
               }
               @if (task.completedAt) {
-                <p>Completed {{ formatDateTime(task.completedAt) }}</p>
+                <p>{{ t('Completed {time}', { time: formatDateTime(task.completedAt) }) }}</p>
               }
             </div>
           }
 
           <div class="flex justify-end gap-2 pt-1">
-            <app-button type="button" variant="secondary" (click)="closeDetail()">Close</app-button>
-            <app-button icon="pencil" (click)="editViewed()">Edit task</app-button>
+            <app-button type="button" variant="secondary" (click)="closeDetail()">{{ t('Close') }}</app-button>
+            <app-button icon="pencil" (click)="editViewed()">{{ t('Edit task') }}</app-button>
           </div>
         </div>
       }
@@ -439,6 +440,9 @@ export class TasksComponent implements OnInit {
   private categoryService = inject(CategoryService);
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
 
   protected readonly filter = signal<Filter>('all');
   protected readonly search = signal('');
@@ -456,9 +460,9 @@ export class TasksComponent implements OnInit {
   protected readonly categories = this.categoryService.categories;
 
   protected readonly filterOptions = computed(() => [
-    { value: 'all', label: 'All' },
-    { value: 'todo', label: 'To do' },
-    { value: 'completed', label: 'Done' },
+    { value: 'all', label: this.t('All') },
+    { value: 'todo', label: this.t('To do') },
+    { value: 'completed', label: this.t('Done') },
   ]);
 
   protected readonly categoryOptions = computed<{ value: string; label: string }[]>(() =>
@@ -468,9 +472,9 @@ export class TasksComponent implements OnInit {
   );
 
   protected readonly lifecycleOptions = computed(() => [
-    { value: 'active', label: 'Active' },
-    { value: 'archived', label: 'Archived' },
-    { value: 'trash', label: 'Trash' },
+    { value: 'active', label: this.t('Active') },
+    { value: 'archived', label: this.t('Archived') },
+    { value: 'trash', label: this.t('Trash') },
   ]);
 
   protected readonly allTags = computed(() =>
@@ -478,19 +482,19 @@ export class TasksComponent implements OnInit {
   );
 
   protected readonly recurringOptions = computed(() => [
-    { value: 'none', label: 'No repeat' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'yearly', label: 'Yearly' },
+    { value: 'none', label: this.t('No repeat') },
+    { value: 'daily', label: this.t('Daily') },
+    { value: 'weekly', label: this.t('Weekly') },
+    { value: 'monthly', label: this.t('Monthly') },
+    { value: 'yearly', label: this.t('Yearly') },
   ]);
 
   protected readonly recurringHint = computed(() =>
     this.formRecurring === 'none'
       ? ''
       : this.formRecurring === 'weekly' && this.formDays.length === 0
-        ? 'Pick days below, or leave empty for every week.'
-        : 'Repeats automatically after the due date.'
+        ? this.t('Pick days below, or leave empty for every week.')
+        : this.t('Repeats automatically after the due date.')
   );
 
   protected readonly weekDays = [
@@ -610,7 +614,7 @@ export class TasksComponent implements OnInit {
   protected save(): void {
     const title = this.form.title?.trim();
     if (!title) {
-      this.toast.error('Task title is required.');
+      this.toast.error(this.t('Task title is required.'));
       return;
     }
     const isRecurring = this.formRecurring !== 'none';
@@ -634,7 +638,7 @@ export class TasksComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success(this.editing() ? 'Task updated' : 'Task created');
+        this.toast.success(this.editing() ? this.t('Task updated') : this.t('Task created'));
         this.modalOpen.set(false);
         this.reload();
       },
@@ -651,7 +655,7 @@ export class TasksComponent implements OnInit {
       .update(task._id, { status: completed ? 'todo' : 'completed' })
       .subscribe({
         next: () => {
-          this.toast.success(completed ? 'Task reopened' : 'Task completed 🎉');
+          this.toast.success(completed ? this.t('Task reopened') : this.t('Task completed 🎉'));
           this.reload();
         },
         error: (err: Error) => this.toast.error(err.message),
@@ -670,7 +674,7 @@ export class TasksComponent implements OnInit {
 
   protected dayNames(days: number[]): string {
     const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days.map((d) => names[d]?.slice(0, 3)).join(', ');
+    return days.map((d) => this.t(names[d] ?? '').slice(0, 3)).join(', ');
   }
 
   protected togglePin(task: Task): void {
@@ -678,7 +682,7 @@ export class TasksComponent implements OnInit {
       .update(task._id, { pinned: !task.pinned })
       .subscribe({
         next: () => {
-          this.toast.success(task.pinned ? 'Task unpinned' : 'Task pinned');
+          this.toast.success(task.pinned ? this.t('Task unpinned') : this.t('Task pinned'));
           this.reload();
         },
         error: (err: Error) => this.toast.error(err.message),
@@ -688,7 +692,7 @@ export class TasksComponent implements OnInit {
   protected setFlag(task: Task, flags: TaskPayload): void {
     this.taskService.update(task._id, flags).subscribe({
       next: () => {
-        this.toast.success(flags.trashed ? 'Moved to trash' : flags.archived ? 'Task archived' : 'Task restored');
+        this.toast.success(flags.trashed ? this.t('Moved to trash') : flags.archived ? this.t('Task archived') : this.t('Task restored'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),
@@ -696,10 +700,10 @@ export class TasksComponent implements OnInit {
   }
 
   protected remove(task: Task): void {
-    if (!confirm(`Permanently delete "${task.title}"? This cannot be undone.`)) return;
+    if (!confirm(this.t('Permanently delete "{title}"? This cannot be undone.', { title: task.title }))) return;
     this.taskService.remove(task._id).subscribe({
       next: () => {
-        this.toast.success('Task deleted permanently');
+        this.toast.success(this.t('Task deleted permanently'));
         this.reload();
       },
       error: (err: Error) => this.toast.error(err.message),
