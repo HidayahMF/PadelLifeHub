@@ -112,10 +112,15 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 
 ---
 
-## 8. Keamanan (sudah dikerjakan)
+## 8. Keamanan (status implementasi)
 
-- [ ] bcrypt hash password (migrasi otomatis user lama saat login)
-- [ ] `JWT_SECRET` kuat (bukan placeholder)
-- [ ] `express-rate-limit` pada `/api/auth`
-- [ ] `helmet` security headers
-- [ ] Token reset password disimpan sebagai hash sha256, kedaluwarsa 1 jam
+Sudah dikerjakan & terverifikasi di kode:
+- [x] bcrypt hash password (migrasi otomatis user lama saat login)
+- [x] `express-rate-limit` pada `/api/auth`
+- [x] `helmet` security headers
+- [x] Token reset password disimpan sebagai hash sha256, kedaluwarsa 1 jam
+
+Wajib di-set saat deploy (belum dikerjakan sampai env production diisi):
+- [ ] `JWT_SECRET` kuat di Vercel (nilai dev sudah kuat, tapi production pakai env sendiri)
+- [ ] `CRON_SECRET` untuk job cron-job.org
+- [ ] `NODE_ENV=production` (menonaktifkan scheduler in-proses, mengaktifkan alur email/upload production)

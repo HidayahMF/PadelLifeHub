@@ -21,7 +21,7 @@ Dokumen ini dimaksudkan untuk:
 | Mata uang | IDR (format `1.234.567`) |
 | Bahasa | Inggris (default) & Indonesia (i18n live-switch) |
 | Mode gelap | Ya (Light / Dark / System) |
-| Scheduler | 3 job `setInterval` dalam proses (reminder, transaksi berulang, tugas berulang) |
+| Scheduler | 3 job `setInterval` in-proses **hanya di dev**; production memakai `POST /api/cron/tick` via cron-job.org |
 | Target deploy | Vercel (2 project: frontend statis + backend serverless) |
 
 ---
@@ -35,12 +35,12 @@ Browser (Angular SPA, localhost:4200)
 Express API (port 5000, /api)
    │
    ├── Auth: JWT + Google GIS (verifyIdToken di backend)
-   ├── Mongoose → MongoDB Atlas (16 koleksi)
+   ├── Mongoose → MongoDB Atlas (15 koleksi)
    ├── Scheduler (reminder 30s, recurring 60s, task 60s)
    └── Uploads (folder lokal saat dev; Cloudinary saat production)
 ```
 
-**Koleksi MongoDB (16):**
+**Koleksi MongoDB (15):**
 
 | Koleksi | Fungsi |
 |---|---|
@@ -59,7 +59,6 @@ Express API (port 5000, /api)
 | `needs` | Daftar belanja + riwayat pembelian |
 | `wishlist` | Wishlist + progress saving |
 | `weeklyreviews` | Refleksi mingguan |
-| `categories` | (lihat atas) |
 
 ---
 
@@ -179,23 +178,32 @@ Semua job pakai klaim atomik `findOneAndUpdate` agar aman dari restart/tumpang-t
 
 ---
 
-## 7. Gap & Rekomendasi Production
+## 7. Kesiapan Production — Current vs TODO
 
-Status per dokumen ini disusun. Baris yang **belum** beres ditandai.
+### 7.1 Sudah dikerjakan (kode terimplementasi & terverifikasi di dev)
 
-| Area | Kondisi saat ini | Aksi production |
-|---|---|---|
-| Password | ~~Plain text~~ → **bcrypt (migrasi otomatis)** | Sudah di-rencakanakan/dilakukan Fase 2 |
-| JWT secret | Placeholder `change-me-...` | Generate kuat (Fase 2) |
-| Rate limiting | Belum ada | `express-rate-limit` di `/api/auth` (Fase 2) |
-| Security headers | Belum ada | `helmet` (Fase 2) |
-| Email | Belum ada transport | **Resend** — forgot password + reminder (Fase 3) |
-| Reset password page | Belum ada di frontend | Halaman `reset-password` (Fase 3) |
-| Scheduler di serverless | `setInterval` mati saat idle | `POST /api/cron/tick` + **cron-job.org** tiap menit (Fase 4) |
-| Avatar storage | Filesystem lokal (ephemeral di Vercel) | **Cloudinary** (fallback lokal di dev) (Fase 4) |
-| Deploy | Belum | Vercel 2 project + `vercel.json` (Fase 4) |
-| Error monitoring | Console log | Sentry (opsional, setelah live) |
-| CI/CD | Belum | GitHub Actions (opsional) |
+| Area | Status |
+|---|---|
+| Password | **bcrypt hash** + migrasi otomatis user plaintext saat login (terverifikasi) |
+| Rate limiting | `express-rate-limit` di semua endpoint `/api/auth` |
+| Security headers | `helmet` (CSP dimatikan agar GIS tetap berjalan) |
+| Halaman reset password | `frontend /reset-password?token=...` (route + komponen + i18n) |
+| Scheduler | Endpoint **`POST /api/cron/tick`** (guard header `x-cron-secret`); in-process `setInterval` hanya berjalan di dev (`NODE_ENV !== 'production'`) |
+| Vercel scaffolding | `app.js` (Express app), `api/index.js`, `vercel.json`, `environment.production.ts` — file siap, **belum di-deploy** |
+| Avatar upload | Abstraksi storage: **Cloudinary bila dikonfigurasi**, fallback folder lokal; hapus otomatis foto lama |
+
+### 7.2 Production TODO (belum selesai — butuh konfigurasi/akun/deploy)
+
+| Area | Yang belum dilakukan |
+|---|---|
+| `JWT_SECRET` | Di dev sudah kuat; **wajib set nilai kuat di env production** Vercel |
+| **Resend (email)** | Kode siap tapi **belum aktif**: butuh `RESEND_API_KEY` + `EMAIL_FROM` + verifikasi domain. Sampai ada key, forgot-password tidak mengirim email (dev masih mengembalikan token) |
+| **Cloudinary (avatar)** | Kode siap tapi **belum aktif**: butuh `CLOUDINARY_*` + `UPLOAD_STORAGE=cloudinary`. Saat ini masih memakai folder lokal |
+| **cron-job.org (scheduler)** | Endpoint siap tapi **belum berjalan**: butuh `CRON_SECRET` + job cron-job.org → `POST /api/cron/tick` tiap menit |
+| Google Cloud | Tambah **Authorized JavaScript origin** produksi `https://<frontend>.vercel.app` |
+| Deploy Vercel | 2 project (frontend + backend) + set semua env production (lihat `docs/production-checklist.md`) |
+| Monitoring | Console log → Sentry (opsional, setelah live) |
+| CI/CD | Belum ada (opsional: GitHub Actions) |
 
 ---
 
