@@ -921,4 +921,33 @@ export const ID: Record<string, string> = {
   "You've used {pct}% of this month's budget.": 'Kamu sudah memakai {pct}% anggaran bulan ini.',
   'Your cash flow was positive in {n} of the last {m} months.':
     'Arus kasmu positif di {n} dari {m} bulan terakhir.',
+
+  // ---------- LifeHub AI ----------
+  'LifeHub AI': 'LifeHub AI',
+  'Your personal productivity and financial assistant.': 'Asisten pribadi produktivitas dan keuanganmu.',
+  'Ask LifeHub AI…': 'Tanya LifeHub AI…',
+  'Send message': 'Kirim pesan',
+  'Send': 'Kirim',
+  'Analyze my finances': 'Analisis keuanganku',
+  'Plan my day': 'Rencanakan hariku',
+  'Analyze my habits': 'Analisis kebiasaanku',
+  'Review my goals': 'Tinjau tujuanku',
+  'Plan my day with AI': 'Rencanakan hariku dengan AI',
+  'Ask AI': 'Tanya AI',
+  'Analyze finances': 'Analisis keuangan',
+  'Need help understanding your life data?': 'Butuh bantuan memahami data hidupmu?',
+  'LifeHub AI analyzes your real data — tasks, finances, habits, and goals — to give you practical insights.':
+    'LifeHub AI menganalisis data aslimu — tugas, keuangan, kebiasaan, dan tujuan — untuk memberimu wawasan praktis.',
+  'Try one of the quick actions above, or type a question like “How was my spending this month?”':
+    'Coba salah satu aksi cepat di atas, atau ketik pertanyaan seperti “Bagaimana pengeluaran saya bulan ini?”',
+  'Thinking…': 'Berpikir…',
+  'AI service is not configured': 'Layanan AI belum dikonfigurasi',
+  'AI service is temporarily unavailable.': 'Layanan AI untuk sementara tidak tersedia.',
+  'AI request limit reached. Please try again later.': 'Batas permintaan AI tercapai. Silakan coba lagi nanti.',
+  'Type your message': 'Ketik pesanmu',
+  'You': 'Kamu',
+  'Today, let': 'Hari ini, mari',
+  'LifeHub AI says': 'Kata LifeHub AI',
+  'Clear chat': 'Bersihkan obrolan',
+  'Chat with LifeHub AI': 'Ngobrol dengan LifeHub AI',
 };

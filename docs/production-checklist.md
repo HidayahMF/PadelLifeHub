@@ -5,6 +5,10 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 - **Email**: Resend (`RESEND_API_KEY`)
 - **Avatar**: Cloudinary (`CLOUDINARY_*`)
 - **Cron**: cron-job.org (hit `POST /api/cron/tick` tiap 1 menit)
+- **AI**: Gemini (`GEMINI_API_KEY`)
+
+> **Tutorial lengkap langkah demi langkah (custom domain + deploy):**
+> baca [docs/VERCEL-DEPLOY.md](VERCEL-DEPLOY.md). Checklist ini versi ringkasnya.
 
 ---
 
@@ -32,6 +36,9 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 | `RESEND_API_KEY` | Resend API key |
 | `EMAIL_FROM` | alamat pengirim (mis. `LifeHub <no-reply@yourdomain.com>`) |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary credentials |
+| `GEMINI_API_KEY` | Gemini API key (LifeHub AI) |
+| `GEMINI_MODEL` | `gemini-3.6-flash` (default) |
+| `AI_RATE_LIMIT_PER_MINUTE` / `AI_DAILY_LIMIT` | `10` / `100` (opsional) |
 | `CRON_SECRET` | string rahasia acak (dipakai header `x-cron-secret`) |
 | `NODE_ENV` | `production` |
 | `UPLOAD_STORAGE` | `cloudinary` (atau kosong = lokal untuk dev) |

@@ -95,6 +95,31 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
         </div>
       </div>
 
+      <!-- LifeHub AI teaser -->
+      <div
+        class="flex flex-wrap items-center justify-between gap-4 rounded-card border-2 border-ink bg-surface p-4 shadow-soft"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <img
+            src="assets/LifeHubAI.png"
+            alt="LifeHub AI"
+            class="h-11 w-11 shrink-0 rounded-lg border-2 border-ink bg-surface object-contain p-1 shadow-soft"
+          />
+          <div class="min-w-0">
+            <p class="font-display text-base text-ink">✨ LifeHub AI</p>
+            <p class="truncate text-xs text-ink-soft">
+              {{ t('Need help understanding your life data?') }}
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <app-button size="sm" variant="secondary" icon="wallet" (click)="openAi('financial')">
+            {{ t('Analyze finances') }}
+          </app-button>
+          <app-button size="sm" icon="bot" (click)="openAi()"> {{ t('Ask AI') }} </app-button>
+        </div>
+      </div>
+
       @if (loading() && !summary()) {
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           @for (_ of [1, 2, 3, 4]; track $index) {
@@ -680,6 +705,10 @@ export class DashboardComponent implements OnInit {
 
   protected go(route: string): void {
     this.router.navigate([route]);
+  }
+
+  protected openAi(mode?: string): void {
+    this.router.navigate(['/ai'], mode ? { queryParams: { mode } } : undefined);
   }
 
   protected readonly formatCurrency = formatCurrency;

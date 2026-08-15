@@ -81,7 +81,11 @@ async function main() {
     body: { email: userEmail },
     auth: false,
   });
-  check('forgot-password returns message', !!forgot.data.message && forgot.data.resetToken?.length > 0);
+  const emailConfigured = !!process.env.RESEND_API_KEY;
+  check('forgot-password returns message', !!forgot.data.message);
+  if (!emailConfigured) {
+    check('forgot-password returns reset token (no email configured)', !!forgot.data.resetToken);
+  }
   if (forgot.data.resetToken) {
     const reset = await api('POST', '/auth/reset-password', {
       body: { token: forgot.data.resetToken, newPassword: 'newpass123' },
@@ -125,9 +129,10 @@ async function main() {
     body: upForm,
   });
   const upData = await upRes.json().catch(() => ({}));
+  const isCloudUrl = upData.avatar?.startsWith('https://res.cloudinary.com/');
   check(
-    'upload avatar returns updated user with /uploads/ url',
-    upRes.status === 200 && !!upData.avatar && upData.avatar.includes('/uploads/'),
+    'upload avatar returns updated user with storage url',
+    upRes.status === 200 && !!upData.avatar && (upData.avatar.includes('/uploads/') || isCloudUrl),
     `avatar ${upData.avatar}`
   );
   const profAfterAvatar = await api('GET', '/auth/profile');

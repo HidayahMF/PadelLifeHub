@@ -53,6 +53,9 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
           <app-button size="sm" variant="secondary" icon="sticky-note" (click)="quickAdd('note')">
             {{ t('Note') }}
           </app-button>
+          <app-button size="sm" variant="secondary" icon="bot" (click)="goAi()">
+            {{ t('Plan my day with AI') }}
+          </app-button>
           <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> {{ t('Focus') }} </app-button>
         </div>
       </div>
@@ -478,6 +481,10 @@ export class TodayComponent implements OnInit {
 
   protected go(route: string): void {
     this.router.navigate([route]);
+  }
+
+  protected goAi(): void {
+    this.router.navigate(['/ai'], { queryParams: { mode: 'daily-plan' } });
   }
 
   protected readonly formatCurrency = formatCurrency;

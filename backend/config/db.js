@@ -15,11 +15,11 @@ const connectDB = async () => {
         return conn;
       } catch (err2) {
         console.error(`MongoDB connection error: ${err2.message}`);
-        process.exit(1);
+        throw err2;
       }
     }
     console.error(`MongoDB connection error: ${err.message}`);
-    process.exit(1);
+    throw err;
   }
 };
 

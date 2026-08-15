@@ -10,21 +10,26 @@ const { startReminderScheduler } = require('./services/reminderScheduler');
 const { startRecurringScheduler } = require('./services/recurringScheduler');
 const { startTaskScheduler } = require('./services/taskScheduler');
 
-connectDB().then(() => {
-  // In production serverless (Vercel) the schedulers are driven by an external
-  // cron service (POST /api/cron/tick). The in-process timer only runs in
-  // development, or when RUN_SCHEDULERS=true is set explicitly.
-  const runInProcess = process.env.RUN_SCHEDULERS === 'true' || process.env.NODE_ENV !== 'production';
-  if (runInProcess) {
-    startReminderScheduler();
-    startRecurringScheduler();
-    startTaskScheduler();
-  } else {
-    console.log(
-      '[scheduler] in-process schedulers disabled (production) — cron endpoint enabled'
-    );
-  }
-});
+connectDB()
+  .then(() => {
+    // In production serverless (Vercel) the schedulers are driven by an external
+    // cron service (POST /api/cron/tick). The in-process timer only runs in
+    // development, or when RUN_SCHEDULERS=true is set explicitly.
+    const runInProcess = process.env.RUN_SCHEDULERS === 'true' || process.env.NODE_ENV !== 'production';
+    if (runInProcess) {
+      startReminderScheduler();
+      startRecurringScheduler();
+      startTaskScheduler();
+    } else {
+      console.log(
+        '[scheduler] in-process schedulers disabled (production) — cron endpoint enabled'
+      );
+    }
+  })
+  .catch((err) => {
+    console.error(`[server] Failed to connect to MongoDB: ${err.message}`);
+    process.exit(1);
+  });
 
 const PORT = process.env.PORT || 5000;
 

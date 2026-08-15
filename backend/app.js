@@ -81,6 +81,7 @@ app.use('/api/today', require('./routes/todayRoutes'));
 app.use('/api/insights', require('./routes/insightsRoutes'));
 app.use('/api/weekly-review', require('./routes/weeklyReviewRoutes'));
 app.use('/api/export', require('./routes/exportRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/cron', require('./routes/cronRoutes'));
 
 app.use(notFound);

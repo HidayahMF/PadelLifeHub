@@ -50,7 +50,11 @@ async function sendMail({ to, subject, html, text }) {
     return false;
   }
   try {
-    await resend.emails.send({ from: FROM, to, subject, html, text });
+    const result = await resend.emails.send({ from: FROM, to, subject, html, text });
+    if (result?.error) {
+      console.error(`[email] send failed to ${to}: ${result.error.message}`);
+      return false;
+    }
     return true;
   } catch (err) {
     console.error(`[email] send failed to ${to}: ${err.message}`);

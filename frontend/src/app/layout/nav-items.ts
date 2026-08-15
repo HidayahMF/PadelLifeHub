@@ -10,6 +10,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: 'Today', route: '/today', icon: 'calendar-check' },
       { label: 'Dashboard', route: '/dashboard', icon: 'layout-dashboard' },
+      { label: 'LifeHub AI', route: '/ai', icon: 'bot' },
     ],
   },
   {
