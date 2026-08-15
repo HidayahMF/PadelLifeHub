@@ -160,15 +160,26 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
 
 1. backend mengekspos `POST /api/cron/tick` yang dilindungi header
    `x-cron-secret` (nilainya = `CRON_SECRET` di Vercel).
-2. cron-job.org → **New job**:
-   - URL: `https://lifehub-api.vercel.app/api/cron/tick`
-   - Method: `POST`
-   - Headers: `x-cron-secret: <CRON_SECRET>` dan `Content-Type: application/json`
-   - Request Body: `{}`
-   - Schedule: **setiap menit** (`*/1 * * * *`)
-3. Tanpa job ini, reminder & transaksi berulang **tidak berjalan** di
+2. **Opsi A — otomatis (via API token):**
+   ```bash
+   cd backend
+   node scripts/setup-cron-job.cjs   # butuh CRONJOB_API_TOKEN + CRON_SECRET di .env
+   ```
+   Script membuat/memperbarui job `LifeHub scheduler tick` → tiap menit →
+   `POST https://lifehub-api.vercel.app/api/cron/tick` + header `x-cron-secret`
+   + body `{}`. Token diambil dari cron-job.org Console → **Settings → API**.
+   (Job sudah dibuat: **#8270730** — masih menampilkan gagal sampai backend
+   live, itu normal.)
+3. **Opsi B — manual (dashboard):**
+   - cron-job.org → **New job**:
+     - URL: `https://lifehub-api.vercel.app/api/cron/tick`
+     - Method: `POST`
+     - Headers: `x-cron-secret: <CRON_SECRET>` dan `Content-Type: application/json`
+     - Request Body: `{}`
+     - Schedule: **setiap menit** (`*/1 * * * *`)
+4. Tanpa job ini, reminder & transaksi berulang **tidak berjalan** di
    production (scheduler in-proses dimatikan saat `NODE_ENV=production`).
-4. Uji: jalankan job manual sekali → cek muncul notifikasi baru dalam ≤1 menit.
+5. Uji: jalankan job manual sekali → cek muncul notifikasi baru dalam ≤1 menit.
 
 ---
 
@@ -216,6 +227,7 @@ diduplikasi ke Vercel (Langkah 3.4):
 - `RESEND_API_KEY`, `EMAIL_FROM`
 - `UPLOAD_STORAGE=cloudinary`, `CLOUDINARY_*`
 - `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-3.6-flash`, `AI_*`
-- `CRON_SECRET`
+- `CRON_SECRET`, `CRONJOB_API_TOKEN` (token API cron-job.org, hanya dipakai
+  script `scripts/setup-cron-job.cjs` — tidak perlu di Vercel)
 
 `backend/.env.example` hanya berisi placeholder (aman untuk di-commit).
