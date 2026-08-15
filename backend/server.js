@@ -1,74 +1,30 @@
-// Force the application timezone to Asia/Jakarta (UTC+7) BEFORE anything else
-// so every `new Date()` local-time operation uses WIB consistently.
-process.env.TZ = process.env.TZ || 'Asia/Jakarta';
+// Local development / production-server entry point. Loads the Express app
+// from app.js, connects to MongoDB, starts the in-process schedulers (unless
+// running in serverless production) and begins listening.
 
 require('dotenv').config();
 
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const cors = require('cors');
+const app = require('./app');
 const connectDB = require('./config/db');
-const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { startReminderScheduler } = require('./services/reminderScheduler');
 const { startRecurringScheduler } = require('./services/recurringScheduler');
 const { startTaskScheduler } = require('./services/taskScheduler');
 
-const app = express();
-
-// Ensure the avatar upload directory exists before multer tries to write files.
-fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
-
 connectDB().then(() => {
-  // Schedulers run only after the database is reachable.
-  startReminderScheduler();
-  startRecurringScheduler();
-  startTaskScheduler();
+  // In production serverless (Vercel) the schedulers are driven by an external
+  // cron service (POST /api/cron/tick). The in-process timer only runs in
+  // development, or when RUN_SCHEDULERS=true is set explicitly.
+  const runInProcess = process.env.RUN_SCHEDULERS === 'true' || process.env.NODE_ENV !== 'production';
+  if (runInProcess) {
+    startReminderScheduler();
+    startRecurringScheduler();
+    startTaskScheduler();
+  } else {
+    console.log(
+      '[scheduler] in-process schedulers disabled (production) — cron endpoint enabled'
+    );
+  }
 });
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:4200',
-    credentials: true,
-  })
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded files (avatars) from the uploads directory.
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-app.get('/', (req, res) => {
-  res.json({
-    name: 'LifeHub API',
-    version: '1.0.0',
-    status: 'running',
-  });
-});
-
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/tasks', require('./routes/taskRoutes'));
-app.use('/api/categories', require('./routes/categoryRoutes'));
-app.use('/api/transactions', require('./routes/transactionRoutes'));
-app.use('/api/accounts', require('./routes/accountRoutes'));
-app.use('/api/budgets', require('./routes/budgetRoutes'));
-app.use('/api/wishlist', require('./routes/wishlistRoutes'));
-app.use('/api/needs', require('./routes/needRoutes'));
-app.use('/api/notes', require('./routes/noteRoutes'));
-app.use('/api/goals', require('./routes/goalRoutes'));
-app.use('/api/habits', require('./routes/habitRoutes'));
-app.use('/api/reminders', require('./routes/reminderRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/settings', require('./routes/settingRoutes'));
-app.use('/api/dashboard', require('./routes/dashboardRoutes'));
-app.use('/api/search', require('./routes/searchRoutes'));
-app.use('/api/today', require('./routes/todayRoutes'));
-app.use('/api/insights', require('./routes/insightsRoutes'));
-app.use('/api/weekly-review', require('./routes/weeklyReviewRoutes'));
-app.use('/api/export', require('./routes/exportRoutes'));
-
-app.use(notFound);
-app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 

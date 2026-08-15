@@ -113,18 +113,27 @@ import { formatDate } from '../../core/utils/format';
           </form>
         </app-card>
 
-        <app-card>
-          <h2 class="text-base font-semibold text-ink">{{ t('Change password') }}</h2>
-          <form (ngSubmit)="changePassword()" class="mt-5 space-y-4">
-            <app-field [label]="t('Current password')" type="password" autocomplete="current-password"
-              [(ngModel)]="passwordForm.current" name="current" />
-            <app-field [label]="t('New password')" type="password" autocomplete="new-password"
-              [(ngModel)]="passwordForm.next" name="next" />
-            <div class="flex justify-end">
-              <app-button type="submit" icon="lock" [loading]="savingPassword()">{{ t('Update password') }}</app-button>
-            </div>
-          </form>
-        </app-card>
+        @if (user()?.hasPassword !== false) {
+          <app-card>
+            <h2 class="text-base font-semibold text-ink">{{ t('Change password') }}</h2>
+            <form (ngSubmit)="changePassword()" class="mt-5 space-y-4">
+              <app-field [label]="t('Current password')" type="password" autocomplete="current-password"
+                [(ngModel)]="passwordForm.current" name="current" />
+              <app-field [label]="t('New password')" type="password" autocomplete="new-password"
+                [(ngModel)]="passwordForm.next" name="next" />
+              <div class="flex justify-end">
+                <app-button type="submit" icon="lock" [loading]="savingPassword()">{{ t('Update password') }}</app-button>
+              </div>
+            </form>
+          </app-card>
+        } @else {
+          <app-card>
+            <h2 class="text-base font-semibold text-ink">{{ t('Sign-in method') }}</h2>
+            <p class="mt-3 text-sm font-medium text-ink-soft">
+              {{ t('This account uses Google sign-in and does not have a password.') }}
+            </p>
+          </app-card>
+        }
       </div>
     </div>
   `,

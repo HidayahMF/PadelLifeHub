@@ -4,6 +4,8 @@ export interface User {
   email: string;
   avatar?: string;
   token?: string;
+  provider?: 'email' | 'google';
+  hasPassword?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -13,6 +15,8 @@ export interface AuthResponse {
   name: string;
   email: string;
   avatar?: string;
+  provider?: 'email' | 'google';
+  hasPassword?: boolean;
   token: string;
 }
 

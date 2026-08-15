@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FieldComponent } from '../../../layout/components/field.component';
 import { ButtonComponent } from '../../../layout/components/button.component';
 import { IconComponent } from '../../../layout/components/icon.component';
+import { ContinueWithGoogleComponent } from '../../../layout/components/continue-with-google.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -11,7 +12,7 @@ import { ToastService } from '../../../core/services/toast.service';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, FieldComponent, ButtonComponent, IconComponent],
+  imports: [FormsModule, RouterLink, FieldComponent, ButtonComponent, IconComponent, ContinueWithGoogleComponent],
   template: `
     <div class="relative min-h-dvh overflow-hidden bg-bg">
       <div class="neo-dots pointer-events-none absolute inset-0 opacity-40"></div>
@@ -137,6 +138,8 @@ import { ToastService } from '../../../core/services/toast.service';
                 <a routerLink="/login" class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary">{{ t('Sign in') }}</a>
               </p>
             </form>
+
+            <app-continue-with-google />
           </div>
         </div>
       </div>

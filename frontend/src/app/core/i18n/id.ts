@@ -133,6 +133,10 @@ export const ID: Record<string, string> = {
   'Create an account': 'Buat akun',
   'Sign in': 'Masuk',
   'Welcome back!': 'Selamat datang kembali!',
+  'or': 'atau',
+  'Google sign-in was cancelled.': 'Masuk dengan Google dibatalkan.',
+  'Sign-in method': 'Metode masuk',
+  'This account uses Google sign-in and does not have a password.': 'Akun ini menggunakan masuk dengan Google dan tidak memiliki kata sandi.',
   'Please fill in your email and password.': 'Silakan isi email dan kata sandi Anda.',
   'Show password': 'Tampilkan kata sandi',
   'Hide password': 'Sembunyikan kata sandi',
@@ -690,6 +694,16 @@ export const ID: Record<string, string> = {
   'Fill in both password fields.': 'Isi kedua kolom kata sandi.',
   'Password updated': 'Kata sandi diperbarui',
   'User': 'Pengguna',
+
+  // ---------- Reset password ----------
+  'Set a new password': 'Atur kata sandi baru',
+  'Choose a strong password to get back into LifeHub.': 'Pilih kata sandi yang kuat untuk kembali ke LifeHub.',
+  'Confirm password': 'Konfirmasi kata sandi',
+  'Repeat your new password': 'Ulangi kata sandi baru Anda',
+  'Passwords do not match.': 'Kata sandi tidak cocok.',
+  'This reset link is missing its token. Please request a new password reset.': 'Tautan reset ini tidak memiliki token. Silakan minta reset kata sandi baru.',
+  'Password updated — you can sign in now.': 'Kata sandi diperbarui — Anda dapat masuk sekarang.',
+  'Password updated. You can now sign in with your new password.': 'Kata sandi diperbarui. Anda sekarang dapat masuk dengan kata sandi baru.',
 
   // ---------- Settings ----------
   'Personalize your LifeHub experience.': 'Personalisasi pengalaman LifeHub-mu.',

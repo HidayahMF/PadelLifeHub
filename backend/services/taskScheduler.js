@@ -120,4 +120,4 @@ function startTaskScheduler() {
   console.log('[scheduler] recurring task scheduler started');
 }
 
-module.exports = { startTaskScheduler, nextOccurrence, computeFirstOccurrence };
+module.exports = { startTaskScheduler, tick, nextOccurrence, computeFirstOccurrence };

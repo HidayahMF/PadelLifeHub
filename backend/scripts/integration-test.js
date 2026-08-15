@@ -96,6 +96,21 @@ async function main() {
     check('login with new password', !!token);
   }
 
+  // ---------- GOOGLE AUTH (error paths without a real token) ----------
+  console.log('\n[google auth]');
+  const googleMissing = await api('POST', '/auth/google', { body: {}, auth: false, expect: [] });
+  check('google missing idToken → 400', googleMissing.status === 400);
+
+  const googleNotConfigured = await api('POST', '/auth/google', {
+    body: { idToken: 'garbage-token' },
+    auth: false,
+    expect: [],
+  });
+  // Garbage tokens must always be refused. With GOOGLE_CLIENT_ID configured the
+  // token verification fails (401); without it the backend refuses outright (5xx).
+  const googleBadToken = googleNotConfigured.status === 401 || googleNotConfigured.status >= 500;
+  check('google bad token refused', googleBadToken, `status ${googleNotConfigured.status}`);
+
   // ---------- AVATAR UPLOAD ----------
   console.log('\n[avatar upload]');
   const pngBytes = Buffer.from(

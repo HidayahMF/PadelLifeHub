@@ -120,4 +120,4 @@ function startRecurringScheduler() {
   console.log('[scheduler] recurring transaction scheduler started');
 }
 
-module.exports = { startRecurringScheduler, nextOccurrence };
+module.exports = { startRecurringScheduler, tick, nextOccurrence };

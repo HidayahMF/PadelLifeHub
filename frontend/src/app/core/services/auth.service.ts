@@ -31,6 +31,13 @@ export class AuthService {
     );
   }
 
+  /** Sign in with a Google ID token — verified by the backend. */
+  googleLogin(idToken: string) {
+    return this.api.post<AuthResponse>('/auth/google', { idToken }).pipe(
+      tap((res) => this.persist(res))
+    );
+  }
+
   getProfile() {
     return this.api.get<User>('/auth/profile').pipe(
       tap((user) => {
@@ -93,6 +100,8 @@ export class AuthService {
       name: res.name,
       email: res.email,
       avatar: res.avatar,
+      provider: res.provider,
+      hasPassword: res.hasPassword,
     };
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.user.set(user);

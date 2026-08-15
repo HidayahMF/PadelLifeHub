@@ -9,8 +9,30 @@ const Setting = require('../models/Setting');
 const Budget = require('../models/Budget');
 const Goal = require('../models/Goal');
 const Habit = require('../models/Habit');
+const User = require('../models/User');
+const { sendNotification } = require('./emailService');
 
 const TICK_MS = 30 * 1000;
+
+/**
+ * Create an in-app notification and, when the user enabled email updates,
+ * also send it as an email. Both are best-effort and never throw.
+ */
+async function notify(userId, { type, title, message, relatedId }) {
+  await Notification.create({ user: userId, title, message, type, relatedId });
+
+  try {
+    const settings = await Setting.findOne({ user: userId });
+    if (settings && settings.notifications && settings.notifications.emailUpdates) {
+      const user = await User.findById(userId).select('email');
+      if (user && user.email) {
+        await sendNotification(user.email, { subject: title, message });
+      }
+    }
+  } catch (err) {
+    console.error(`[scheduler] email notify failed for ${userId}: ${err.message}`);
+  }
+}
 
 /** Advance a datetime by the recurring frequency. */
 function nextOccurrence(datetime, frequency) {
@@ -56,11 +78,10 @@ async function processDueReminder() {
     }
 
     if (notificationsEnabled) {
-      await Notification.create({
-        user: claimed.user,
+      await notify(claimed.user, {
+        type: claimed.type === 'task' ? 'task' : 'reminder',
         title: claimed.title,
         message: `Reminder${claimed.recurring?.isRecurring ? ' (recurring)' : ''} — ${claimed.title}`,
-        type: claimed.type === 'task' ? 'task' : 'reminder',
         relatedId: claimed.relatedId || claimed._id,
       });
     }
@@ -99,8 +120,7 @@ async function processMilestones() {
     if (existing) continue;
     const pct = Math.min(100, Math.round((budget.spent / budget.amount) * 100));
     const name = budget.category?.name ?? 'Overall';
-    await Notification.create({
-      user: budget.user,
+    await notify(budget.user, {
       title: pct >= 100 ? 'Budget exceeded' : `${name} budget ${pct}% used`,
       message: `${name} — ${pct}% of your budget is used (${Math.round(budget.spent).toLocaleString()} / ${Math.round(budget.amount).toLocaleString()}).`,
       type: 'bill',
@@ -121,8 +141,7 @@ async function processMilestones() {
       message: new RegExp(`${habit.streak}-day streak`),
     });
     if (existing) continue;
-    await Notification.create({
-      user: habit.user,
+    await notify(habit.user, {
       title: `${habit.streak}-day habit streak! 🔥`,
       message: `${habit.name} — ${habit.streak}-day streak. Keep it up!`,
       type: 'habit',
@@ -144,8 +163,7 @@ async function processMilestones() {
         title: new RegExp(`${threshold}%`),
       });
       if (existing) continue;
-      await Notification.create({
-        user: goal.user,
+      await notify(goal.user, {
         title: `Goal ${threshold}% reached 🎯`,
         message: `${goal.title} is ${pct}% complete.`,
         type: 'system',
@@ -178,11 +196,10 @@ async function processDueTaskReminders() {
       continue;
     }
 
-    await Notification.create({
-      user: claimed.user,
+    await notify(claimed.user, {
+      type: 'task',
       title: claimed.title,
       message: `Task due reminder — ${claimed.title}`,
-      type: 'task',
       relatedId: claimed._id,
     });
   }
