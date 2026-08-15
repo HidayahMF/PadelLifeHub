@@ -86,6 +86,13 @@ import { ToastService } from '../../../core/services/toast.service';
 
         <!-- Form -->
         <div class="w-full max-w-md justify-self-center lg:justify-self-end">
+          <a
+            routerLink="/"
+            class="mb-4 inline-flex items-center gap-2 rounded-[10px] border-2 border-ink bg-surface px-3.5 py-2 text-sm font-bold text-ink shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_var(--color-ink)]"
+          >
+            <app-icon name="arrow-left" [size]="16" />
+            {{ t('Back to home') }}
+          </a>
           <div class="rounded-card border-2 border-ink bg-surface p-8 shadow-pop">
             <h2 class="font-display text-2xl text-ink">{{ t('WELCOME BACK') }}</h2>
             <p class="mt-1.5 text-sm font-medium text-ink-soft">
