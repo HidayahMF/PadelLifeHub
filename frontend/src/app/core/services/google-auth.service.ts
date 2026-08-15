@@ -60,14 +60,19 @@ export class GoogleAuthService {
     return this.loadGsi()
       .then((gsi) => {
         this.initialize(gsi);
-        const width = Math.max(280, Math.min(384, container.clientWidth || 340));
+        // Always render the generic button. `text: 'signin_with'` shows
+        // "Sign in with Google" and `size: 'medium'` prevents Google from
+        // rendering the personalized button (which would show the signed-in
+        // account's name + email on our Login screen). See
+        // https://developers.google.com/identity/gsi/web/guides/personalized-button
+        const width = Math.max(200, Math.min(384, container.clientWidth || 340));
         gsi.accounts.id.renderButton(container, {
           type: 'standard',
           theme: 'outline',
-          size: 'large',
+          size: 'medium',
           shape: 'rectangular',
           width,
-          text: 'continue_with',
+          text: 'signin_with',
           logo_alignment: 'left',
         });
       })
