@@ -1,15 +1,16 @@
 // One-time cleanup: remove test accounts created by integration/smoke scripts
 // and ad-hoc deploy checks, together with all of their data.
 //
-// Test emails all match /@lifehub\.(local|dev)$/ — real users (e.g.
-// hidayahmfadillah@gmail.com) are never matched.
+// Test emails all match /@lifehub\.(local|dev)$/, /@test\.dev$/ or
+// /@test\.com$/ — real users (e.g. hidayahmfadillah@gmail.com) are never
+// matched.
 //
 // Run: node scripts/cleanup-test-users.cjs   (prints what it deletes)
 
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-const TEST_EMAIL_RE = /@lifehub\.(local|dev)$/i;
+const TEST_EMAIL_RE = /@(lifehub\.(local|dev)|test\.dev|test\.com)$/i;
 
 async function run() {
   await mongoose.connect(process.env.MONGODB_URI);
