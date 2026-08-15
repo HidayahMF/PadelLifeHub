@@ -951,4 +951,11 @@ export const ID: Record<string, string> = {
   'LifeHub AI says': 'Kata LifeHub AI',
   'Clear chat': 'Bersihkan obrolan',
   'Chat with LifeHub AI': 'Ngobrol dengan LifeHub AI',
+  'Install LifeHub': 'Pasang LifeHub',
+  'Install LifeHub on your device for a faster, app-like experience.':
+    'Pasang LifeHub di perangkatmu untuk pengalaman yang lebih cepat seperti aplikasi.',
+  'Install': 'Pasang',
+  'Later': 'Nanti',
+  'A new version of LifeHub is available.': 'Versi baru LifeHub tersedia.',
+  'Dismiss': 'Tutup',
 };

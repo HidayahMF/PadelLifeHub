@@ -3,14 +3,16 @@ import { RouterOutlet } from '@angular/router';
 import { ToastHostComponent } from './toast-host.component';
 import { AuthService } from './core/services/auth.service';
 import { SettingService } from './core/services/data.service';
+import { PwaBannerComponent } from './layout/components/pwa-banner.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastHostComponent],
+  imports: [RouterOutlet, ToastHostComponent, PwaBannerComponent],
   template: `
     <router-outlet />
     <app-toast-host />
+    <app-pwa-banner />
   `,
 })
 export class App implements OnInit {
