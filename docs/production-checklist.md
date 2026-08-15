@@ -7,7 +7,7 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 - **Cron**: cron-job.org (hit `POST /api/cron/tick` tiap 1 menit)
 - **AI**: Gemini (`GEMINI_API_KEY`)
 
-> **Tutorial lengkap langkah demi langkah (custom domain + deploy):**
+> **Tutorial lengkap langkah demi langkah (gratis, tanpa domain — deploy):**
 > baca [docs/VERCEL-DEPLOY.md](VERCEL-DEPLOY.md). Checklist ini versi ringkasnya.
 
 ---
@@ -16,7 +16,7 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 
 - [ ] MongoDB Atlas (sudah ada)
 - [ ] Google Cloud Console (OAuth Client ID Web — sudah di-set untuk dev; tambah origin produksi)
-- [ ] Vercel (2 project: `lifehub-frontend`, `lifehub-backend`)
+- [ ] Vercel (2 project: `lifehub`, `lifehub-api`)
 - [ ] Resend (buat API key + verifikasi domain)
 - [ ] Cloudinary (buat akun gratis → ambil Cloud Name / API Key / API Secret)
 - [ ] cron-job.org (gratis, cukup daftar email)
@@ -25,16 +25,16 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 
 ## 1. Environment Variables
 
-### Backend (Vercel project `lifehub-backend`)
+### Backend (Vercel project `lifehub-api`)
 | Variable | Nilai |
 |---|---|
 | `MONGODB_URI` | Atlas connection string |
 | `JWT_SECRET` | **generate kuat** (lihat Fase 2) |
 | `JWT_EXPIRES_IN` | `30d` |
-| `CLIENT_URL` | `https://<your-frontend>.vercel.app` |
+| `CLIENT_URL` | `https://lifehub.vercel.app` |
 | `GOOGLE_CLIENT_ID` | Web Client ID Google |
 | `RESEND_API_KEY` | Resend API key |
-| `EMAIL_FROM` | alamat pengirim (mis. `LifeHub <no-reply@yourdomain.com>`) |
+| `EMAIL_FROM` | alamat pengirim (mis. `LifeHub <onboarding@resend.dev>` (atau domain terverifikasi)) |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary credentials |
 | `GEMINI_API_KEY` | Gemini API key (LifeHub AI) |
 | `GEMINI_MODEL` | `gemini-3.6-flash` (default) |
@@ -43,10 +43,10 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 | `NODE_ENV` | `production` |
 | `UPLOAD_STORAGE` | `cloudinary` (atau kosong = lokal untuk dev) |
 
-### Frontend (Vercel project `lifehub-frontend`)
+### Frontend (Vercel project `lifehub`)
 | File | Isi |
 |---|---|
-| `src/environments/environment.production.ts` | `apiUrl: 'https://<your-backend>.vercel.app/api'`, `googleClientId: '<web client id>'` |
+| `src/environments/environment.production.ts` | `apiUrl: 'https://lifehub-api.vercel.app/api'`, `googleClientId: '<web client id>'` |
 
 ---
 
@@ -54,7 +54,7 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 
 1. Backend mengekspos `POST /api/cron/tick` yang melindungi dengan header `x-cron-secret`.
 2. Di cron-job.org buat job baru:
-   - URL: `https://<your-backend>.vercel.app/api/cron/tick`
+   - URL: `https://lifehub-api.vercel.app/api/cron/tick`
    - Method: `POST`
    - Header: `x-cron-secret: <CRON_SECRET>` (+ `Content-Type: application/json`, body `{}`)
    - Schedule: **setiap menit** (`*/1 * * * *`)
@@ -68,7 +68,7 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 
 1. Google Cloud Console → **OAuth consent screen** → pastikan sudah Published.
 2. Credentials → Client ID Web → **Authorized JavaScript origins**:
-   - `https://<your-frontend>.vercel.app`
+   - `https://lifehub.vercel.app`
    - (dev) `http://localhost:4200`
 3. Client ID yang sama dipakai backend (`GOOGLE_CLIENT_ID`) dan frontend (`googleClientId`).
 

@@ -9,4 +9,4 @@ Allow: /register
 # The authenticated application is behind a login — keep it out of search results.
 Disallow: /app/
 
-Sitemap: https://lifehub.id/sitemap.xml
+Sitemap: https://lifehub.vercel.app/sitemap.xml

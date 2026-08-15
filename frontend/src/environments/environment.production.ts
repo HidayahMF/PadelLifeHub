@@ -3,9 +3,8 @@
 // See docs/google-login.md for Google Cloud setup.
 export const environment = {
   production: true,
-  apiUrl: 'https://<your-backend>.vercel.app/api',
-  googleClientId: '',
+  apiUrl: 'https://lifehub-api.vercel.app/api',
+  googleClientId: '987681566381-ooe278df7l9r4mdhosfbge1dqs2g057h.apps.googleusercontent.com',
   // Public base URL of the marketing site (canonical / Open Graph tags).
-  // Change this to your real domain before deploying.
-  siteUrl: 'https://lifehub.id',
+  siteUrl: 'https://lifehub.vercel.app',
 };
