@@ -8,36 +8,36 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: '',
     items: [
-      { label: 'Today', route: '/today', icon: 'calendar-check' },
-      { label: 'Dashboard', route: '/dashboard', icon: 'layout-dashboard' },
-      { label: 'LifeHub AI', route: '/ai', icon: 'bot' },
+      { label: 'Today', route: '/app/today', icon: 'calendar-check' },
+      { label: 'Dashboard', route: '/app/dashboard', icon: 'layout-dashboard' },
+      { label: 'LifeHub AI', route: '/app/ai', icon: 'bot' },
     ],
   },
   {
     title: 'Manage',
     items: [
-      { label: 'Tasks', route: '/tasks', icon: 'list-todo' },
-      { label: 'Finance', route: '/finance', icon: 'wallet' },
-      { label: 'Wishlist', route: '/wishlist', icon: 'gift' },
-      { label: 'Needs', route: '/needs', icon: 'shopping-basket' },
-      { label: 'Calendar', route: '/calendar', icon: 'calendar-days' },
+      { label: 'Tasks', route: '/app/tasks', icon: 'list-todo' },
+      { label: 'Finance', route: '/app/finance', icon: 'wallet' },
+      { label: 'Wishlist', route: '/app/wishlist', icon: 'gift' },
+      { label: 'Needs', route: '/app/needs', icon: 'shopping-basket' },
+      { label: 'Calendar', route: '/app/calendar', icon: 'calendar-days' },
     ],
   },
   {
     title: 'Grow',
     items: [
-      { label: 'Goals', route: '/goals', icon: 'target' },
-      { label: 'Habits', route: '/habits', icon: 'flame' },
-      { label: 'Notes', route: '/notes', icon: 'sticky-note' },
-      { label: 'Pomodoro', route: '/pomodoro', icon: 'timer' },
-      { label: 'Statistics', route: '/statistics', icon: 'bar-chart-3' },
-      { label: 'Weekly review', route: '/weekly-review', icon: 'refresh-cw' },
+      { label: 'Goals', route: '/app/goals', icon: 'target' },
+      { label: 'Habits', route: '/app/habits', icon: 'flame' },
+      { label: 'Notes', route: '/app/notes', icon: 'sticky-note' },
+      { label: 'Pomodoro', route: '/app/pomodoro', icon: 'timer' },
+      { label: 'Statistics', route: '/app/statistics', icon: 'bar-chart-3' },
+      { label: 'Weekly review', route: '/app/weekly-review', icon: 'refresh-cw' },
     ],
   },
 ];
 
 export const NAV_BOTTOM: NavItem[] = [
-  { label: 'Settings', route: '/settings', icon: 'settings' },
-  { label: 'Profile', route: '/profile', icon: 'user-round' },
-  { label: 'Help', route: '/help', icon: 'book-open' },
+  { label: 'Settings', route: '/app/settings', icon: 'settings' },
+  { label: 'Profile', route: '/app/profile', icon: 'user-round' },
+  { label: 'Help', route: '/app/help', icon: 'book-open' },
 ];

@@ -5,4 +5,7 @@ export const environment = {
   production: true,
   apiUrl: 'https://<your-backend>.vercel.app/api',
   googleClientId: '',
+  // Public base URL of the marketing site (canonical / Open Graph tags).
+  // Change this to your real domain before deploying.
+  siteUrl: 'https://lifehub.id',
 };

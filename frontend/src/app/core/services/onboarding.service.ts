@@ -34,16 +34,16 @@ const TOUR_STEPS: TourStep[] = [
     id: 'today',
     title: 'Today',
     text: 'Start your day here. Today gives you a quick overview of tasks, habits, goals, and today\u2019s finances.',
-    route: '/today',
-    targets: ['a[href="/today"]'],
+    route: '/app/today',
+    targets: ['a[href="/app/today"]'],
     drawer: true,
   },
   {
     id: 'dashboard',
     title: 'Dashboard',
     text: 'Dashboard gives you a complete overview of your productivity and finances.',
-    route: '/dashboard',
-    targets: ['a[href="/dashboard"]'],
+    route: '/app/dashboard',
+    targets: ['a[href="/app/dashboard"]'],
     drawer: true,
   },
   {
@@ -68,24 +68,24 @@ const TOUR_STEPS: TourStep[] = [
     id: 'tasks',
     title: 'Tasks',
     text: 'Manage your tasks, deadlines, reminders, recurring tasks, categories, and tags.',
-    route: '/tasks',
-    targets: ['a[href="/tasks"]'],
+    route: '/app/tasks',
+    targets: ['a[href="/app/tasks"]'],
     drawer: true,
   },
   {
     id: 'finance',
     title: 'Finance',
     text: 'Track your accounts, income, expenses, transfers, budgets, and spending.',
-    route: '/finance',
-    targets: ['a[href="/finance"]'],
+    route: '/app/finance',
+    targets: ['a[href="/app/finance"]'],
     drawer: true,
   },
   {
     id: 'grow',
     title: 'Grow',
     text: 'Build better habits and track your goals over time.',
-    route: '/goals',
-    targets: ['a[href="/goals"]', 'a[href="/habits"]'],
+    route: '/app/goals',
+    targets: ['a[href="/app/goals"]', 'a[href="/app/habits"]'],
     drawer: true,
   },
   {
@@ -182,7 +182,7 @@ export class OnboardingService {
     this.tourActive.set(false);
     this.needsDrawer.set(false);
     this.updateStatus('completed');
-    void this.router.navigate(['/today']);
+    void this.router.navigate(['/app/today']);
   }
 
   /** Finish the tour and open Quick Add so the user can create their first item. */
@@ -190,7 +190,7 @@ export class OnboardingService {
     this.tourActive.set(false);
     this.needsDrawer.set(false);
     this.updateStatus('completed');
-    void this.router.navigate(['/today']).then(() => {
+    void this.router.navigate(['/app/today']).then(() => {
       // Defer until the page (and its quick-add host) is ready.
       setTimeout(() => this.command.openQuickAdd('task'), 350);
     });

@@ -169,7 +169,7 @@ export class LoginComponent {
       next: () => {
         this.loading.set(false);
         this.toast.success(this.t('Welcome back!'));
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/app/dashboard']);
       },
       error: (err: Error) => {
         this.loading.set(false);

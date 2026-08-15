@@ -182,7 +182,7 @@ export class RegisterComponent {
         next: () => {
           this.loading.set(false);
           this.toast.success(this.t('Account created — welcome to LifeHub!'));
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/app/dashboard']);
         },
         error: (err: Error) => {
           this.loading.set(false);

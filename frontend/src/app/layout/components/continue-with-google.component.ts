@@ -76,7 +76,7 @@ export class ContinueWithGoogleComponent implements OnInit {
         this.loading.set(false);
         this.toast.success(this.t('Welcome back!'));
         // Same landing route as the existing email login flow.
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/app/dashboard']);
       },
       error: (err: Error) => {
         this.loading.set(false);

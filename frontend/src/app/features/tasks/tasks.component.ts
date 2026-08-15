@@ -125,7 +125,7 @@ type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
           [title]="t('No tasks found')"
           [message]="t('Create your first task or adjust your filters.')"
           actionIcon="plus"
-          actionRoute="/tasks"
+          actionRoute="/app/tasks"
         />
       } @else {
         <ul class="divide-y divide-line">

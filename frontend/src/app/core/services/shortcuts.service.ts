@@ -67,13 +67,13 @@ export class ShortcutsService {
     // Single-letter navigation
     if (key === 'd') {
       event.preventDefault();
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/app/dashboard']);
     } else if (key === 't') {
       event.preventDefault();
-      this.router.navigate(['/tasks']);
+      this.router.navigate(['/app/tasks']);
     } else if (key === 'g') {
       event.preventDefault();
-      this.router.navigate(['/goals']);
+      this.router.navigate(['/app/goals']);
     }
   }
 }

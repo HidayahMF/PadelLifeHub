@@ -2,6 +2,35 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
+  // ── Public marketing site ─────────────────────────────────────────
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/public/landing/landing.component').then((m) => m.LandingComponent),
+  },
+  {
+    path: 'features',
+    loadComponent: () =>
+      import('./features/public/features/features.component').then((m) => m.FeaturesComponent),
+  },
+  {
+    path: 'ai',
+    loadComponent: () =>
+      import('./features/public/ai-landing/ai-landing.component').then((m) => m.AiLandingComponent),
+  },
+  {
+    path: 'about',
+    loadComponent: () =>
+      import('./features/public/about/about.component').then((m) => m.AboutComponent),
+  },
+  {
+    path: 'contact',
+    loadComponent: () =>
+      import('./features/public/contact/contact.component').then((m) => m.ContactComponent),
+  },
+
+  // ── Auth (public, guests only) ───────────────────────────────────
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -30,8 +59,10 @@ export const routes: Routes = [
         (m) => m.ResetPasswordComponent
       ),
   },
+
+  // ── Authenticated application ────────────────────────────────────
   {
-    path: '',
+    path: 'app',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./layout/layout.component').then((m) => m.LayoutComponent),
@@ -125,5 +156,7 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+
+  // Unknown URLs → public landing page.
+  { path: '**', redirectTo: '' },
 ];

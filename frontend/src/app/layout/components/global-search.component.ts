@@ -439,21 +439,21 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   private routeFor(key: keyof SearchResults): string {
     switch (key) {
       case 'tasks':
-        return '/tasks';
+        return '/app/tasks';
       case 'transactions':
-        return '/finance';
+        return '/app/finance';
       case 'notes':
-        return '/notes';
+        return '/app/notes';
       case 'goals':
-        return '/goals';
+        return '/app/goals';
       case 'habits':
-        return '/habits';
+        return '/app/habits';
       case 'wishlist':
-        return '/wishlist';
+        return '/app/wishlist';
       case 'needs':
-        return '/needs';
+        return '/app/needs';
       case 'reminders':
-        return '/calendar';
+        return '/app/calendar';
     }
   }
 }

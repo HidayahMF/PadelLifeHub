@@ -91,7 +91,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
           <app-button size="sm" variant="secondary" icon="layout-dashboard" (click)="openCustomize()">
             {{ t('Customize') }}
           </app-button>
-          <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> {{ t('Focus') }} </app-button>
+          <app-button size="sm" icon="timer" (click)="go('/app/pomodoro')"> {{ t('Focus') }} </app-button>
         </div>
       </div>
 
@@ -196,7 +196,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t("Today's tasks") }}</h2>
-                    <button (click)="go('/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
@@ -211,7 +211,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                         <li>
                           <button
                             class="flex w-full items-start gap-3 rounded-button px-2 py-2 text-left transition-colors hover:bg-surface-2"
-                            (click)="go('/tasks')"
+                            (click)="go('/app/tasks')"
                           >
                             <span
                               class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2"
@@ -237,7 +237,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Upcoming deadlines') }}</h2>
-                    <button (click)="go('/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Calendar') }}
                     </button>
                   </div>
@@ -250,7 +250,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                         <li>
                           <button
                             class="flex w-full items-start gap-3 rounded-button px-2 py-2 text-left transition-colors hover:bg-surface-2"
-                            (click)="go('/tasks')"
+                            (click)="go('/app/tasks')"
                           >
                             <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-ink-faint"></span>
                             <span class="min-w-0">
@@ -275,7 +275,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Habits') }}</h2>
-                    <button (click)="go('/habits')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/habits')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
@@ -317,7 +317,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Monthly budget') }}</h2>
-                    <button (click)="go('/finance')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/finance')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Finance') }}
                     </button>
                   </div>
@@ -343,7 +343,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Goals') }}</h2>
-                    <button (click)="go('/goals')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/goals')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
@@ -367,7 +367,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Wishlist') }}</h2>
-                    <button (click)="go('/wishlist')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/wishlist')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
@@ -393,7 +393,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                 <app-card class="lg:col-span-1" [padding]="'none'">
                   <div class="flex items-center justify-between px-5 pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Recent transactions') }}</h2>
-                    <button (click)="go('/finance')" class="text-xs font-medium text-primary-strong hover:underline">
+                    <button (click)="go('/app/finance')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Finance') }}
                     </button>
                   </div>
@@ -708,7 +708,7 @@ export class DashboardComponent implements OnInit {
   }
 
   protected openAi(mode?: string): void {
-    this.router.navigate(['/ai'], mode ? { queryParams: { mode } } : undefined);
+    this.router.navigate(['/app/ai'], mode ? { queryParams: { mode } } : undefined);
   }
 
   protected readonly formatCurrency = formatCurrency;

@@ -190,13 +190,13 @@ import type { NotificationItem } from '../../core/models/misc.model';
                 <p class="truncate text-sm font-bold text-ink">{{ user()?.name }}</p>
                 <p class="truncate text-xs font-medium text-ink-soft">{{ user()?.email }}</p>
               </div>
-              <button role="menuitem" (click)="go('/profile')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
+              <button role="menuitem" (click)="go('/app/profile')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
                 <app-icon name="user-round" [size]="17" /> {{ t('Profile') }}
               </button>
-              <button role="menuitem" (click)="go('/settings')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
+              <button role="menuitem" (click)="go('/app/settings')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
                 <app-icon name="settings" [size]="17" /> {{ t('Settings') }}
               </button>
-              <button role="menuitem" (click)="go('/help')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
+              <button role="menuitem" (click)="go('/app/help')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-primary/10 hover:text-ink">
                 <app-icon name="book-open" [size]="17" /> {{ t('Help & guide') }}
               </button>
               <div class="my-1 border-t-2 border-ink/20"></div>
@@ -293,16 +293,16 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private routeFor(item: NotificationItem): { route: string[]; queryParams?: Record<string, string> } {
     switch (item.type) {
       case 'task':
-        return { route: ['/tasks'], queryParams: { search: item.title } };
+        return { route: ['/app/tasks'], queryParams: { search: item.title } };
       case 'habit':
-        return { route: ['/habits'] };
+        return { route: ['/app/habits'] };
       case 'recurring':
       case 'bill':
-        return { route: ['/finance'] };
+        return { route: ['/app/finance'] };
       case 'reminder':
-        return { route: ['/calendar'] };
+        return { route: ['/app/calendar'] };
       default:
-        return { route: ['/today'] };
+        return { route: ['/app/today'] };
     }
   }
 

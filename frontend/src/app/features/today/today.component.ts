@@ -56,7 +56,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
           <app-button size="sm" variant="secondary" icon="bot" (click)="goAi()">
             {{ t('Plan my day with AI') }}
           </app-button>
-          <app-button size="sm" icon="timer" (click)="go('/pomodoro')"> {{ t('Focus') }} </app-button>
+          <app-button size="sm" icon="timer" (click)="go('/app/pomodoro')"> {{ t('Focus') }} </app-button>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
               <h2 class="flex items-center gap-2 text-base font-bold text-ink">
                 <app-icon name="target" [size]="18" /> {{ t("Today's focus") }}
               </h2>
-              <button (click)="go('/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
+              <button (click)="go('/app/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
                 {{ t('All tasks') }}
               </button>
             </div>
@@ -197,7 +197,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
                 <h2 class="flex items-center gap-2 text-base font-bold text-ink">
                   <app-icon name="wallet" [size]="18" /> {{ t("Today's money") }}
                 </h2>
-                <button (click)="go('/finance')" class="text-xs font-medium text-primary-strong hover:underline">
+                <button (click)="go('/app/finance')" class="text-xs font-medium text-primary-strong hover:underline">
                   {{ t('Finance') }}
                 </button>
               </div>
@@ -231,7 +231,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
                 <h2 class="flex items-center gap-2 text-base font-bold text-ink">
                   <app-icon name="target" [size]="18" /> {{ t('Goals') }}
                 </h2>
-                <button (click)="go('/goals')" class="text-xs font-medium text-primary-strong hover:underline">
+                <button (click)="go('/app/goals')" class="text-xs font-medium text-primary-strong hover:underline">
                   {{ t('All') }}
                 </button>
               </div>
@@ -260,7 +260,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
               <h2 class="flex items-center gap-2 text-base font-bold text-ink">
                 <app-icon name="flame" [size]="18" /> {{ t('Habits') }}
               </h2>
-              <button (click)="go('/habits')" class="text-xs font-medium text-primary-strong hover:underline">
+              <button (click)="go('/app/habits')" class="text-xs font-medium text-primary-strong hover:underline">
                 {{ t('All habits') }}
               </button>
             </div>
@@ -324,7 +324,7 @@ import { formatCurrency, formatDate, formatTime, percent } from '../../core/util
               <h2 class="flex items-center gap-2 text-base font-bold text-ink">
                 <app-icon name="clock" [size]="18" /> {{ t('Upcoming') }}
               </h2>
-              <button (click)="go('/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
+              <button (click)="go('/app/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
                 {{ t('Calendar') }}
               </button>
             </div>
@@ -484,7 +484,7 @@ export class TodayComponent implements OnInit {
   }
 
   protected goAi(): void {
-    this.router.navigate(['/ai'], { queryParams: { mode: 'daily-plan' } });
+    this.router.navigate(['/app/ai'], { queryParams: { mode: 'daily-plan' } });
   }
 
   protected readonly formatCurrency = formatCurrency;
