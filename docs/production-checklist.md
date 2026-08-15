@@ -31,7 +31,7 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 | `MONGODB_URI` | Atlas connection string |
 | `JWT_SECRET` | **generate kuat** (lihat Fase 2) |
 | `JWT_EXPIRES_IN` | `30d` |
-| `CLIENT_URL` | `https://lifehub.vercel.app` |
+| `CLIENT_URL` | `https://lifehub-psi-two.vercel.app` |
 | `GOOGLE_CLIENT_ID` | Web Client ID Google |
 | `RESEND_API_KEY` | Resend API key |
 | `EMAIL_FROM` | alamat pengirim (mis. `LifeHub <onboarding@resend.dev>` (atau domain terverifikasi)) |
@@ -68,7 +68,7 @@ Checklist langkah demi langkah untuk membawa LifeHub ke production (Vercel) deng
 
 1. Google Cloud Console → **OAuth consent screen** → pastikan sudah Published.
 2. Credentials → Client ID Web → **Authorized JavaScript origins**:
-   - `https://lifehub.vercel.app`
+   - `https://lifehub-psi-two.vercel.app`
    - (dev) `http://localhost:4200`
 3. Client ID yang sama dipakai backend (`GOOGLE_CLIENT_ID`) dan frontend (`googleClientId`).
 

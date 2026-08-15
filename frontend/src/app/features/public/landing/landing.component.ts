@@ -186,7 +186,7 @@ const TECH_STACK = [
                   <span class="h-3 w-3 rounded-full border-2 border-ink bg-warning"></span>
                   <span class="h-3 w-3 rounded-full border-2 border-ink bg-success"></span>
                   <span class="ml-3 flex-1 truncate rounded-md border-2 border-ink bg-surface px-3 py-1 text-[11px] font-bold text-ink-faint">
-                    app.lifehub.vercel.app/dashboard
+                    lifehub-psi-two.vercel.app/app/dashboard
                   </span>
                 </div>
 

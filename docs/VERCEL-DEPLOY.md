@@ -4,7 +4,7 @@ Tutorial langkah demi langkah untuk men-deploy LifeHub **tanpa biaya** — tanpa
 custom domain (semua pakai subdomain `*.vercel.app`):
 
 - **Backend** → `https://lifehub-api.vercel.app`
-- **Frontend** → `https://lifehub.vercel.app`
+- **Frontend** → `https://lifehub-psi-two.vercel.app`
 
 Dibaca bersama `docs/production-checklist.md` dan `docs/AI-FEATURE.md`.
 
@@ -19,7 +19,7 @@ Dibaca bersama `docs/production-checklist.md` dan `docs/AI-FEATURE.md`.
 
 1. Siapkan akun yang belum ada (Resend, Cloudinary, cron-job.org)
 2. MongoDB Atlas: izinkan akses dari internet
-3. Google Cloud: tambah origin `https://lifehub.vercel.app`
+3. Google Cloud: tambah origin `https://lifehub-psi-two.vercel.app`
 4. Deploy **backend** (dulu, agar URL-nya pasti)
 5. Deploy **frontend**
 6. cron-job.org untuk scheduler
@@ -75,7 +75,7 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
 1. Google Cloud Console → **Credentials** → OAuth Client ID Web yang dipakai
    sekarang (`987681566381-...apps.googleusercontent.com`).
 2. **Authorized JavaScript origins** tambahkan:
-   - `https://lifehub.vercel.app` (produksi)
+   - `https://lifehub-psi-two.vercel.app` (produksi)
    - `http://localhost:4200` (dev, tetap)
 3. Client ID yang sama dipakai backend (`GOOGLE_CLIENT_ID`) dan frontend
    (`googleClientId` — sudah diisi di `environment.production.ts`).
@@ -98,7 +98,7 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
 | `MONGODB_URI` | `mongodb+srv://LifeHub:…@cluster0.iz5gbfu.mongodb.net/lifehub?...` |
 | `JWT_SECRET` | string acak ≥32 char (generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`) |
 | `JWT_EXPIRES_IN` | `30d` |
-| `CLIENT_URL` | `https://lifehub.vercel.app` |
+| `CLIENT_URL` | `https://lifehub-psi-two.vercel.app` |
 | `GOOGLE_CLIENT_ID` | `987681566381-…apps.googleusercontent.com` |
 | `RESEND_API_KEY` | `re_…` (dari Langkah 0.1) |
 | `EMAIL_FROM` | `LifeHub <onboarding@resend.dev>` |
@@ -138,7 +138,7 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
      production: true,
      apiUrl: 'https://lifehub-api.vercel.app/api',
      googleClientId: '987681566381-…apps.googleusercontent.com',
-     siteUrl: 'https://lifehub.vercel.app',
+     siteUrl: 'https://lifehub-psi-two.vercel.app',
    };
    ```
 2. Pastikan perubahan ini sudah di-commit & di-push.
@@ -147,7 +147,7 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
 4. Vercel mendeteksi framework **Angular** otomatis.
    - Build Command: `npm run build`
    - Output Directory: `dist/frontend/browser`
-5. **Deploy**. URL final: `https://lifehub.vercel.app` — buka, cek halaman
+5. **Deploy**. URL final: `https://lifehub-psi-two.vercel.app` — buka, cek halaman
    landing + login termuat (gambar `assets/*.png`, logo, dsb).
 
 > Bila nama project ternyata sudah dipakai orang lain, Vercel menambahkan
@@ -185,8 +185,8 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
 
 ## Langkah 6 — Verifikasi Akhir
 
-- [ ] `https://lifehub.vercel.app` termuat (halaman landing + login)
-- [ ] Login dengan email & **Continue with Google** dari `https://lifehub.vercel.app`
+- [ ] `https://lifehub-psi-two.vercel.app` termuat (halaman landing + login)
+- [ ] Login dengan email & **Continue with Google** dari `https://lifehub-psi-two.vercel.app`
 - [ ] Forgot password → (dev `onboarding@resend.dev` hanya ke email akun Resend;
       untuk pengguna lain verifikasi domain dulu) — alur API-nya jalan
 - [ ] Upload avatar → URL `res.cloudinary.com/…` permanen
@@ -206,7 +206,7 @@ Lambda Vercel berjalan dari IP AWS yang berubah-ubah:
 | Email tidak terkirim | Sender `onboarding@resend.dev` hanya ke email akun sendiri | Verifikasi domain di Resend (opsional) |
 | Avatar hilang setelah deploy | Masih `UPLOAD_STORAGE` kosong (filesystem Vercel ephemeral) | Set `cloudinary` |
 | Scheduler tidak jalan | `NODE_ENV=production` mematikan in-proses & cron belum dibuat | Langkah 5 |
-| CORS error di browser | `CLIENT_URL` backend ≠ URL frontend yang dipakai | Set `https://lifehub.vercel.app` |
+| CORS error di browser | `CLIENT_URL` backend ≠ URL frontend yang dipakai | Set `https://lifehub-psi-two.vercel.app` |
 | Gambar (logo/avatar bank) 404 | Asset tidak ikut build | pastikan di `frontend/assets/` (ter-copy ke `assets/`) |
 | AI "not configured" | `GEMINI_API_KEY` kosong | Tambahkan di Vercel |
 | Rate limit keburu kena di dev | `express-rate-limit` in-memory (10/15 mnt) | Tunggu 15 menit atau naikkan `auth` limit sementara |

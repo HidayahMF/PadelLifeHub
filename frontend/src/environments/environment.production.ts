@@ -6,5 +6,5 @@ export const environment = {
   apiUrl: 'https://lifehub-api.vercel.app/api',
   googleClientId: '987681566381-ooe278df7l9r4mdhosfbge1dqs2g057h.apps.googleusercontent.com',
   // Public base URL of the marketing site (canonical / Open Graph tags).
-  siteUrl: 'https://lifehub.vercel.app',
+  siteUrl: 'https://lifehub-psi-two.vercel.app',
 };

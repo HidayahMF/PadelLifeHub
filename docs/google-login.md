@@ -36,7 +36,7 @@ JavaScript origins** (where the frontend runs).
 4. **Name**: `LifeHub Web`.
 5. **Authorized JavaScript origins** — add every origin the frontend runs on:
    - `http://localhost:4200` (local development)
-   - your production frontend URL, e.g. `https://lifehub.vercel.app`
+   - your production frontend URL, e.g. `https://lifehub-psi-two.vercel.app`
 6. Click **Create**. Copy the **Client ID** (`...apps.googleusercontent.com`).
 
 > The Client ID is not a secret — it ships in the frontend bundle. Never copy

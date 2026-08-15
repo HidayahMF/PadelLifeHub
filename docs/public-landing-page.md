@@ -88,7 +88,7 @@ Default OG + Twitter tags (title, description, image, url, type) are in
 `index.html` and refreshed per page by the SEO service. The shared image is:
 
 ```
-https://lifehub.vercel.app/assets/og-image.png   (1200×630)
+https://lifehub-psi-two.vercel.app/assets/og-image.png   (1200×630)
 ```
 
 The image is generated from `frontend/scripts/generate-og-image.cjs`:

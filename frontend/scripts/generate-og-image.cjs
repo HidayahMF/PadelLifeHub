@@ -133,7 +133,7 @@ const HTML = `<!doctype html>
 
     <div class="foot">
       <div class="foot-left">Life, organized.</div>
-      <div class="foot-right">lifehub.vercel.app</div>
+      <div class="foot-right">lifehub-psi-two.vercel.app</div>
     </div>
   </div>
 </body>

@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://lifehub.vercel.app/</loc>
+    <loc>https://lifehub-psi-two.vercel.app/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://lifehub.vercel.app/features</loc>
+    <loc>https://lifehub-psi-two.vercel.app/features</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://lifehub.vercel.app/ai</loc>
+    <loc>https://lifehub-psi-two.vercel.app/ai</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://lifehub.vercel.app/about</loc>
+    <loc>https://lifehub-psi-two.vercel.app/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://lifehub.vercel.app/contact</loc>
+    <loc>https://lifehub-psi-two.vercel.app/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lifehub.vercel.app/login</loc>
+    <loc>https://lifehub-psi-two.vercel.app/login</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://lifehub.vercel.app/register</loc>
+    <loc>https://lifehub-psi-two.vercel.app/register</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
