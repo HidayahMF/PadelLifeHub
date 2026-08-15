@@ -41,9 +41,26 @@ app.use(
     contentSecurityPolicy: false,
   })
 );
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:4200').trim();
+let clientOriginValid = true;
+try {
+  const parsed = new URL(clientUrl);
+  if (!/^https?:$/.test(parsed.protocol) || !parsed.hostname) {
+    throw new Error('not an http(s) origin');
+  }
+} catch {
+  clientOriginValid = false;
+}
+if (!clientOriginValid) {
+  console.error(
+    `[security] WARNING: CLIENT_URL is not a valid http(s) origin: "${clientUrl}". ` +
+      'Browser requests from the frontend will be blocked by CORS. ' +
+      'Set CLIENT_URL to your frontend URL, e.g. https://lifehub-psi-two.vercel.app'
+  );
+}
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:4200',
+    origin: clientUrl,
     credentials: true,
   })
 );
