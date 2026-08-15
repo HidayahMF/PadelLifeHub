@@ -183,6 +183,7 @@ export const ID: Record<string, string> = {
   'Set new password': 'Tetapkan kata sandi baru',
   'Remembered it?': 'Sudah ingat?',
   'Back to sign in': 'Kembali ke halaman masuk',
+  'Back to home': 'Kembali ke beranda',
   'Please enter your email.': 'Silakan masukkan email Anda.',
   'No email service is configured yet, so here is your reset token (development mode). Use it below to set a new password.':
     'Layanan email belum dikonfigurasi, jadi ini token pengaturan ulangmu (mode pengembangan). Gunakan di bawah untuk menetapkan kata sandi baru.',
