@@ -10,7 +10,7 @@ import { WeeklyReviewService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
 import { I18nService } from '../../core/services/i18n.service';
 import type { WeeklyReviewData } from '../../core/models/misc.model';
-import { formatCurrency, formatDate } from '../../core/utils/format';
+import { formatCurrency, formatDate, formatDuration } from '../../core/utils/format';
 
 @Component({
   selector: 'app-weekly-review',
@@ -80,6 +80,16 @@ import { formatCurrency, formatDate } from '../../core/utils/format';
             </div>
           </div>
           <app-progress class="mt-4" [value]="review.productivity.completionRate" />
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Focus time') }}</p>
+              <p class="mt-1 font-display text-2xl text-ink">{{ formatDuration(review.focus.duration) }}</p>
+            </div>
+            <div class="rounded-button border-2 border-ink bg-surface-2 p-3">
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">{{ t('Sessions') }}</p>
+              <p class="mt-1 font-display text-2xl text-ink">{{ review.focus.count }}</p>
+            </div>
+          </div>
         </app-card>
 
         <!-- Habits -->
@@ -242,4 +252,5 @@ export class WeeklyReviewComponent implements OnInit {
 
   protected readonly formatCurrency = formatCurrency;
   protected readonly formatDate = formatDate;
+  protected readonly formatDuration = formatDuration;
 }

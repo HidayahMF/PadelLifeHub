@@ -7,6 +7,7 @@ const Habit = require('../models/Habit');
 const Goal = require('../models/Goal');
 const WeeklyReview = require('../models/WeeklyReview');
 const Category = require('../models/Category');
+const { focusTotals } = require('./focusSessionController');
 const { startOfLocalDay, addLocalDays, formatLocalDate } = require('../utils/date');
 
 /** Monday (local WIB) of the week containing `date`. */
@@ -23,7 +24,7 @@ const getWeeklyReview = async (req, res, next) => {
     const weekStart = weekStartOf(now);
     const weekEnd = addLocalDays(weekStart, 7);
 
-    const [saved, productivity, habits, finance, goals, categories] = await Promise.all([
+    const [saved, productivity, habits, finance, goals, focus, categories] = await Promise.all([
       WeeklyReview.findOne({ user: userId, weekStart }),
       (async () => {
         const [completed, created, dueInWeek, overdue] = await Promise.all([
@@ -112,6 +113,7 @@ const getWeeklyReview = async (req, res, next) => {
         });
         return { progressed, completed };
       })(),
+      focusTotals(userId, weekStart, weekEnd),
       Category.find({ user: userId, type: 'transaction' }),
     ]);
 
@@ -142,6 +144,7 @@ const getWeeklyReview = async (req, res, next) => {
       habits,
       finance,
       goals,
+      focus,
       topCategory,
       reflection: {
         wentWell: saved?.wentWell ?? '',

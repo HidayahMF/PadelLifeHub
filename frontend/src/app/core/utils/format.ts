@@ -15,6 +15,14 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
+/** Format a duration in seconds as "1h 25m" (or "25m" under an hour). */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.round((total % 3600) / 60);
+  return h === 0 ? `${m}m` : `${h}h ${m}m`;
+}
+
 // Date/month labels follow the active UI language (set by I18nService).
 import { getLocale } from './locale';
 

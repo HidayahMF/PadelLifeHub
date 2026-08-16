@@ -2,6 +2,7 @@ const Task = require('../models/Task');
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
 const Goal = require('../models/Goal');
+const { weekStartOf, focusTotals } = require('./focusSessionController');
 const { startOfLocalDay, addLocalDays } = require('../utils/date');
 
 /** Resolve a statistics range to { start, end } local dates (null = unbounded). */
@@ -54,8 +55,12 @@ const getDashboardSummary = async (req, res, next) => {
       monthIncome,
       monthExpense,
       totalBalance,
+      accountBalanceByType,
       recentTransactions,
       activeGoals,
+      focusToday,
+      focusWeek,
+      focusMonth,
     ] = await Promise.all([
       Task.countDocuments({ user: userId, archived: { $ne: true } }),
       Task.countDocuments({ user: userId, status: 'completed' }),
@@ -92,13 +97,29 @@ const getDashboardSummary = async (req, res, next) => {
         { $match: { user: userId } },
         { $group: { _id: null, total: { $sum: '$balance' } } },
       ]),
+      Account.aggregate([
+        { $match: { user: userId } },
+        { $group: { _id: '$type', total: { $sum: '$balance' } } },
+      ]),
       Transaction.find({ user: userId })
         .sort({ date: -1 })
         .limit(10)
         .populate('category', 'name color icon')
         .populate('account', 'name type'),
       Goal.find({ user: userId, completed: false }).sort({ deadline: 1 }).limit(5),
+      focusTotals(userId, today, tomorrow),
+      (async () => {
+        const weekStart = weekStartOf(today);
+        return focusTotals(userId, weekStart, addLocalDays(weekStart, 7));
+      })(),
+      focusTotals(userId, monthStart, nextMonth),
     ]);
+
+    const typeTotals = { bank: 0, ewallet: 0, cash: 0, investment: 0 };
+    for (const row of accountBalanceByType) {
+      if (row._id in typeTotals) typeTotals[row._id] = row.total;
+    }
+    const liquidAssets = typeTotals.bank + typeTotals.ewallet + typeTotals.cash;
 
     res.json({
       taskSummary: {
@@ -114,9 +135,12 @@ const getDashboardSummary = async (req, res, next) => {
         monthIncome: monthIncome[0]?.total || 0,
         monthExpense: monthExpense[0]?.total || 0,
         balance: totalBalance[0]?.total || 0,
+        liquid: liquidAssets,
+        investment: typeTotals.investment,
       },
       recentTransactions,
       activeGoals,
+      focus: { today: focusToday, week: focusWeek, month: focusMonth },
     });
   } catch (err) {
     next(err);
@@ -137,7 +161,7 @@ const getStatistics = async (req, res, next) => {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
-    const [productivity, finance] = await Promise.all([
+    const [productivity, finance, focus] = await Promise.all([
       (async () => {
         const [totalTasks, completedTasks, weeklyCompleted, monthlyCompleted, weeklyActive] =
           await Promise.all([
@@ -250,9 +274,17 @@ const getStatistics = async (req, res, next) => {
           monthlyCashFlow: cashFlow,
         };
       })(),
+      (async () => {
+        const [todayFocus, weekFocus, monthFocus] = await Promise.all([
+          focusTotals(userId, today, addLocalDays(today, 1)),
+          focusTotals(userId, weekStart, weekEnd),
+          focusTotals(userId, monthStart, nextMonth),
+        ]);
+        return { today: todayFocus, week: weekFocus, month: monthFocus };
+      })(),
     ]);
 
-    res.json({ productivity, finance });
+    res.json({ productivity, finance, focus });
   } catch (err) {
     next(err);
   }

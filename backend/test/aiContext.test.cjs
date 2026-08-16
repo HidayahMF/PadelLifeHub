@@ -250,7 +250,12 @@ test('T8: financial-insight prompt embeds exact backend figures', async () => {
     (err) => { throw err; }
   );
 
-  assert.ok(captured.prompt.includes('Total balance across all accounts: 755.000'), captured.prompt);
+  assert.ok(
+    captured.prompt.includes('Total balance across all accounts (net worth): 755.000'),
+    captured.prompt
+  );
+  assert.ok(captured.prompt.includes('Liquid assets (cash + bank + e-wallet): 755.000'), captured.prompt);
+  assert.ok(captured.prompt.includes('Investment assets: 0'), captured.prompt);
   assert.ok(captured.prompt.includes('Net cash flow (income - expense, transfers excluded): -438.000'), captured.prompt);
   assert.ok(captured.prompt.includes('- Seabank: 511.000'), captured.prompt);
   assert.ok(!captured.prompt.includes('Total balance across all accounts: 0'), captured.prompt);

@@ -107,22 +107,35 @@ Current month expense: ${formatNumber(snapshot.currentMonthExpense)}
 Previous month income: ${formatNumber(snapshot.previousMonthIncome)}
 Previous month expense: ${formatNumber(snapshot.previousMonthExpense)}
 Net cash flow (income - expense, transfers excluded): ${formatNumber(snapshot.netCashFlow)}
-Total balance across all accounts: ${formatNumber(snapshot.totalBalance)}
+Total balance across all accounts (net worth): ${formatNumber(snapshot.totalBalance)}
+Liquid assets (cash + bank + e-wallet): ${formatNumber(snapshot.liquidAssets)}
+Investment assets: ${formatNumber(snapshot.investmentAssets)}
 Account balances:
 ${accountLines}`;
 
-    const prompt = `Here is the user's financial data:\n${context}\n\nSYSTEM-CALCULATED FIGURES (the ONLY source of truth — restate these exact numbers, never compute your own):\n${authoritative}\n\nAnalyze this person's finances. Provide a concise Markdown report with:
-1. A short summary of this month vs the previous month (income, expense, net). Use the exact system-calculated figures above.
-2. The largest spending categories this month.
-3. Potential problems — only if the data actually shows one (for example overspending against a budget, spending growth, or low savings progress).
-4. 2-3 practical, specific recommendations based on the actual data (if the user already has budgets or savings goals, do not suggest creating them from scratch).
+    const prompt = `Here is the user's financial data:\n${context}\n\nSYSTEM-CALCULATED FIGURES (the ONLY source of truth — restate these exact numbers, never compute your own):\n${authoritative}\n\nAnalyze this person's finances and write a concise Markdown report with EXACTLY three sections, in this order:
 
-Important distinctions:
+**FACTS**
+- This month vs previous month: income, expense, net cash flow — using the exact system-calculated figures.
+- Largest spending categories this month.
+- Current account balance, liquid assets, and investment assets.
+
+**INSIGHTS**
+- What the numbers suggest (e.g. spending growth, savings progress, where money tends to go).
+- Potential problems — only if the data actually shows one (overspending against a budget, spending growth, low savings progress). If nothing is wrong, say so.
+
+**RECOMMENDATIONS**
+- 2-3 practical, specific actions based on the actual data (if the user already has budgets or savings goals, do not suggest creating them from scratch).
+
+Important rules:
+- FACTS must come only from the data above. INSIGHTS are interpretations of those facts; RECOMMENDATIONS are suggestions — never present a suggestion as a fact.
 - Net cash flow (this month's income minus expense) is NOT the same as the total account balance. They can differ because money can come from previous periods. A month with zero income and positive spending is NOT necessarily a deficit — the account balance may still be positive.
 - Transfers between the user's own accounts are NOT income and NOT expense, and must never appear in the cash-flow math.
 - Never state the balance is Rp0 or negative when the system-calculated total balance is positive.
+- Never invent numbers; base everything strictly on the data above. If the data is insufficient (for example no transactions yet), say that clearly in the relevant section and give general guidance instead.
+- Never present this as professional financial advice.
 
-Rules: never invent numbers; base everything strictly on the data above. If the data is insufficient (for example no transactions yet), say that clearly and give general guidance instead. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
+Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
     const reply = await generate(prompt);
     res.json({ success: true, reply });
@@ -157,7 +170,19 @@ const habitInsight = async (req, res) => {
     if (!requireConfigured(res)) return;
     const context = await buildHabitContext(req.user._id);
     const lang = await getUserLanguage(req.user._id);
-    const prompt = `Here is the user's habit data:\n${context}\n\nAnalyze their habits and provide a concise Markdown report with:\n1. The most consistent habits.\n2. Any habits that seem to be slipping (compared to their own history).\n3. Simple patterns you notice in the data.\n4. Practical tips to protect current streaks.\n\nRules: base everything on the data above; if there are no habits or not enough history, say so. Do NOT make medical or psychological claims. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
+    const prompt = `Here is the user's habit data:\n${context}\n\nAnalyze their habits and write a concise Markdown report with EXACTLY three sections, in this order:
+
+**FACTS**
+- Which habits are tracked, their current streaks, and completion counts (from the data above).
+
+**INSIGHTS**
+- The most consistent habits and any that seem to be slipping (compared to their own history).
+- Simple patterns you notice in the data.
+
+**RECOMMENDATIONS**
+- Practical tips to protect current streaks and rebuild slipping ones.
+
+Rules: FACTS must come only from the data above; INSIGHTS are interpretations; RECOMMENDATIONS are suggestions. If there are no habits or not enough history, say so in the relevant section. Do NOT make medical or psychological claims. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
     const reply = await generate(prompt);
     res.json({ success: true, reply });
@@ -174,7 +199,19 @@ const goalInsight = async (req, res) => {
     if (!requireConfigured(res)) return;
     const context = await buildGoalContext(req.user._id);
     const lang = await getUserLanguage(req.user._id);
-    const prompt = `Here is the user's goal data:\n${context}\n\nAnalyze their goals and provide a concise Markdown report with:\n1. The goal closest to its deadline.\n2. Goals at risk of missing the deadline (based on remaining amount and time left).\n3. A recommended priority order.\n4. One concrete next step per goal.\n\nRules: never invent numbers; if there are no active goals, say so and suggest how to set one up in LifeHub. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
+    const prompt = `Here is the user's goal data:\n${context}\n\nAnalyze their goals and write a concise Markdown report with EXACTLY three sections, in this order:
+
+**FACTS**
+- Each active goal, its progress, remaining amount (if any), and deadline (from the data above).
+
+**INSIGHTS**
+- The goal closest to its deadline and any goals at risk of missing it (based on remaining amount and time left).
+- A recommended priority order.
+
+**RECOMMENDATIONS**
+- One concrete next step per goal.
+
+Rules: FACTS must come only from the data above; INSIGHTS are interpretations; RECOMMENDATIONS are suggestions. Never invent numbers; if there are no active goals, say so in the relevant section and suggest how to set one up in LifeHub. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
     const reply = await generate(prompt);
     res.json({ success: true, reply });

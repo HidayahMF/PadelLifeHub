@@ -18,6 +18,7 @@ const Account = require('../models/Account');
 const Budget = require('../models/Budget');
 const Reminder = require('../models/Reminder');
 const Setting = require('../models/Setting');
+const FocusSession = require('../models/FocusSession');
 const { startOfLocalDay, addLocalDays, getTodayLocalDate } = require('../utils/date');
 
 const IDR = new Intl.NumberFormat('id-ID', {
@@ -347,17 +348,66 @@ async function buildGoalContext(userId) {
   return lines.join('\n');
 }
 
+/** Monday (local WIB) of the week containing `date`. */
+function weekStartOf(date = new Date()) {
+  const d = startOfLocalDay(date);
+  while (d.getDay() !== 1) d.setDate(d.getDate() - 1);
+  return d;
+}
+
+/** Format a duration in seconds as "Xh Ym" (or "Ym" under an hour). */
+function fmtDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.round((total % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
+/** Total focus time (seconds) for sessions starting in [start, end). */
+async function focusSeconds(userId, start, end) {
+  const [row] = await FocusSession.aggregate([
+    { $match: { user: userId, startTime: { $gte: start, $lt: end } } },
+    { $group: { _id: null, duration: { $sum: '$duration' } } },
+  ]);
+  return row?.duration ?? 0;
+}
+
+/** Focus-time context: how much the user focused today / this week / this month. */
+async function buildFocusContext(userId) {
+  const now = new Date();
+  const todayStart = startOfLocalDay(now);
+  const weekStart = weekStartOf(now);
+  const weekEnd = addLocalDays(weekStart, 7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const [today, week, month] = await Promise.all([
+    focusSeconds(userId, todayStart, addLocalDays(todayStart, 1)),
+    focusSeconds(userId, weekStart, weekEnd),
+    focusSeconds(userId, monthStart, nextMonth),
+  ]);
+
+  return (
+    'Focus time (from recorded Pomodoro sessions):\n' +
+    `- Today: ${fmtDuration(today)}\n` +
+    `- This week: ${fmtDuration(week)}\n` +
+    `- This month: ${fmtDuration(month)}`
+  );
+}
+
 /**
  * Compact general overview used by the free-form chat: today's focus,
- * finance month summary, habits, and goals — enough to answer most questions
- * without shipping the whole database.
+ * finance month summary, habits, goals, and focus time — enough to answer
+ * most questions without shipping the whole database.
  */
 async function buildGeneralContext(userId) {
-  const [financial, daily] = await Promise.all([
+  const [financial, daily, focus] = await Promise.all([
     buildFinancialContext(userId),
     buildDailyContext(userId),
+    buildFocusContext(userId),
   ]);
-  return `--- FINANCE ---\n${financial}\n\n--- TODAY ---\n${daily}`;
+  return `--- FINANCE ---\n${financial}\n\n--- TODAY ---\n${daily}\n\n--- FOCUS ---\n${focus}`;
 }
 
 /** Preferred response language from the user's settings ('id' or 'en'). */
@@ -394,6 +444,7 @@ module.exports = {
   buildHabitContext,
   buildGoalContext,
   buildGeneralContext,
+  buildFocusContext,
   getUserLanguage,
 };
 
@@ -405,6 +456,15 @@ module.exports = {
  */
 async function getFinancialSnapshot(userId) {
   const data = await loadFinancialData(userId);
+  // Liquid = cash + bank + e-wallet; investment is tracked separately so the
+  // AI never conflates the whole balance with cash.
+  let liquidAssets = 0;
+  let investmentAssets = 0;
+  for (const a of data.accounts) {
+    const balance = Number(a.balance) || 0;
+    if (a.type === 'investment') investmentAssets += balance;
+    else liquidAssets += balance;
+  }
   return {
     currentMonthIncome: data.monthIncome,
     currentMonthExpense: data.monthExpense,
@@ -412,8 +472,11 @@ async function getFinancialSnapshot(userId) {
     previousMonthExpense: data.prevExpense,
     netCashFlow: data.netCashFlow,
     totalBalance: data.totalBalance,
+    liquidAssets,
+    investmentAssets,
     accounts: data.accounts.map((a) => ({
       name: a.name,
+      type: a.type,
       balance: Number(a.balance) || 0,
     })),
   };
