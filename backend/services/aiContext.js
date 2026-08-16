@@ -44,11 +44,17 @@ function fmtDate(d) {
 }
 
 /**
- * Compact financial summary: this month vs last month income/expense,
- * top spending categories, budgets, savings goals, balances, and a few
- * recent transactions. No transaction descriptions over ~40 chars are kept.
+ * Load the raw financial data for a user (current vs previous month income,
+ * expense, top spending categories, budgets, savings goals, the user's own
+ * accounts and their stored balances). Every query is scoped to `userId`.
+ *
+ * Account balances come straight from the Account collection (the same source
+ * of truth as the Finance page / dashboard) — never recomputed from
+ * transaction history, and never summed as an aggregate array that turns into
+ * NaN. Returns raw numbers so the controller can both format the context AND
+ * embed the exact figures in the AI prompt.
  */
-async function buildFinancialContext(userId) {
+async function loadFinancialData(userId) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -62,7 +68,7 @@ async function buildFinancialContext(userId) {
     categorySpending,
     budgets,
     savingsGoals,
-    balance,
+    accounts,
     recent,
   ] = await Promise.all([
     sumTx(userId, 'income', monthStart, nextMonth),
@@ -88,16 +94,62 @@ async function buildFinancialContext(userId) {
     Goal.find({ user: userId, kind: 'savings', completed: false, archived: { $ne: true } }).sort({
       deadline: 1,
     }),
-    Account.aggregate([{ $match: { user: userId } }, { $group: { _id: null, total: { $sum: '$balance' } } }]),
+    Account.find({ user: userId }).select('name type balance currency').sort({ name: 1 }),
     Transaction.find({ user: userId }).sort({ date: -1 }).limit(5).populate('category', 'name'),
   ]);
+
+  const totalBalance = accounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
+  return {
+    monthIncome,
+    monthExpense,
+    prevIncome,
+    prevExpense,
+    netCashFlow: monthIncome - monthExpense,
+    totalBalance,
+    categorySpending,
+    budgets,
+    savingsGoals,
+    accounts,
+    recent,
+  };
+}
+
+/**
+ * Compact financial summary: this month vs last month income/expense,
+ * top spending categories, budgets, savings goals, balances, and a few
+ * recent transactions. No transaction descriptions over ~40 chars are kept.
+ */
+async function buildFinancialContext(userId) {
+  const {
+    monthIncome,
+    monthExpense,
+    prevIncome,
+    prevExpense,
+    netCashFlow,
+    totalBalance,
+    categorySpending,
+    budgets,
+    savingsGoals,
+    accounts,
+    recent,
+  } = await loadFinancialData(userId);
 
   const lines = [];
   lines.push('Monthly income (this month): ' + fmt(monthIncome));
   lines.push('Monthly expense (this month): ' + fmt(monthExpense));
+  lines.push('Net cash flow this month (income - expense): ' + fmt(netCashFlow));
   lines.push('Monthly income (previous month): ' + fmt(prevIncome));
   lines.push('Monthly expense (previous month): ' + fmt(prevExpense));
-  lines.push('Total balance across accounts: ' + fmt(balance));
+  lines.push('Total balance across accounts: ' + fmt(totalBalance));
+  lines.push('Transfers between the user\'s own accounts are excluded from income, expense and net cash flow.');
+
+  if (accounts.length > 0) {
+    lines.push('Account balances:');
+    for (const a of accounts) {
+      lines.push(`- ${a.name}: ${fmt(a.balance)}`);
+    }
+  }
 
   if (categorySpending.length > 0) {
     lines.push('Top spending categories (this month):');
@@ -337,9 +389,32 @@ function getDayOffset(days) {
 
 module.exports = {
   buildFinancialContext,
+  getFinancialSnapshot,
   buildDailyContext,
   buildHabitContext,
   buildGoalContext,
   buildGeneralContext,
   getUserLanguage,
 };
+
+/**
+ * Authoritative financial figures for the current user — calculated by the
+ * backend from the database. These exact numbers are embedded in the AI prompt
+ * so the model restates them instead of computing (or inventing) its own.
+ * Never derived from the model's output.
+ */
+async function getFinancialSnapshot(userId) {
+  const data = await loadFinancialData(userId);
+  return {
+    currentMonthIncome: data.monthIncome,
+    currentMonthExpense: data.monthExpense,
+    previousMonthIncome: data.prevIncome,
+    previousMonthExpense: data.prevExpense,
+    netCashFlow: data.netCashFlow,
+    totalBalance: data.totalBalance,
+    accounts: data.accounts.map((a) => ({
+      name: a.name,
+      balance: Number(a.balance) || 0,
+    })),
+  };
+}

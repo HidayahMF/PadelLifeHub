@@ -9,6 +9,7 @@
 const { generate, isConfigured } = require('../services/geminiService');
 const {
   buildFinancialContext,
+  getFinancialSnapshot,
   buildDailyContext,
   buildHabitContext,
   buildGoalContext,
@@ -18,6 +19,10 @@ const {
 const aiTransaction = require('../services/aiTransactionService');
 
 const MAX_MESSAGE_LENGTH = 4000;
+
+/** Plain IDR thousands formatting for numbers embedded in prompts. */
+const formatNumber = (n) =>
+  new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(n) || 0);
 
 /** Validate the free-form chat message. Returns an error string or null. */
 function validateMessage(message) {
@@ -86,9 +91,38 @@ const chat = async (req, res) => {
 const financialInsight = async (req, res) => {
   try {
     if (!requireConfigured(res)) return;
-    const context = await buildFinancialContext(req.user._id);
+    const [context, snapshot] = await Promise.all([
+      buildFinancialContext(req.user._id),
+      getFinancialSnapshot(req.user._id),
+    ]);
     const lang = await getUserLanguage(req.user._id);
-    const prompt = `Here is the user's financial data:\n${context}\n\nAnalyze this person's finances. Provide a concise Markdown report with:\n1. A short summary of this month vs the previous month (income, expense, net).\n2. The largest spending categories this month.\n3. Potential problems (for example overspending against a budget, spending growth, low savings progress).\n4. 2-3 practical recommendations.\n\nRules: never invent numbers; base everything strictly on the data above. If the data is insufficient (for example no transactions yet), say that clearly and give general guidance instead. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
+
+    // The authoritative numbers are embedded verbatim so the model can never
+    // produce a different balance/cash-flow than the backend calculated.
+    const accountLines = snapshot.accounts.length
+      ? snapshot.accounts.map((a) => `- ${a.name}: ${formatNumber(a.balance)}`).join('\n')
+      : '- none';
+    const authoritative = `Current month income: ${formatNumber(snapshot.currentMonthIncome)}
+Current month expense: ${formatNumber(snapshot.currentMonthExpense)}
+Previous month income: ${formatNumber(snapshot.previousMonthIncome)}
+Previous month expense: ${formatNumber(snapshot.previousMonthExpense)}
+Net cash flow (income - expense, transfers excluded): ${formatNumber(snapshot.netCashFlow)}
+Total balance across all accounts: ${formatNumber(snapshot.totalBalance)}
+Account balances:
+${accountLines}`;
+
+    const prompt = `Here is the user's financial data:\n${context}\n\nSYSTEM-CALCULATED FIGURES (the ONLY source of truth — restate these exact numbers, never compute your own):\n${authoritative}\n\nAnalyze this person's finances. Provide a concise Markdown report with:
+1. A short summary of this month vs the previous month (income, expense, net). Use the exact system-calculated figures above.
+2. The largest spending categories this month.
+3. Potential problems — only if the data actually shows one (for example overspending against a budget, spending growth, or low savings progress).
+4. 2-3 practical, specific recommendations based on the actual data (if the user already has budgets or savings goals, do not suggest creating them from scratch).
+
+Important distinctions:
+- Net cash flow (this month's income minus expense) is NOT the same as the total account balance. They can differ because money can come from previous periods. A month with zero income and positive spending is NOT necessarily a deficit — the account balance may still be positive.
+- Transfers between the user's own accounts are NOT income and NOT expense, and must never appear in the cash-flow math.
+- Never state the balance is Rp0 or negative when the system-calculated total balance is positive.
+
+Rules: never invent numbers; base everything strictly on the data above. If the data is insufficient (for example no transactions yet), say that clearly and give general guidance instead. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
     const reply = await generate(prompt);
     res.json({ success: true, reply });
