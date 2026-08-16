@@ -15,6 +15,7 @@ const {
   buildGeneralContext,
   getUserLanguage,
 } = require('../services/aiContext');
+const aiTransaction = require('../services/aiTransactionService');
 
 const MAX_MESSAGE_LENGTH = 4000;
 
@@ -31,6 +32,10 @@ function validateMessage(message) {
 
 /** Safe response for an AI failure — technical detail only goes to the log. */
 function respondWithError(res, err) {
+  // Validation/ownership errors carry their own 4xx status + safe message.
+  if (err?.statusCode && err.statusCode < 500) {
+    return res.status(err.statusCode).json({ success: false, message: err.message });
+  }
   if (err?.code === 'AI_NOT_CONFIGURED') {
     return res.status(503).json({ success: false, message: 'AI service is not configured' });
   }
@@ -144,4 +149,60 @@ const goalInsight = async (req, res) => {
   }
 };
 
-module.exports = { chat, financialInsight, dailyPlan, habitInsight, goalInsight };
+/**
+ * POST /api/ai/parse-transaction
+ * Body: { message: string }
+ * READ ONLY — extracts a transaction draft from natural language without
+ * ever writing to the database. Only the confirm endpoint writes.
+ */
+const parseTransaction = async (req, res) => {
+  try {
+    const invalid = validateMessage(req.body?.message);
+    if (invalid) {
+      return res.status(400).json({ success: false, message: invalid });
+    }
+    if (!requireConfigured(res)) return;
+
+    const result = await aiTransaction.parseTransaction(
+      req.user._id,
+      req.body.message.trim()
+    );
+    res.json(result);
+  } catch (err) {
+    respondWithError(res, err);
+  }
+};
+
+/**
+ * POST /api/ai/create-transaction
+ * Body: { draft: {...} }
+ * THE WRITE PATH. Re-validates the draft server-side (never trusts the
+ * client) and creates the transaction via the shared transaction service.
+ */
+const createTransaction = async (req, res) => {
+  try {
+    if (!requireConfigured(res)) return;
+    const transaction = await aiTransaction.createTransaction(
+      req.user._id,
+      req.body?.draft
+    );
+    res.json({
+      success: true,
+      created: true,
+      transaction,
+      reply: 'Transaksi berhasil disimpan.',
+    });
+  } catch (err) {
+    respondWithError(res, err);
+  }
+};
+
+module.exports = {
+  chat,
+  financialInsight,
+  dailyPlan,
+  habitInsight,
+  goalInsight,
+  parseTransaction,
+  createTransaction,
+};

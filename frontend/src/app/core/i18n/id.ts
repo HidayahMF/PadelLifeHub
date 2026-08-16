@@ -375,6 +375,12 @@ export const ID: Record<string, string> = {
   // ---------- Finance ----------
   'Track your money and stay on budget.': 'Kelola uangmu dan tetap sesuai anggaran.',
   'Add transaction': 'Tambah transaksi',
+  'Quick Add Finance': 'Tambah Cepat Keuangan',
+  'Type a transaction in plain language, preview it, then confirm.': 'Ketik transaksi dengan bahasa biasa, pratinjau, lalu konfirmasi.',
+  'e.g. jajan 15k bca': 'mis. jajan 15k bca',
+  'Parse': 'Proses',
+  'Save transaction': 'Simpan transaksi',
+  'New transaction saved': 'Transaksi baru disimpan',
   'Summary': 'Ringkasan',
   'Expenses (month)': 'Pengeluaran (bulan)',
   'Add account': 'Tambah rekening',

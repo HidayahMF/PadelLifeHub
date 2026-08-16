@@ -16,6 +16,7 @@ const { saveUploadedFile, removeFile } = require('../services/uploadService');
 const DEFAULT_CATEGORIES = [
   // transaction
   { name: 'Salary', color: '#00C2A8', icon: 'wallet', type: 'transaction' },
+  { name: 'Food & Drinks', color: '#FF9F1C', icon: 'utensils', type: 'transaction' },
   { name: 'Food', color: '#FF9F1C', icon: 'utensils', type: 'transaction' },
   { name: 'Transport', color: '#FF5DA2', icon: 'car', type: 'transaction' },
   { name: 'Shopping', color: '#FFD600', icon: 'shopping-bag', type: 'transaction' },
