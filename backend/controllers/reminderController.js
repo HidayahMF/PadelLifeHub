@@ -1,4 +1,5 @@
 const Reminder = require('../models/Reminder');
+const Notification = require('../models/Notification');
 
 const getReminders = async (req, res, next) => {
   try {
@@ -64,6 +65,13 @@ const deleteReminder = async (req, res, next) => {
       res.status(404);
       throw new Error('Reminder not found');
     }
+    // Drop notifications created by this reminder so a deleted reminder never
+    // leaves a stale "Reminder — …" item that pops up on every refresh.
+    await Notification.deleteMany({
+      user: req.user._id,
+      type: 'reminder',
+      relatedId: reminder._id,
+    });
     res.json({ message: 'Reminder removed' });
   } catch (err) {
     next(err);

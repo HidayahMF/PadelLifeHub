@@ -13,14 +13,21 @@ export class NotificationService {
   private lastIds = new Set<string>();
   private browserPermissionAsked = false;
 
+  /** Key under which already-seen notification ids are kept across reloads. */
+  private static readonly SEEN_KEY = 'lifehub.notif.seen';
+  private static readonly SEEN_MAX = 200;
+
   load(): void {
     this.loading.set(true);
     this.api.get<NotificationItem[]>('/notifications').subscribe({
       next: (res) => {
-        // Diff for new items so we can surface browser notifications without spamming.
-        const fresh = res.filter((n) => !this.lastIds.has(n._id));
+        // Diff for new items so we can surface browser notifications without
+        // spamming. Seen ids persist across reloads, so a page refresh never
+        // re-triggers a popup for an unread notification that already fired
+        // once (e.g. a stale 'Reminder — …' the user never dismissed).
+        const fresh = res.filter((n) => !this.hasSeen(n._id));
         this.notifications.set(res);
-        this.lastIds = new Set(res.map((n) => n._id));
+        this.rememberSeen(res.map((n) => n._id));
         this.loading.set(false);
         if (fresh.length > 0) {
           this.maybeBrowserNotify(fresh);
@@ -28,6 +35,33 @@ export class NotificationService {
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  private loadSeen(): string[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem(NotificationService.SEEN_KEY);
+      const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private hasSeen(id: string): boolean {
+    return this.loadSeen().includes(id);
+  }
+
+  private rememberSeen(ids: string[]): void {
+    if (typeof window === 'undefined' || ids.length === 0) return;
+    try {
+      const merged = [...new Set([...this.loadSeen(), ...ids])].slice(
+        -NotificationService.SEEN_MAX
+      );
+      window.localStorage.setItem(NotificationService.SEEN_KEY, JSON.stringify(merged));
+    } catch {
+      // Storage full / disabled — popups may repeat, but that is non-fatal.
+    }
   }
 
   markRead(id: string): void {
