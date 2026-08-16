@@ -45,6 +45,32 @@ function fmtDate(d) {
 }
 
 /**
+ * Authoritative net-worth breakdown computed from the stored Account
+ * documents. Account.type is the SOURCE OF TRUTH — never inferred from the
+ * account name.
+ *
+ *   total      = sum of all stored balances
+ *   liquid     = total minus investment accounts (cash + bank + e-wallet)
+ *   investment = sum of investment accounts
+ *   byType     = balance grouped by the stored Account.type value
+ */
+function computeNetWorth(accounts) {
+  const byType = new Map();
+  let total = 0;
+  for (const a of accounts) {
+    const balance = Number(a.balance) || 0;
+    total += balance;
+    const type = a.type && String(a.type).trim() ? String(a.type) : 'unknown';
+    byType.set(type, (byType.get(type) || 0) + balance);
+  }
+  const rows = [...byType.entries()]
+    .map(([type, balance]) => ({ type, balance }))
+    .sort((x, y) => y.balance - x.balance);
+  const investment = rows.find((r) => r.type === 'investment')?.balance || 0;
+  return { total, liquid: total - investment, investment, byType: rows };
+}
+
+/**
  * Load the raw financial data for a user (current vs previous month income,
  * expense, top spending categories, budgets, savings goals, the user's own
  * accounts and their stored balances). Every query is scoped to `userId`.
@@ -67,6 +93,7 @@ async function loadFinancialData(userId) {
     prevIncome,
     prevExpense,
     categorySpending,
+    accountSpending,
     budgets,
     savingsGoals,
     accounts,
@@ -89,17 +116,39 @@ async function loadFinancialData(userId) {
       { $unwind: { path: '$cat', preserveNullAndEmptyArrays: true } },
       { $group: { _id: '$category', name: { $first: '$cat.name' }, total: { $sum: '$amount' } } },
       { $sort: { total: -1 } },
-      { $limit: 6 },
+      { $limit: 10 },
+    ]),
+    // Spending per account, grouped by the REAL account name from the Account
+    // collection — backend-calculated so the AI never invents account names.
+    Transaction.aggregate([
+      {
+        $match: {
+          user: userId,
+          type: 'expense',
+          date: { $gte: monthStart, $lt: nextMonth },
+          account: { $ne: null },
+        },
+      },
+      { $lookup: { from: 'accounts', localField: 'account', foreignField: '_id', as: 'acc' } },
+      { $unwind: { path: '$acc', preserveNullAndEmptyArrays: true } },
+      { $group: { _id: '$account', name: { $first: '$acc.name' }, total: { $sum: '$amount' } } },
+      { $sort: { total: -1 } },
+      { $limit: 10 },
     ]),
     Budget.find({ user: userId, month: monthKey(now) }).populate('category', 'name'),
     Goal.find({ user: userId, kind: 'savings', completed: false, archived: { $ne: true } }).sort({
       deadline: 1,
     }),
     Account.find({ user: userId }).select('name type balance currency').sort({ name: 1 }),
-    Transaction.find({ user: userId }).sort({ date: -1 }).limit(5).populate('category', 'name'),
+    Transaction.find({ user: userId })
+      .sort({ date: -1 })
+      .limit(10)
+      .populate('category', 'name')
+      .populate('account', 'name'),
   ]);
 
   const totalBalance = accounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  const netWorth = computeNetWorth(accounts);
 
   return {
     monthIncome,
@@ -108,7 +157,9 @@ async function loadFinancialData(userId) {
     prevExpense,
     netCashFlow: monthIncome - monthExpense,
     totalBalance,
+    netWorth,
     categorySpending,
+    accountSpending,
     budgets,
     savingsGoals,
     accounts,
@@ -129,7 +180,9 @@ async function buildFinancialContext(userId) {
     prevExpense,
     netCashFlow,
     totalBalance,
+    netWorth,
     categorySpending,
+    accountSpending,
     budgets,
     savingsGoals,
     accounts,
@@ -146,19 +199,39 @@ async function buildFinancialContext(userId) {
   lines.push('Transfers between the user\'s own accounts are excluded from income, expense and net cash flow.');
 
   if (accounts.length > 0) {
-    lines.push('Account balances:');
+    lines.push('Account balances (name | type | balance):');
     for (const a of accounts) {
-      lines.push(`- ${a.name}: ${fmt(a.balance)}`);
+      lines.push(`- ${a.name} | ${a.type || 'not recorded'} | ${fmt(a.balance)}`);
+    }
+  }
+
+  if (netWorth.total > 0) {
+    lines.push('Net worth (from stored account types, backend-calculated):');
+    lines.push(`- Total: ${fmt(netWorth.total)}`);
+    lines.push(`- Liquid (cash + bank + e-wallet): ${fmt(netWorth.liquid)}`);
+    lines.push(`- Investment: ${fmt(netWorth.investment)}`);
+    if (netWorth.byType.length > 0) {
+      lines.push('- By type:');
+      for (const t of netWorth.byType) {
+        lines.push(`  - ${t.type}: ${fmt(t.balance)}`);
+      }
     }
   }
 
   if (categorySpending.length > 0) {
-    lines.push('Top spending categories (this month):');
+    lines.push('Spending by category (this month, backend-calculated from the actual category names):');
     for (const c of categorySpending) {
       lines.push(`- ${c.name || 'Uncategorized'}: ${fmt(c.total)}`);
     }
   } else {
-    lines.push('Top spending categories: none this month');
+    lines.push('Spending by category: none this month');
+  }
+
+  if (accountSpending.length > 0) {
+    lines.push('Spending by account (this month, expense only):');
+    for (const a of accountSpending) {
+      lines.push(`- ${a.name || 'Unknown account'}: ${fmt(a.total)}`);
+    }
   }
 
   if (budgets.length > 0) {
@@ -186,10 +259,16 @@ async function buildFinancialContext(userId) {
   }
 
   if (recent.length > 0) {
-    lines.push('Recent transactions (last 5):');
+    lines.push('Recent transactions (latest first):');
     for (const t of recent) {
       const desc = (t.description || t.category?.name || 'transaction').slice(0, 40);
-      lines.push(`- ${t.type}: ${desc} — ${fmt(t.amount)} (${fmtDate(t.date)})`);
+      const cat = t.category?.name ?? null;
+      const acct = t.account?.name ?? null;
+      lines.push(
+        `- ${fmtDate(t.date)} | ${t.type} | ${desc} | ${fmt(t.amount)}` +
+          (cat ? ` | category: ${cat}` : '') +
+          (acct ? ` | account: ${acct}` : ' | account: not recorded')
+      );
     }
   }
 
@@ -456,15 +535,6 @@ module.exports = {
  */
 async function getFinancialSnapshot(userId) {
   const data = await loadFinancialData(userId);
-  // Liquid = cash + bank + e-wallet; investment is tracked separately so the
-  // AI never conflates the whole balance with cash.
-  let liquidAssets = 0;
-  let investmentAssets = 0;
-  for (const a of data.accounts) {
-    const balance = Number(a.balance) || 0;
-    if (a.type === 'investment') investmentAssets += balance;
-    else liquidAssets += balance;
-  }
   return {
     currentMonthIncome: data.monthIncome,
     currentMonthExpense: data.monthExpense,
@@ -472,12 +542,36 @@ async function getFinancialSnapshot(userId) {
     previousMonthExpense: data.prevExpense,
     netCashFlow: data.netCashFlow,
     totalBalance: data.totalBalance,
-    liquidAssets,
-    investmentAssets,
+    // Liquid = cash + bank + e-wallet; investment tracked separately. Both the
+    // breakdown and the totals come from the shared computeNetWorth helper, so
+    // every AI feature reports the exact same numbers.
+    liquidAssets: data.netWorth.liquid,
+    investmentAssets: data.netWorth.investment,
+    netWorth: data.netWorth,
     accounts: data.accounts.map((a) => ({
       name: a.name,
       type: a.type,
       balance: Number(a.balance) || 0,
+    })),
+    // Backend-calculated totals grouped by the REAL database names. The AI must
+    // restate these exactly — never rename a category or account.
+    categorySpending: data.categorySpending.map((c) => ({
+      category: c.name ?? 'Uncategorized',
+      amount: Number(c.total) || 0,
+    })),
+    accountSpending: data.accountSpending.map((a) => ({
+      account: a.name ?? 'Unknown account',
+      amount: Number(a.total) || 0,
+    })),
+    // Raw, authoritative transaction list — dates, descriptions, amounts,
+    // types, categories and account names come straight from the database.
+    recentTransactions: data.recent.map((t) => ({
+      date: fmtDate(t.date),
+      description: (t.description || t.category?.name || 'transaction').slice(0, 40),
+      amount: Number(t.amount) || 0,
+      type: t.type,
+      category: t.category?.name ?? null,
+      account: t.account?.name ?? null,
     })),
   };
 }
