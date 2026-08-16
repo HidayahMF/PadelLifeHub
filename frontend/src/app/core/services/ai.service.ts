@@ -1,10 +1,15 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface AiReply {
   success: boolean;
   reply: string;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'ai';
+  content: string;
 }
 
 /** Transaction draft produced by the AI parser (read-only) and echoed back on confirm. */
@@ -40,6 +45,16 @@ export interface QuickAddCreateResult {
 @Injectable({ providedIn: 'root' })
 export class AiService {
   private api = inject(ApiService);
+
+  /**
+   * Chat history. Lives in the root service (not the component) and is backed
+   * by localStorage per user, so navigating between tabs/pages — or reloading
+   * the app — never loses the conversation. Only "Clear chat" removes it.
+   */
+  readonly messages = signal<ChatMessage[]>([]);
+
+  private static readonly CHAT_KEY_PREFIX = 'lifehub.ai.chat.';
+  private static readonly CHAT_MAX_MESSAGES = 200;
 
   // NOTE: ApiService already prefixes environment.apiUrl which ends in /api,
   // so these paths must NOT repeat the /api segment.
@@ -77,5 +92,63 @@ export class AiService {
   /** Goal progress analysis (deadlines, risk, priorities). */
   goalInsight(): Observable<AiReply> {
     return this.api.post<AiReply>('/ai/goal-insight');
+  }
+
+  /** Load the persisted chat for a user into memory (no-op when empty). */
+  loadChat(userId?: string): void {
+    this.messages.set(this.readStored(userId));
+  }
+
+  /**
+   * Persist the current in-memory chat for a user. Keeps only the most recent
+   * CHAT_MAX_MESSAGES entries so the key never grows out of control.
+   */
+  saveChat(userId?: string): void {
+    const capped = this.messages().slice(-AiService.CHAT_MAX_MESSAGES);
+    this.messages.set(capped);
+    if (typeof window === 'undefined') return;
+    try {
+      if (!userId) {
+        window.localStorage.removeItem(AiService.CHAT_KEY_PREFIX);
+        return;
+      }
+      window.localStorage.setItem(
+        `${AiService.CHAT_KEY_PREFIX}${userId}`,
+        JSON.stringify(capped)
+      );
+    } catch {
+      // Storage full / disabled — chat survives in memory only. Non-fatal.
+    }
+  }
+
+  /** Empty the in-memory chat and delete the persisted copy for a user. */
+  clearChat(userId?: string): void {
+    this.messages.set([]);
+    if (typeof window === 'undefined') return;
+    try {
+      if (userId) {
+        window.localStorage.removeItem(`${AiService.CHAT_KEY_PREFIX}${userId}`);
+      }
+    } catch {
+      // Non-fatal.
+    }
+  }
+
+  private readStored(userId?: string): ChatMessage[] {
+    if (typeof window === 'undefined' || !userId) return [];
+    try {
+      const raw = window.localStorage.getItem(`${AiService.CHAT_KEY_PREFIX}${userId}`);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as ChatMessage[];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (m) =>
+          m &&
+          typeof m.content === 'string' &&
+          (m.role === 'user' || m.role === 'ai')
+      );
+    } catch {
+      return [];
+    }
   }
 }

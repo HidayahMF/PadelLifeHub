@@ -1,4 +1,4 @@
-import { Component, inject, SecurityContext, signal, viewChild } from '@angular/core';
+import { Component, effect, inject, SecurityContext, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -7,15 +7,10 @@ import { CardComponent } from '../../layout/components/card.component';
 import { ButtonComponent } from '../../layout/components/button.component';
 import { IconComponent } from '../../layout/components/icon.component';
 import { AiService } from '../../core/services/ai.service';
+import type { ChatMessage } from '../../core/services/ai.service';
+import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { renderMarkdown } from '../../core/utils/markdown';
-
-type ChatRole = 'user' | 'ai';
-
-interface ChatMessage {
-  role: ChatRole;
-  content: string;
-}
 
 type QuickActionKey = 'financial' | 'daily' | 'habit' | 'goal';
 
@@ -269,11 +264,12 @@ export class AiComponent {
   private i18n = inject(I18nService);
   private route = inject(ActivatedRoute);
   private sanitizer = inject(DomSanitizer);
+  private auth = inject(AuthService);
 
   protected readonly t = this.i18n.t.bind(this.i18n);
   protected readonly quickActions = QUICK_ACTIONS;
 
-  protected readonly messages = signal<ChatMessage[]>([]);
+  protected readonly messages = this.ai.messages;
   protected readonly sending = signal(false);
   protected readonly error = signal<string | null>(null);
   protected input = '';
@@ -282,7 +278,19 @@ export class AiComponent {
 
   private readonly chatList = viewChild<{ nativeElement: HTMLElement }>('chatList');
 
+  private currentUserId: string | undefined;
+
   constructor() {
+    // Restore this user's persisted chat (survives tab switches & reloads),
+    // and swap to that user's history when the signed-in user changes.
+    effect(() => {
+      const id = this.auth.user()?._id;
+      if (id !== this.currentUserId) {
+        this.currentUserId = id;
+        this.ai.loadChat(id);
+      }
+    });
+
     // Entry points can deep-link with ?mode=… (e.g. Today → daily-plan,
     // Dashboard → financial) to auto-run the matching quick action.
     const mode = this.route.snapshot.queryParamMap.get('mode');
@@ -355,7 +363,7 @@ export class AiComponent {
   }
 
   protected clearChat(): void {
-    this.messages.set([]);
+    this.ai.clearChat(this.currentUserId);
     this.error.set(null);
     this.lastAttempt = null;
   }
@@ -372,10 +380,12 @@ export class AiComponent {
   }
 
   private pushUser(text: string): void {
-    this.messages.update((list) => [...list, { role: 'user', content: text }]);
+    this.ai.messages.update((list) => [...list, { role: 'user', content: text }]);
+    this.ai.saveChat(this.currentUserId);
   }
 
   private pushAi(text: string): void {
-    this.messages.update((list) => [...list, { role: 'ai', content: text }]);
+    this.ai.messages.update((list) => [...list, { role: 'ai', content: text }]);
+    this.ai.saveChat(this.currentUserId);
   }
 }
