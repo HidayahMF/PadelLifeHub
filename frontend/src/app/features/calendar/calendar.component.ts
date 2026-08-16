@@ -22,6 +22,8 @@ import {
   formatDateToLocalYYYYMMDD,
   getTodayLocalDate,
   localDateToDate,
+  utcIsoToWibDateTime,
+  wibDateTimeToUtcISO,
 } from '../../core/utils/date';
 
 type ViewMode = 'month' | 'week' | 'day' | 'agenda';
@@ -733,13 +735,9 @@ export class CalendarComponent implements OnInit {
 
   protected openEdit(reminder: Reminder): void {
     this.editing.set(reminder);
-    const d = toDate(reminder.datetime);
-    const ymd = formatDateToLocalYYYYMMDD(d);
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
     this.form = {
       title: reminder.title,
-      datetime: `${ymd}T${hh}:${mm}`,
+      datetime: utcIsoToWibDateTime(reminder.datetime),
       type: reminder.type,
       frequency: reminder.recurring?.isRecurring ? (reminder.recurring.frequency ?? 'monthly') : 'none',
     };
@@ -754,7 +752,7 @@ export class CalendarComponent implements OnInit {
     const isRecurring = this.form.frequency !== 'none';
     const payload: Partial<Reminder> = {
       title: this.form.title.trim(),
-      datetime: new Date(this.form.datetime).toISOString(),
+      datetime: wibDateTimeToUtcISO(this.form.datetime) ?? '',
       type: this.form.type as Reminder['type'],
       recurring: { isRecurring, frequency: isRecurring ? this.form.frequency : 'none' },
     };

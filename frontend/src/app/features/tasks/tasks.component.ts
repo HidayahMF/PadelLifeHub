@@ -25,6 +25,7 @@ import type {
   TaskRecurrenceFrequency,
 } from '../../core/models/task.model';
 import { formatDateTime, isOverdue, relativeDay } from '../../core/utils/format';
+import { utcIsoToWibDate, utcIsoToWibDateTime, wibDateTimeToUtcISO } from '../../core/utils/date';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'completed';
 
@@ -582,8 +583,8 @@ export class TasksComponent implements OnInit {
       description: task.description,
       category: typeof task.category === 'string' ? task.category : task.category?._id,
       status: task.status,
-      dueDate: task.dueDate ?? '',
-      reminder: task.reminder ?? '',
+      dueDate: utcIsoToWibDate(task.dueDate),
+      reminder: utcIsoToWibDateTime(task.reminder),
     };
     this.formRecurring = task.recurring?.isRecurring ? task.recurring.frequency : 'none';
     this.formDays = [...(task.recurring?.daysOfWeek ?? [])];
@@ -623,7 +624,7 @@ export class TasksComponent implements OnInit {
       title,
       category: this.form.category || null,
       dueDate: this.form.dueDate || null,
-      reminder: this.form.reminder || null,
+      reminder: this.form.reminder ? wibDateTimeToUtcISO(this.form.reminder) : null,
       tags: this.parseTags(this.tagsText),
       recurring: {
         isRecurring,

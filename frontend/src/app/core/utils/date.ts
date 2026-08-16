@@ -50,3 +50,40 @@ export function localDateToDate(ymd: string | null | undefined): Date | null {
 export function localMonthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
+
+/**
+ * Convert a naive "YYYY-MM-DDTHH:mm" value (from <input type="datetime-local">)
+ * into the UTC ISO instant representing the same wall-clock time in
+ * Asia/Jakarta (WIB, UTC+7). Without this, a UTC server parses the naive
+ * string as UTC and the reminder shifts by +7h when displayed back in WIB.
+ */
+export function wibDateTimeToUtcISO(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!m) return null;
+  const [y, mo, d, h, mi] = m.slice(1).map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h - 7, mi)).toISOString();
+}
+
+/**
+ * Inverse of wibDateTimeToUtcISO: format a stored date/ISO instant as a naive
+ * "YYYY-MM-DDTHH:mm" value for <input type="datetime-local">, in WIB.
+ */
+export function utcIsoToWibDateTime(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const wib = new Date(date.getTime() + 7 * 3_600_000);
+  return `${wib.getUTCFullYear()}-${pad(wib.getUTCMonth() + 1)}-${pad(wib.getUTCDate())}T${pad(wib.getUTCHours())}:${pad(wib.getUTCMinutes())}`;
+}
+
+/** Format a stored date/ISO instant as a "YYYY-MM-DD" string in WIB. */
+export function utcIsoToWibDate(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const wib = new Date(date.getTime() + 7 * 3_600_000);
+  return `${wib.getUTCFullYear()}-${pad(wib.getUTCMonth() + 1)}-${pad(wib.getUTCDate())}`;
+}

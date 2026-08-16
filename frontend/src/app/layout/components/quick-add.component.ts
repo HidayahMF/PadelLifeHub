@@ -24,7 +24,7 @@ import { FieldComponent } from './field.component';
 import { SelectComponent, type SelectOption } from './select.component';
 import { IconComponent } from './icon.component';
 import type { Account, Category } from '../../core/models/finance.model';
-import { getTodayLocalDate } from '../../core/utils/date';
+import { getTodayLocalDate, wibDateTimeToUtcISO } from '../../core/utils/date';
 
 type EntityKey = 'task' | 'transaction' | 'note' | 'goal' | 'reminder' | 'wishlist' | 'need';
 
@@ -490,7 +490,7 @@ export class QuickAddComponent implements OnInit, OnDestroy {
             priority: this.taskForm.priority || 'medium',
             category: this.taskForm.category || null,
             dueDate: this.taskForm.dueDate || null,
-            reminder: this.taskForm.reminder || null,
+            reminder: this.taskForm.reminder ? wibDateTimeToUtcISO(this.taskForm.reminder) : null,
           })
           .subscribe(finish(this.t('Task created')));
         break;
@@ -554,7 +554,7 @@ export class QuickAddComponent implements OnInit, OnDestroy {
         this.reminderService
           .create({
             title,
-            datetime: this.reminderForm.datetime,
+            datetime: wibDateTimeToUtcISO(this.reminderForm.datetime) ?? '',
             type: this.reminderForm.type || 'custom',
           })
           .subscribe(finish(this.t('Reminder created')));
