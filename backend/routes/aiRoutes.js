@@ -46,6 +46,8 @@ const aiDailyLimiter = rateLimit({
 router.use(protect);
 
 router.post('/chat', aiPerMinuteLimiter, aiDailyLimiter, aiController.chat);
+router.post('/parse-transaction', aiPerMinuteLimiter, aiDailyLimiter, aiController.parseTransaction);
+router.post('/create-transaction', aiPerMinuteLimiter, aiDailyLimiter, aiController.createTransaction);
 router.post('/financial-insight', aiPerMinuteLimiter, aiDailyLimiter, aiController.financialInsight);
 router.post('/daily-plan', aiPerMinuteLimiter, aiDailyLimiter, aiController.dailyPlan);
 router.post('/habit-insight', aiPerMinuteLimiter, aiDailyLimiter, aiController.habitInsight);

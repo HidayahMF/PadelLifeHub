@@ -22,6 +22,7 @@ import { CategoryService } from '../../core/services/category.service';
 import { SettingService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { AiService, QuickAddDraft } from '../../core/services/ai.service';
 import type {
   Account,
   Budget,
@@ -87,6 +88,97 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
       <app-stat-card [label]="t('Expenses (month)')" [value]="displayAmount(monthExpense())" icon="trending-down" tone="danger" />
       <app-stat-card [label]="t('Transactions')" [value]="transactions().length" icon="receipt" />
     </div>
+
+    <!-- Quick Add Finance -->
+    <app-card class="mb-6">
+      <div class="flex items-center gap-2">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <app-icon name="sparkles" [size]="18" />
+        </span>
+        <div>
+          <p class="text-sm font-bold text-ink">{{ t('Quick Add Finance') }}</p>
+          <p class="text-xs text-ink-soft">{{ t('Type a transaction in plain language, preview it, then confirm.') }}</p>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <input
+          class="h-11 min-w-0 flex-1 rounded-field border-2 bg-surface px-3.5 text-sm font-medium text-ink placeholder:font-normal placeholder:text-ink-faint transition-all duration-150 focus:outline-none disabled:cursor-not-allowed disabled:bg-surface-2"
+          [ngModel]="quickAddText()"
+          (ngModelChange)="quickAddText.set($event)"
+          (keydown.enter)="parseQuickAdd()"
+          [placeholder]="t('e.g. jajan 15k bca')"
+          [disabled]="quickParsing() || quickSaving()"
+          [attr.aria-label]="t('Quick Add Finance')"
+          autocomplete="off"
+        />
+        <app-button
+          variant="secondary"
+          [loading]="quickParsing()"
+          [disabled]="!quickAddText().trim() || quickSaving()"
+          (click)="parseQuickAdd()"
+        >{{ t('Parse') }}</app-button>
+      </div>
+
+      @if (quickReply()) {
+        <p class="mt-3 text-sm text-ink-soft">{{ quickReply() }}</p>
+      }
+
+      @if (quickDraft()) {
+        <div class="mt-4 rounded-xl border border-line bg-surface-2/60 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold text-ink">
+                {{ quickDraft()!.description || t('Transaction') }}
+              </p>
+              <p class="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-ink-soft">
+                @if (quickDraft()!.type === 'transfer') {
+                  <span class="font-medium text-ink-soft">{{ quickDraft()!.fromAccountName }} → {{ quickDraft()!.toAccountName }}</span>
+                } @else {
+                  <span class="flex items-center gap-1">
+                    {{ quickDraft()!.accountName }}
+                    @if (quickDraft()!.categoryName) {
+                      <span class="inline-block h-2 w-2 rounded-full bg-warning"></span>
+                      <span>{{ quickDraft()!.categoryName }}</span>
+                    }
+                  </span>
+                }
+              </p>
+            </div>
+            <div class="shrink-0 text-right">
+              <p
+                class="text-base font-bold"
+                [class.text-success]="quickDraft()!.type === 'income'"
+                [class.text-danger]="quickDraft()!.type === 'expense'"
+                [class.text-ink]="quickDraft()!.type === 'transfer'"
+              >
+                {{ quickDraft()!.type === 'transfer' ? '' : quickDraft()!.type === 'income' ? '+' : '−' }}{{ formatCurrency(quickDraft()!.amount) }}
+              </p>
+              <p
+                class="mt-0.5 text-xs font-bold uppercase tracking-wide"
+                [class.text-success]="quickDraft()!.type === 'income'"
+                [class.text-danger]="quickDraft()!.type === 'expense'"
+                [class.text-primary]="quickDraft()!.type === 'transfer'"
+              >
+                {{ quickTypeLabel(quickDraft()!.type) }}
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end gap-2">
+            <app-button
+              type="button"
+              variant="secondary"
+              [disabled]="quickSaving()"
+              (click)="cancelQuickAdd()"
+            >{{ t('Cancel') }}</app-button>
+            <app-button
+              type="button"
+              [loading]="quickSaving()"
+              (click)="confirmQuickAdd()"
+            >{{ t('Save transaction') }}</app-button>
+          </div>
+        </div>
+      }
+    </app-card>
 
     <!-- Accounts -->
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -432,6 +524,7 @@ export class FinanceComponent implements OnInit {
   private budgetService = inject(BudgetService);
   private categoryService = inject(CategoryService);
   private settingService = inject(SettingService);
+  private aiService = inject(AiService);
   private toast = inject(ToastService);
   private i18n = inject(I18nService);
 
@@ -465,6 +558,13 @@ export class FinanceComponent implements OnInit {
   protected txnRecurring: RecurringFrequency = 'none';
   protected accountForm: Partial<Account> = {};
   protected budgetForm: Partial<Budget> = {};
+
+  // Quick Add Finance — natural-language transactions with a preview/confirm.
+  protected readonly quickAddText = signal('');
+  protected readonly quickParsing = signal(false);
+  protected readonly quickSaving = signal(false);
+  protected readonly quickDraft = signal<QuickAddDraft | null>(null);
+  protected readonly quickReply = signal('');
 
   protected readonly typeOptions = computed(() => [
     { value: 'all', label: this.t('All') },
@@ -602,6 +702,58 @@ export class FinanceComponent implements OnInit {
 
   protected setTxnType(t: string): void {
     this.txnForm = { ...this.txnForm, type: t as TransactionType };
+  }
+
+  /** READ ONLY: ask the AI to turn the typed message into a transaction draft. */
+  protected parseQuickAdd(): void {
+    const message = this.quickAddText().trim();
+    if (!message || this.quickParsing() || this.quickSaving()) return;
+    this.quickParsing.set(true);
+    this.quickDraft.set(null);
+    this.quickReply.set('');
+    this.aiService.parseTransaction(message).subscribe({
+      next: (res) => {
+        this.quickParsing.set(false);
+        this.quickReply.set(res.reply ?? '');
+        if (res.intent === 'transaction' && res.draft) {
+          this.quickDraft.set(res.draft);
+        }
+      },
+      error: (err: Error) => {
+        this.quickParsing.set(false);
+        this.toast.error(err.message);
+      },
+    });
+  }
+
+  protected cancelQuickAdd(): void {
+    this.quickDraft.set(null);
+    this.quickReply.set('');
+  }
+
+  /** THE WRITE: confirm the preview — the backend re-validates everything. */
+  protected confirmQuickAdd(): void {
+    const draft = this.quickDraft();
+    if (!draft || this.quickSaving()) return;
+    this.quickSaving.set(true);
+    this.aiService.createTransaction(draft).subscribe({
+      next: () => {
+        this.quickSaving.set(false);
+        this.quickDraft.set(null);
+        this.quickReply.set('');
+        this.quickAddText.set('');
+        this.toast.success(this.t('New transaction saved'));
+        this.reload();
+      },
+      error: (err: Error) => {
+        this.quickSaving.set(false);
+        this.toast.error(err.message);
+      },
+    });
+  }
+
+  protected quickTypeLabel(type: string): string {
+    return this.t(type === 'income' ? 'Income' : type === 'expense' ? 'Expense' : 'Transfer');
   }
 
   protected isExpense(): boolean {

@@ -39,7 +39,41 @@ const behavior = {
   reminderFind: [],
   settingFind: null,
   userById: { _id: USER_A, name: 'User A', email: 'a@test.dev' },
+  // Quick Add (natural language transactions) fixtures.
+  accounts: [],
+  categories: [],
+  transactionCreateCalls: [],
+  transactionCreate: (doc) => {
+    const created = { _id: 'txn-created', ...doc, createdAt: new Date(), updatedAt: new Date() };
+    behavior.transactionCreateCalls.push(doc);
+    return created;
+  },
 };
+
+const QUICK_ACCOUNTS = [
+  { _id: 'acc-bca', name: 'Bank BCA', type: 'bank', balance: 100000, user: USER_A },
+  { _id: 'acc-bni', name: 'Bank BNI', type: 'bank', balance: 500000, user: USER_A },
+  { _id: 'acc-gopay', name: 'GoPay', type: 'ewallet', balance: 100000, user: USER_A },
+  { _id: 'acc-bca-b', name: "B's BCA", type: 'bank', balance: 999, user: USER_B },
+];
+
+const QUICK_CATEGORIES = [
+  { _id: 'cat-food', name: 'Food & Drinks', color: '#FF9F1C', icon: 'utensils', type: 'transaction', user: USER_A },
+  { _id: 'cat-b-food', name: "B's Food", color: '#FF9F1C', icon: 'utensils', type: 'transaction', user: USER_B },
+];
+
+/** Reset quick-add fixtures to a known state (live objects so balance changes persist). */
+function resetQuickAddData() {
+  behavior.transactionCreateCalls.length = 0;
+  behavior.accounts = QUICK_ACCOUNTS.map((a) => {
+    const obj = { ...a, user: a.user };
+    obj.save = async function () {
+      return obj;
+    };
+    return obj;
+  });
+  behavior.categories = QUICK_CATEGORIES.map((c) => ({ ...c, user: c.user }));
+}
 
 const captured = { txFindFilters: [], txAggregateMatches: [], taskFindFilters: [], habitFindFilters: [] };
 
@@ -57,13 +91,14 @@ function chain(getDocs) {
   return q;
 }
 
-function createModel({ find = () => [], findOne = null, findById = null, aggregate = () => [], count = () => 0 } = {}) {
+function createModel({ find = () => [], findOne = null, findById = null, aggregate = () => [], count = () => 0, create = null } = {}) {
   return {
     find: (filter) => chain(() => find(filter)),
     findOne: async (filter) => findOne(filter),
     findById: (id) => chain(() => findById(id)),
     aggregate: async (pipeline) => aggregate(pipeline),
     countDocuments: async (filter) => count(filter),
+    create: async (doc) => create(doc),
   };
 }
 
@@ -110,7 +145,55 @@ stubModule('../models/Habit', createModel({
   },
 }));
 stubModule('../models/Goal', createModel({ find: () => behavior.goalFind }));
-stubModule('../models/Account', createModel({ aggregate: () => behavior.accountAggregate }));
+stubModule('../models/Account', {
+  find: (filter) =>
+    chain(() =>
+      filter && filter.user
+        ? behavior.accounts.filter((a) => String(a.user) === String(filter.user))
+        : behavior.accounts
+    ),
+  findOne: async (filter) => {
+    const acc = behavior.accounts.find((a) => String(a._id) === String(filter?._id));
+    if (!acc) return null;
+    if (typeof acc.save !== 'function') acc.save = async function () { return acc; };
+    return acc;
+  },
+  findById: (id) => chain(() => behavior.accounts.find((a) => String(a._id) === String(id)) || null),
+  aggregate: async () => behavior.accountAggregate,
+  countDocuments: async (filter) => {
+    const ids = filter?._id?.$in || [];
+    return behavior.accounts.filter(
+      (a) =>
+        String(a.user) === String(filter?.user) && ids.some((id) => String(id) === String(a._id))
+    ).length;
+  },
+  create: async (doc) => {
+    const acc = { _id: 'acc-created', ...doc };
+    acc.save = async function () { return acc; };
+    behavior.accounts.push(acc);
+    return acc;
+  },
+});
+stubModule('../models/Category', {
+  find: (filter) =>
+    chain(() =>
+      behavior.categories.filter(
+        (c) =>
+          (!filter?.user || String(c.user) === String(filter.user)) &&
+          (!filter?.type || c.type === filter.type)
+      )
+    ),
+  findOne: async (filter) =>
+    behavior.categories.find(
+      (c) => String(c._id) === String(filter?._id) && String(c.user) === String(filter?.user)
+    ) || null,
+  findById: (id) => chain(() => behavior.categories.find((c) => String(c._id) === String(id)) || null),
+  create: async (doc) => {
+    const cat = { _id: 'cat-created', ...doc };
+    behavior.categories.push(cat);
+    return cat;
+  },
+});
 stubModule('../models/Budget', createModel({ find: () => behavior.budgetFind }));
 stubModule('../models/Reminder', createModel({ find: () => behavior.reminderFind }));
 stubModule('../models/Setting', createModel({ findOne: () => behavior.settingFind }));
@@ -123,6 +206,7 @@ stubModule('../models/Transaction', createModel({
     captured.txAggregateMatches.push(pipeline[0]?.$match || {});
     return behavior.txAggregate(pipeline);
   },
+  create: (doc) => behavior.transactionCreate(doc),
 }));
 stubModule('../services/geminiService', geminiServiceStub);
 
@@ -161,15 +245,25 @@ const post = (path, body, headers = {}) =>
 test('unauthenticated AI request is rejected with 401', async () => {
   for (const path of [
     '/api/ai/chat',
+    '/api/ai/parse-transaction',
+    '/api/ai/create-transaction',
     '/api/ai/financial-insight',
     '/api/ai/daily-plan',
     '/api/ai/habit-insight',
     '/api/ai/goal-insight',
   ]) {
-    const res = await post(path, path === '/api/ai/chat' ? { message: 'hi' } : {});
+    const body =
+      path === '/api/ai/chat'
+        ? { message: 'hi' }
+        : path === '/api/ai/parse-transaction'
+          ? { message: 'jajan 15k bca' }
+          : path === '/api/ai/create-transaction'
+            ? { draft: { type: 'expense', amount: 15000 } }
+            : {};
+    const res = await post(path, body);
     assert.strictEqual(res.status, 401, path);
-    const body = await res.json();
-    assert.strictEqual(body.success, false);
+    const json = await res.json();
+    assert.strictEqual(json.success, false);
   }
 });
 
@@ -183,10 +277,12 @@ test('an invalid token is rejected with 401', async () => {
 // ---------------------------------------------------------------------------
 test('empty / missing message returns 400', async () => {
   for (const body of [{}, { message: '' }, { message: '   ' }, { message: 42 }]) {
-    const res = await post('/api/ai/chat', body, authHeaders());
-    assert.strictEqual(res.status, 400);
-    const json = await res.json();
-    assert.strictEqual(json.message, 'Message is required.');
+    for (const path of ['/api/ai/chat', '/api/ai/parse-transaction']) {
+      const res = await post(path, body, authHeaders());
+      assert.strictEqual(res.status, 400, `${path} ${JSON.stringify(body)}`);
+      const json = await res.json();
+      assert.strictEqual(json.message, 'Message is required.');
+    }
   }
 });
 
@@ -376,4 +472,417 @@ test('empty datasets produce a graceful “no data” context, not a crash', asy
   assert.ok(habits.includes('none'));
   const goals = await aiContext.buildGoalContext(USER_A);
   assert.ok(goals.includes('none'));
+});
+
+// ---------------------------------------------------------------------------
+// Quick Add Finance — natural language transaction parsing + confirmation
+// ---------------------------------------------------------------------------
+
+const QUICK_AUTH = authHeaders(USER_A);
+
+function geminiJson(data) {
+  return JSON.stringify(data);
+}
+
+async function postParse(message) {
+  return post('/api/ai/parse-transaction', { message }, QUICK_AUTH);
+}
+
+async function postCreate(draft) {
+  return post('/api/ai/create-transaction', { draft }, QUICK_AUTH);
+}
+
+test('quick-add: parse is READ ONLY — never creates a transaction', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'expense',
+      amount: 15000,
+      description: 'Jajan',
+      category: 'Food & Drinks',
+      account: 'Bank BCA',
+      fromAccount: null,
+      toAccount: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const res = await postParse('jajan 15k bca');
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.type, 'expense');
+    assert.strictEqual(json.draft.amount, 15000);
+    assert.strictEqual(json.draft.accountName, 'Bank BCA');
+    assert.strictEqual(json.draft.categoryId, 'cat-food');
+    // Parse must not touch the database.
+    assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+    assert.strictEqual(behavior.accounts.find((a) => a._id === 'acc-bca').balance, 100000);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: income "gajian 5jt bca" parses to income 5000000 on BCA', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'income',
+      amount: 5000000,
+      description: 'Gaji',
+      category: 'Salary',
+      account: 'Bank BCA',
+      fromAccount: null,
+      toAccount: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const json = await (await postParse('gajian 5jt bca')).json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.type, 'income');
+    assert.strictEqual(json.draft.amount, 5000000);
+    assert.strictEqual(json.draft.accountName, 'Bank BCA');
+    assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: transfer "transfer 100k bni ke gopay" → BNI → GoPay', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'transfer',
+      amount: 100000,
+      description: 'Transfer',
+      category: null,
+      fromAccount: 'Bank BNI',
+      toAccount: 'GoPay',
+      account: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const json = await (await postParse('transfer 100k bni ke gopay')).json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.type, 'transfer');
+    assert.strictEqual(json.draft.amount, 100000);
+    assert.strictEqual(json.draft.fromAccountName, 'Bank BNI');
+    assert.strictEqual(json.draft.toAccountName, 'GoPay');
+    assert.strictEqual(json.draft.accountName, undefined);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: natural transfer "isi gopay 100rb dari bca" → BCA → GoPay (not expense)', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'transfer',
+      amount: 100000,
+      description: 'Isi GoPay',
+      category: null,
+      fromAccount: 'Bank BCA',
+      toAccount: 'GoPay',
+      account: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const json = await (await postParse('isi gopay 100rb dari bca')).json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.type, 'transfer');
+    assert.strictEqual(json.draft.fromAccountName, 'Bank BCA');
+    assert.strictEqual(json.draft.toAccountName, 'GoPay');
+    assert.strictEqual(json.draft.amount, 100000);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: account alias "jajan 15k BANK BCA" resolves to "Bank BCA"', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'expense',
+      amount: 15000,
+      description: 'Jajan',
+      category: 'Food & Drinks',
+      account: 'BCA',
+      fromAccount: null,
+      toAccount: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const json = await (await postParse('jajan 15k BANK BCA')).json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.accountName, 'Bank BCA');
+    assert.strictEqual(json.draft.accountId, 'acc-bca');
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: question intent is never turned into a transaction', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'question',
+      type: null,
+      amount: null,
+      description: null,
+      category: null,
+      fromAccount: null,
+      toAccount: null,
+      account: null,
+      reply: 'Itu pertanyaan, bukan transaksi.',
+    });
+  try {
+    const json = await (await postParse('berapa saldo bca?')).json();
+    assert.strictEqual(json.intent, 'question');
+    assert.strictEqual(json.draft, undefined);
+    assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: missing account → clarification', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'clarify',
+      type: 'expense',
+      amount: 15000,
+      description: 'Jajan',
+      category: null,
+      fromAccount: null,
+      toAccount: null,
+      account: null,
+      reply: 'Mau dipotong dari rekening mana?',
+    });
+  try {
+    const json = await (await postParse('jajan 15k')).json();
+    assert.strictEqual(json.intent, 'clarify');
+    assert.ok(json.reply.toLowerCase().includes('rekening'));
+    assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: missing amount → clarification', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'clarify',
+      type: 'expense',
+      amount: null,
+      description: 'Jajan',
+      category: null,
+      fromAccount: null,
+      toAccount: null,
+      account: 'Bank BCA',
+      reply: 'Berapa nominal transaksinya?',
+    });
+  try {
+    const json = await (await postParse('jajan bca')).json();
+    assert.strictEqual(json.intent, 'clarify');
+    assert.ok(json.reply.toLowerCase().includes('nominal'));
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: confirm creates the transaction and updates the expense balance', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'expense',
+    amount: 15000,
+    description: 'Jajan',
+    categoryId: null,
+    categoryName: 'Food & Drinks',
+    accountId: 'acc-bca',
+    accountName: 'Bank BCA',
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.strictEqual(json.created, true);
+  assert.strictEqual(json.success, true);
+  assert.strictEqual(behavior.transactionCreateCalls.length, 1);
+  const doc = behavior.transactionCreateCalls[0];
+  assert.strictEqual(String(doc.user), USER_A);
+  assert.strictEqual(doc.type, 'expense');
+  assert.strictEqual(doc.amount, 15000);
+  assert.strictEqual(String(doc.account), 'acc-bca');
+  assert.strictEqual(String(doc.category), 'cat-food');
+  const bca = behavior.accounts.find((a) => a._id === 'acc-bca');
+  assert.strictEqual(bca.balance, 85000); // 100.000 - 15.000
+});
+
+test('quick-add: income confirm adds to the account balance', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'income',
+    amount: 50000,
+    description: 'Gajian',
+    categoryId: null,
+    categoryName: 'Salary',
+    accountId: 'acc-bca',
+    accountName: 'Bank BCA',
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.strictEqual(json.created, true);
+  const bca = behavior.accounts.find((a) => a._id === 'acc-bca');
+  assert.strictEqual(bca.balance, 150000); // 100.000 + 50.000
+});
+
+test('quick-add: transfer confirm moves money between two accounts', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'transfer',
+    amount: 100000,
+    description: 'Transfer',
+    fromAccountId: 'acc-bni',
+    fromAccountName: 'Bank BNI',
+    toAccountId: 'acc-gopay',
+    toAccountName: 'GoPay',
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.strictEqual(json.created, true);
+  const doc = behavior.transactionCreateCalls[0];
+  assert.strictEqual(doc.type, 'transfer');
+  assert.strictEqual(String(doc.fromAccount), 'acc-bni');
+  assert.strictEqual(String(doc.toAccount), 'acc-gopay');
+  assert.strictEqual(behavior.accounts.find((a) => a._id === 'acc-bni').balance, 400000); // 500.000 - 100.000
+  assert.strictEqual(behavior.accounts.find((a) => a._id === 'acc-gopay').balance, 200000); // 100.000 + 100.000
+});
+
+test('quick-add: confirm rejects an account owned by another user', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'expense',
+    amount: 15000,
+    description: 'Jajan',
+    categoryId: null,
+    categoryName: null,
+    accountId: 'acc-bca-b',
+    accountName: "B's BCA",
+  });
+  assert.strictEqual(res.status, 400);
+  const json = await res.json();
+  assert.ok(json.message.toLowerCase().includes('account'));
+  assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+});
+
+test('quick-add: confirm rejects a category owned by another user', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'expense',
+    amount: 15000,
+    description: 'Jajan',
+    categoryId: 'cat-b-food',
+    categoryName: null,
+    accountId: 'acc-bca',
+    accountName: 'Bank BCA',
+  });
+  assert.strictEqual(res.status, 400);
+  const json = await res.json();
+  assert.ok(json.message.toLowerCase().includes('category'));
+  assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+});
+
+test('quick-add: confirm rejects an invalid amount', async () => {
+  resetQuickAddData();
+  for (const amount of [-15000, 0, 'abc']) {
+    const res = await postCreate({
+      type: 'expense',
+      amount,
+      description: 'Jajan',
+      categoryId: null,
+      categoryName: null,
+      accountId: 'acc-bca',
+    });
+    assert.strictEqual(res.status, 400, `amount=${amount}`);
+    const json = await res.json();
+    assert.ok(json.message.toLowerCase().includes('amount'));
+  }
+  assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+});
+
+test('quick-add: confirm rejects an invalid type', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'gambling',
+    amount: 15000,
+    description: 'Jajan',
+    categoryId: null,
+    categoryName: null,
+    accountId: 'acc-bca',
+  });
+  assert.strictEqual(res.status, 400);
+  const json = await res.json();
+  assert.ok(json.message.toLowerCase().includes('type'));
+});
+
+test('quick-add: confirm rejects a transfer with equal source/destination', async () => {
+  resetQuickAddData();
+  const res = await postCreate({
+    type: 'transfer',
+    amount: 100000,
+    description: 'Transfer',
+    fromAccountId: 'acc-bca',
+    toAccountId: 'acc-bca',
+  });
+  assert.strictEqual(res.status, 400);
+  const json = await res.json();
+  assert.ok(json.message.toLowerCase().includes('different accounts'));
+});
+
+test('quick-add: confirm without a draft is rejected', async () => {
+  resetQuickAddData();
+  const res = await post('/api/ai/create-transaction', {}, QUICK_AUTH);
+  assert.strictEqual(res.status, 400);
+  const json = await res.json();
+  assert.ok(json.message.toLowerCase().includes('draft'));
+});
+
+test('quick-add: confirm auto-creates a missing "Food & Drinks" category on save', async () => {
+  resetQuickAddData();
+  behavior.categories = QUICK_CATEGORIES.filter((c) => c.name !== 'Food & Drinks');
+  const before = behavior.categories.length;
+  const res = await postCreate({
+    type: 'expense',
+    amount: 15000,
+    description: 'Jajan',
+    categoryId: null,
+    categoryName: 'Food & Drinks',
+    accountId: 'acc-bca',
+    accountName: 'Bank BCA',
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(behavior.categories.length, before + 1);
+  const created = behavior.categories.find((c) => c.name === 'Food & Drinks');
+  assert.ok(created);
+  assert.strictEqual(String(created.user), USER_A);
+  assert.strictEqual(String(behavior.transactionCreateCalls[0].category), String(created._id));
+});
+
+test('quick-add: parse with no accounts asks the user to create one first', async () => {
+  resetQuickAddData();
+  behavior.accounts = [];
+  gemini.generate = async () => 'unused';
+  try {
+    const json = await (await postParse('jajan 15k bca')).json();
+    assert.strictEqual(json.intent, 'clarify');
+    assert.ok(json.reply.toLowerCase().includes('rekening'));
+    assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
 });
