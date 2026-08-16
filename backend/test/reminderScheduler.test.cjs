@@ -210,6 +210,15 @@ stubModule('../models/Notification', {
     return n;
   },
   findOne: async () => null,
+  deleteMany: async (filter) => {
+    behavior.notifications = behavior.notifications.filter((n) => {
+      if (String(n.user) !== String(filter?.user)) return true;
+      if (filter?.type && n.type !== filter.type) return true;
+      if (filter?.relatedId && String(n.relatedId) !== String(filter.relatedId)) return true;
+      if (filter?._id?.$in && !filter._id.$in.some((id) => String(id) === String(n._id))) return true;
+      return false;
+    });
+  },
 });
 stubModule('../models/Setting', { findOne: async () => behavior.settings });
 stubModule('../models/Budget', {
@@ -378,20 +387,31 @@ test('updateTask completion deactivates linked reminders', async () => {
   reset();
   const task = makeTask({ reminder: null });
   const rem = makeReminder({ type: 'task', relatedId: task._id });
+  behavior.notifications.push({
+    _id: 'nstale', user: USER, type: 'task', relatedId: task._id,
+    title: 'tes', message: 'Task due reminder — tes', read: false,
+  });
   const req = { params: { id: task._id }, user: { _id: USER }, body: { status: 'completed' } };
   const res = { statusCode: 0, json: () => {}, status(c) { this.statusCode = c; return this; } };
   await taskController.updateTask(req, res, () => {});
   assert.strictEqual(rem.active, false);
   assert.strictEqual(rem.sent, true);
+  // Completing the task must also drop its stale "Task due reminder" item.
+  assert.strictEqual(behavior.notifications.length, 0);
 });
 
 test('deleteTask removes linked reminders', async () => {
   reset();
   const task = makeTask({ reminder: null });
   makeReminder({ type: 'task', relatedId: task._id });
+  behavior.notifications.push({
+    _id: 'nstale', user: USER, type: 'task', relatedId: task._id,
+    title: 'tes', message: 'Task due reminder — tes', read: false,
+  });
   const req = { params: { id: task._id }, user: { _id: USER } };
   const res = { statusCode: 0, json: () => {}, status(c) { this.statusCode = c; return this; } };
   await taskController.deleteTask(req, res, () => {});
   assert.strictEqual(behavior.reminders.filter((r) => r.type === 'task').length, 0);
   assert.strictEqual(behavior.tasks.length, 0);
+  assert.strictEqual(behavior.notifications.length, 0);
 });
