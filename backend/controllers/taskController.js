@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const Category = require('../models/Category');
+const Notification = require('../models/Notification');
 const { nextOccurrence } = require('../services/taskScheduler');
 const { cleanupTaskReminders } = require('../services/reminderScheduler');
 
@@ -139,12 +140,18 @@ const updateTask = async (req, res, next) => {
 
     // A completed, archived or trashed task must never fire a reminder again:
     // deactivate every Reminder doc linked to it (visible in the calendar but
-    // inert). The scheduler also validates this at runtime as a backstop.
+    // inert) and drop its notifications so stale "Task due reminder" items
+    // don't linger. The scheduler also validates this at runtime as a backstop.
     if (updated.status === 'completed' || updated.archived || updated.trashed) {
       await cleanupTaskReminders({
         user: req.user._id,
         taskId: updated._id,
         remove: false,
+      });
+      await Notification.deleteMany({
+        user: req.user._id,
+        type: 'task',
+        relatedId: updated._id,
       });
     }
 
@@ -166,11 +173,17 @@ const deleteTask = async (req, res, next) => {
       throw new Error('Task not found');
     }
 
-    // Remove linked reminders so a deleted task can never fire again.
+    // Remove linked reminders + notifications so a deleted task can never fire
+    // again nor leave stale "Task due reminder" items behind.
     await cleanupTaskReminders({
       user: req.user._id,
       taskId: task._id,
       remove: true,
+    });
+    await Notification.deleteMany({
+      user: req.user._id,
+      type: 'task',
+      relatedId: task._id,
     });
 
     res.json({ message: 'Task removed' });
