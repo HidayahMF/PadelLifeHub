@@ -8,6 +8,10 @@ import type {
   TodayData,
   InsightsData,
   WeeklyReviewData,
+  MonthlyReviewData,
+  FocusSession,
+  FocusSessionPayload,
+  FocusStats,
 } from '../models/misc.model';
 import type { QueryParams } from './api.service';
 import { ApiService } from './api.service';
@@ -121,5 +125,35 @@ export class WeeklyReviewService {
     improve?: string;
   }) {
     return this.api.put<WeeklyReviewData>('/weekly-review', payload);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FocusSessionService {
+  private api = inject(ApiService);
+
+  /** Record a completed/interrupted focus session (idempotent per clientId). */
+  create(payload: FocusSessionPayload) {
+    return this.api.post<FocusSession>('/focus-sessions', payload);
+  }
+
+  /** Focus time today / this week / this month (server-computed). */
+  stats() {
+    return this.api.get<FocusStats>('/focus-sessions/stats');
+  }
+}
+
+export class MonthlyReviewService {
+  private api = inject(ApiService);
+
+  get(month?: string) {
+    return this.api.get<MonthlyReviewData>('/monthly-review', month ? { month } : undefined);
+  }
+
+  aiSummary(month?: string) {
+    return this.api.post<{ success: boolean; month: string; reply: string }>(
+      '/monthly-review/ai-summary',
+      month ? { month } : {}
+    );
   }
 }

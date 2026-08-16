@@ -197,6 +197,10 @@ stubModule('../models/Category', {
 stubModule('../models/Budget', createModel({ find: () => behavior.budgetFind }));
 stubModule('../models/Reminder', createModel({ find: () => behavior.reminderFind }));
 stubModule('../models/Setting', createModel({ findOne: () => behavior.settingFind }));
+stubModule('../models/FocusSession', createModel({
+  // Focus time is part of the chat/general context; return zero by default.
+  aggregate: async () => [{ _id: null, duration: 0 }],
+}));
 stubModule('../models/Transaction', createModel({
   find: (filter) => {
     captured.txFindFilters.push(filter);

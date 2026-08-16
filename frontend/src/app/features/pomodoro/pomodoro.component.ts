@@ -3,10 +3,23 @@ import { CardComponent } from '../../layout/components/card.component';
 import { ButtonComponent } from '../../layout/components/button.component';
 import { ToastService } from '../../core/services/toast.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { FocusSessionService } from '../../core/services/data.service';
+import type { FocusSessionPayload } from '../../core/models/misc.model';
 
 type Mode = 'focus' | 'short' | 'long';
 const DURATIONS: Record<Mode, number> = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
 const CYCLE_BREAK_EVERY = 4;
+
+// Interrupted runs shorter than this are ignored (accidental taps / quick resets).
+const MIN_FOCUS_SECONDS = 30;
+
+/** Random id per focus run — crypto.randomUUID() where available, else a fallback. */
+function newRunId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 @Component({
   selector: 'app-pomodoro',
@@ -109,6 +122,7 @@ const CYCLE_BREAK_EVERY = 4;
 export class PomodoroComponent implements OnDestroy {
   private toast = inject(ToastService);
   private i18n = inject(I18nService);
+  private focusSessions = inject(FocusSessionService);
 
   protected readonly t = this.i18n.t.bind(this.i18n);
 
@@ -121,6 +135,11 @@ export class PomodoroComponent implements OnDestroy {
   // to every tick (a plain property would leave the timer looking frozen).
   private readonly remaining = signal(DURATIONS.focus);
   private timer: ReturnType<typeof setInterval> | null = null;
+
+  // Idempotency key for the current focus run. Created when a focus run starts
+  // and consumed when the run is recorded (completed or interrupted), so a
+  // retried/duplicated POST can never create two sessions.
+  private focusRunClientId: string | null = null;
 
   protected readonly circumference = 2 * Math.PI * 86;
 
@@ -145,6 +164,9 @@ export class PomodoroComponent implements OnDestroy {
   protected readonly cycleLength = computed(() => CYCLE_BREAK_EVERY);
 
   setMode(mode: Mode): void {
+    // Leaving a focus run early (switching to a break) is an interruption.
+    // Re-selecting the current mode is not.
+    if (mode !== this.mode()) this.persistInterrupted();
     this.stopTimer();
     this.mode.set(mode);
     this.remaining.set(DURATIONS[mode]);
@@ -156,6 +178,10 @@ export class PomodoroComponent implements OnDestroy {
       this.stopTimer();
       this.running.set(false);
       return;
+    }
+    if (this.mode() === 'focus' && this.focusRunClientId === null) {
+      // A fresh focus run gets a fresh idempotency key.
+      this.focusRunClientId = newRunId();
     }
     this.running.set(true);
     // Guard: only one interval may ever exist at a time.
@@ -169,6 +195,8 @@ export class PomodoroComponent implements OnDestroy {
   }
 
   reset(): void {
+    // Stopping a partially-run focus session is an interruption.
+    this.persistInterrupted();
     this.stopTimer();
     this.remaining.set(DURATIONS[this.mode()]);
     this.running.set(false);
@@ -185,6 +213,7 @@ export class PomodoroComponent implements OnDestroy {
     this.stopTimer();
     this.running.set(false);
     if (this.mode() === 'focus') {
+      this.persistCompleted();
       this.completedFocus.update((c) => c + 1);
       this.toast.success(this.t('Focus session complete — take a break!'));
       if (this.session() % CYCLE_BREAK_EVERY === 0) {
@@ -201,6 +230,54 @@ export class PomodoroComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Leaving the page mid-focus is an interruption too.
+    this.persistInterrupted();
     this.stopTimer();
+  }
+
+  /** Seconds of the current focus run already accumulated. */
+  private elapsedFocus(): number {
+    if (this.mode() !== 'focus') return 0;
+    return DURATIONS.focus - this.remaining();
+  }
+
+  /** Record a fully completed focus session (full duration). */
+  private persistCompleted(): void {
+    const clientId = this.focusRunClientId;
+    this.focusRunClientId = null;
+    if (clientId === null) return;
+    const duration = DURATIONS.focus;
+    const end = new Date();
+    this.saveSession({
+      clientId,
+      startTime: new Date(end.getTime() - duration * 1000).toISOString(),
+      endTime: end.toISOString(),
+      duration,
+      status: 'completed',
+    });
+  }
+
+  /** Record an interrupted focus session (partial duration), if meaningful. */
+  private persistInterrupted(): void {
+    const clientId = this.focusRunClientId;
+    this.focusRunClientId = null;
+    if (clientId === null) return;
+    const elapsed = this.elapsedFocus();
+    if (elapsed < MIN_FOCUS_SECONDS) return;
+    const end = new Date();
+    this.saveSession({
+      clientId,
+      startTime: new Date(end.getTime() - elapsed * 1000).toISOString(),
+      endTime: end.toISOString(),
+      duration: elapsed,
+      status: 'interrupted',
+    });
+  }
+
+  /** Fire-and-forget persistence — the timer UX must never depend on the network. */
+  private saveSession(payload: FocusSessionPayload): void {
+    this.focusSessions.create(payload).subscribe({
+      error: (err: Error) => console.warn('[pomodoro] could not save focus session:', err?.message),
+    });
   }
 }

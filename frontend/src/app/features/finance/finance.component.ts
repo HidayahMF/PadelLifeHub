@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgClass } from '@angular/common';
 import { CardComponent } from '../../layout/components/card.component';
 import { PageHeaderComponent } from '../../layout/components/page-header.component';
 import { StatCardComponent } from './components/stat-card.component';
@@ -19,7 +20,7 @@ import {
   TransactionService,
 } from '../../core/services/finance.service';
 import { CategoryService } from '../../core/services/category.service';
-import { SettingService } from '../../core/services/data.service';
+import { InsightsService, SettingService } from '../../core/services/data.service';
 import { ToastService } from '../../core/services/toast.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { AiService, QuickAddDraft } from '../../core/services/ai.service';
@@ -32,6 +33,7 @@ import type {
   TransactionType,
 } from '../../core/models/finance.model';
 import type { Category } from '../../core/models/task.model';
+import type { FinancialHealth, InsightsData, NetWorthBreakdown } from '../../core/models/misc.model';
 import {
   formatCurrency,
   formatDate,
@@ -47,6 +49,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
   standalone: true,
   imports: [
     FormsModule,
+    NgClass,
     CardComponent,
     PageHeaderComponent,
     StatCardComponent,
@@ -83,10 +86,10 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
       ></app-button>
     </div>
     <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
-      <app-stat-card [label]="t('Balance')" [value]="displayBalance(balance())" icon="piggy-bank" tone="primary" />
-      <app-stat-card [label]="t('Income (month)')" [value]="displayAmount(monthIncome())" icon="trending-up" tone="success" />
-      <app-stat-card [label]="t('Expenses (month)')" [value]="displayAmount(monthExpense())" icon="trending-down" tone="danger" />
-      <app-stat-card [label]="t('Transactions')" [value]="transactions().length" icon="receipt" />
+      <app-stat-card [label]="t('Net worth')" [value]="displayBalance(balance())" icon="piggy-bank" tone="primary" />
+      <app-stat-card [label]="t('Liquid assets')" [value]="displayAmount(netWorth().liquid)" icon="droplets" />
+      <app-stat-card [label]="t('Investments')" [value]="displayAmount(netWorth().investment)" icon="trending-up" />
+      <app-stat-card [label]="t('Monthly cash flow')" [value]="displayAmount(monthNet())" icon="wallet" />
     </div>
 
     <!-- Quick Add Finance -->
@@ -335,6 +338,80 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
 
       <!-- Sidebar: budgets + spending -->
       <div class="space-y-6">
+        <!-- Net worth breakdown -->
+        <app-card [padding]="'none'">
+          <div class="px-5 pt-5">
+            <h2 class="text-base font-semibold text-ink">{{ t('Net worth') }}</h2>
+            <p class="text-xs text-ink-soft">{{ t('Stored balance by account type') }}</p>
+          </div>
+          <div class="p-5">
+            @if (insightsLoading()) {
+              <div class="space-y-3">@for (_ of [1, 2]; track $index) { <app-skeleton size="field" /> }</div>
+            } @else if (insights()) {
+              <app-donut-chart
+                [segments]="netWorthSegments()"
+                [totalLabel]="t('net worth')"
+                [ariaLabel]="t('Net worth allocation by account type')"
+              />
+              <ul class="mt-4 space-y-2">
+                @for (row of netWorth().byType; track row.type) {
+                  @if (row.balance > 0) {
+                    <li class="flex items-center gap-2 text-sm">
+                      <span class="min-w-0 flex-1 truncate text-ink">{{ typeLabel(row.type) }}</span>
+                      <span class="shrink-0 font-semibold text-ink">{{ displayAmount(row.balance) }}</span>
+                      <span class="w-11 shrink-0 text-right text-xs text-ink-faint">{{ row.pct.toFixed(1) }}%</span>
+                    </li>
+                  }
+                }
+              </ul>
+            } @else {
+              <p class="py-4 text-center text-sm text-ink-soft">{{ t('Add accounts to see your net worth.') }}</p>
+            }
+          </div>
+        </app-card>
+
+        <!-- Financial health -->
+        <app-card [padding]="'none'">
+          <div class="px-5 pt-5">
+            <h2 class="text-base font-semibold text-ink">{{ t('Financial health') }}</h2>
+          </div>
+          <div class="p-5">
+            @if (insightsLoading()) {
+              <div class="space-y-3">@for (_ of [1, 2]; track $index) { <app-skeleton size="field" /> }</div>
+            } @else if (health()) {
+              <div class="mb-4 flex items-center gap-4">
+                <span
+                  class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-ink font-display text-xl font-bold"
+                  [ngClass]="healthTone()"
+                >
+                  {{ health()!.score }}
+                </span>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-ink">{{ t(health()!.label) }}</p>
+                  <p class="text-xs text-ink-soft">{{ t('Out of 100') }}</p>
+                </div>
+              </div>
+              <ul class="space-y-3">
+                @for (dim of health()!.dimensions; track dim.key) {
+                  <li>
+                    <div class="mb-1 flex items-center justify-between text-xs">
+                      <span class="font-semibold text-ink">{{ t(dim.label) }}</span>
+                      <span class="text-ink-soft">{{ dim.score }} · {{ dim.weight }}%</span>
+                    </div>
+                    <app-progress [value]="dim.score" />
+                    <p class="mt-1 text-xs text-ink-faint">{{ t(dim.detail) }}</p>
+                  </li>
+                }
+              </ul>
+              <p class="mt-4 text-[11px] leading-relaxed text-ink-faint">{{ t(health()!.disclaimer) }}</p>
+            } @else {
+              <p class="py-4 text-center text-sm text-ink-soft">
+                {{ t('Add a few transactions to see your financial health score.') }}
+              </p>
+            }
+          </div>
+        </app-card>
+
         <app-card [padding]="'none'">
           <div class="flex items-center justify-between px-5 pt-5">
             <h2 class="text-base font-semibold text-ink">{{ t('Budgets') }}</h2>
@@ -524,6 +601,7 @@ export class FinanceComponent implements OnInit {
   private budgetService = inject(BudgetService);
   private categoryService = inject(CategoryService);
   private settingService = inject(SettingService);
+  private insightsService = inject(InsightsService);
   private aiService = inject(AiService);
   private toast = inject(ToastService);
   private i18n = inject(I18nService);
@@ -538,6 +616,9 @@ export class FinanceComponent implements OnInit {
   protected readonly categories = this.categoryService.categories;
   protected readonly failedLogos = signal<string[]>([]);
   protected readonly hideBalance = signal(false);
+
+  protected readonly insights = signal<InsightsData | null>(null);
+  protected readonly insightsLoading = signal(true);
 
   protected readonly typeFilter = signal<TransactionType | 'all'>('all');
   protected readonly accountFilter = signal('');
@@ -640,6 +721,75 @@ export class FinanceComponent implements OnInit {
     this.accounts().reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
   );
 
+  protected readonly netWorth = computed<NetWorthBreakdown>(() => {
+    const nw = this.insights()?.netWorth;
+    if (nw) return nw;
+    const liquid = this.accounts().reduce(
+      (s, a) => (a.type === 'investment' ? s : s + (Number(a.balance) || 0)),
+      0
+    );
+    const investment = this.accounts()
+      .filter((a) => a.type === 'investment')
+      .reduce((s, a) => s + (Number(a.balance) || 0), 0);
+    const total = liquid + investment;
+    const byType = ['bank', 'ewallet', 'cash', 'investment'].map((type) => ({
+      type,
+      balance: this.accounts()
+        .filter((a) => a.type === type)
+        .reduce((s, a) => s + (Number(a.balance) || 0), 0),
+      pct: 0,
+    }));
+    const pctOf = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+    return {
+      total,
+      liquid,
+      investment,
+      byType: byType.map((row) => ({ ...row, pct: pctOf(row.balance) })),
+    };
+  });
+
+  protected readonly netWorthSegments = computed<DonutSegment[]>(() => {
+    const palette: Record<string, string> = {
+      bank: 'var(--color-primary)',
+      ewallet: 'var(--color-success)',
+      cash: 'var(--color-warning)',
+      investment: 'var(--color-danger)',
+    };
+    return this.netWorth().byType
+      .filter((row) => row.balance > 0)
+      .map((row) => ({
+        label: this.typeLabel(row.type),
+        value: row.balance,
+        color: palette[row.type] ?? 'var(--color-ink-soft)',
+      }));
+  });
+
+  protected readonly health = computed<FinancialHealth | null>(() => this.insights()?.financialHealth ?? null);
+
+  protected readonly healthTone = computed(() => {
+    const score = this.health()?.score ?? 0;
+    if (score >= 80) return 'border-success bg-success/15 text-success';
+    if (score >= 60) return 'border-warning bg-warning/15 text-warning';
+    return 'border-danger bg-danger/15 text-danger';
+  });
+
+  protected readonly monthNet = computed(() => this.monthIncome() - this.monthExpense());
+
+  protected typeLabel(type: string): string {
+    switch (type) {
+      case 'bank':
+        return this.t('Bank');
+      case 'ewallet':
+        return this.t('E-wallet');
+      case 'cash':
+        return this.t('Cash');
+      case 'investment':
+        return this.t('Investment');
+      default:
+        return type;
+    }
+  }
+
   protected readonly monthIncome = computed(() =>
     this.transactions()
       .filter((t) => t.type === 'income' && monthKey(toDate(t.date)) === this.budgetMonth())
@@ -676,11 +826,23 @@ export class FinanceComponent implements OnInit {
   ngOnInit(): void {
     this.categoryService.load({ type: 'transaction' });
     this.reload();
+    this.loadInsights();
     // Read the hide-balance preference from the backend (same source as
     // Dashboard) instead of a stale localStorage copy.
     this.settingService.get().subscribe({
       next: (s) => this.hideBalance.set(!!s.hideBalance),
       error: () => undefined,
+    });
+  }
+
+  private loadInsights(): void {
+    this.insightsLoading.set(true);
+    this.insightsService.get().subscribe({
+      next: (res) => {
+        this.insights.set(res);
+        this.insightsLoading.set(false);
+      },
+      error: () => this.insightsLoading.set(false),
     });
   }
 

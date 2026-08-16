@@ -9,7 +9,7 @@ import { SegmentedComponent } from '../../layout/components/segmented.component'
 import { InsightsComponent } from './components/insights.component';
 import { DashboardService, InsightsService } from '../../core/services/data.service';
 import type { InsightsData, Statistics } from '../../core/models/misc.model';
-import { formatCurrency } from '../../core/utils/format';
+import { formatCurrency, formatDuration } from '../../core/utils/format';
 import { getLocale } from '../../core/utils/locale';
 import { I18nService } from '../../core/services/i18n.service';
 
@@ -61,6 +61,21 @@ const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
         <app-stat-card [label]="t('Completed tasks')" [value]="stats()!.productivity.completedTasks" icon="circle-check" tone="success" />
         <app-stat-card [label]="t('Completed this week')" [value]="stats()!.productivity.weeklyCompleted" icon="trending-up" />
         <app-stat-card [label]="t('Completed this month')" [value]="stats()!.productivity.monthlyCompleted" icon="calendar-check" />
+        <app-stat-card
+          [label]="t('Focus today')"
+          [value]="formatDuration(stats()!.focus.today.duration)"
+          icon="timer"
+        />
+        <app-stat-card
+          [label]="t('Focus this week')"
+          [value]="formatDuration(stats()!.focus.week.duration)"
+          icon="timer"
+        />
+        <app-stat-card
+          [label]="t('Focus this month')"
+          [value]="formatDuration(stats()!.focus.month.duration)"
+          icon="timer"
+        />
       </div>
 
       <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -230,4 +245,5 @@ export class StatisticsComponent implements OnInit {
   }
 
   protected readonly formatCurrency = formatCurrency;
+  protected readonly formatDuration = formatDuration;
 }

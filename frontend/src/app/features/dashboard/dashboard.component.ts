@@ -23,6 +23,7 @@ import type { Habit } from '../../core/models/lifestyle.model';
 import {
   formatCurrency,
   formatDate,
+  formatDuration,
   isOverdue,
   monthKey,
   percent,
@@ -48,6 +49,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { key: 'today', label: "Today's tasks", icon: 'calendar-check', span: 'lg:col-span-1' },
   { key: 'upcoming', label: 'Upcoming deadlines', icon: 'clock', span: 'lg:col-span-1' },
   { key: 'habits', label: 'Habits', icon: 'flame', span: 'lg:col-span-1' },
+  { key: 'focus', label: 'Focus time', icon: 'timer', span: 'lg:col-span-1' },
   { key: 'chart', label: 'Income vs expense', icon: 'bar-chart-3', span: 'lg:col-span-2' },
   { key: 'budget', label: 'Monthly budget', icon: 'piggy-bank', span: 'lg:col-span-1' },
   { key: 'goals', label: 'Goals', icon: 'target', span: 'lg:col-span-1' },
@@ -167,22 +169,20 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                   </div>
                   <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
                     <app-stat-card
-                      [label]="t('Balance')"
+                      [label]="t('Net worth')"
                       [value]="money(summary()!.financeSummary.balance)"
                       icon="piggy-bank"
                       tone="primary"
                     />
                     <app-stat-card
-                      [label]="t('Income (month)')"
-                      [value]="money(summary()!.financeSummary.monthIncome)"
-                      icon="trending-up"
-                      tone="success"
+                      [label]="t('Liquid assets')"
+                      [value]="money(summary()!.financeSummary.liquid)"
+                      icon="droplets"
                     />
                     <app-stat-card
-                      [label]="t('Expense (month)')"
-                      [value]="money(summary()!.financeSummary.monthExpense)"
-                      icon="trending-down"
-                      tone="danger"
+                      [label]="t('Investments')"
+                      [value]="money(summary()!.financeSummary.investment)"
+                      icon="trending-up"
                     />
                     <app-stat-card
                       [label]="t('Net (month)')"
@@ -299,6 +299,30 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                         </li>
                       }
                     </ul>
+                  </div>
+                </app-card>
+              }
+              @case ('focus') {
+                <app-card class="lg:col-span-1" [padding]="'none'">
+                  <div class="flex items-center justify-between px-5 pt-5">
+                    <h2 class="text-base font-semibold text-ink">{{ t('Focus time') }}</h2>
+                    <button (click)="go('/app/pomodoro')" class="text-xs font-medium text-primary-strong hover:underline">
+                      {{ t('Pomodoro') }}
+                    </button>
+                  </div>
+                  <div class="space-y-3 p-5">
+                    <div class="flex items-center justify-between rounded-button bg-surface-2 px-4 py-3">
+                      <span class="text-sm text-ink-soft">{{ t('Today') }}</span>
+                      <span class="text-sm font-semibold text-ink">{{ formatDuration(summary()!.focus.today.duration) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-button bg-surface-2 px-4 py-3">
+                      <span class="text-sm text-ink-soft">{{ t('This week') }}</span>
+                      <span class="text-sm font-semibold text-ink">{{ formatDuration(summary()!.focus.week.duration) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-button bg-surface-2 px-4 py-3">
+                      <span class="text-sm text-ink-soft">{{ t('This month') }}</span>
+                      <span class="text-sm font-semibold text-ink">{{ formatDuration(summary()!.focus.month.duration) }}</span>
+                    </div>
                   </div>
                 </app-card>
               }
@@ -713,6 +737,7 @@ export class DashboardComponent implements OnInit {
 
   protected readonly formatCurrency = formatCurrency;
   protected readonly formatDate = formatDate;
+  protected readonly formatDuration = formatDuration;
   protected readonly isOverdue = isOverdue;
   protected readonly relativeDay = relativeDay;
   protected readonly percent = percent;

@@ -140,6 +140,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'monthly-review',
+        loadComponent: () =>
+          import('./features/monthly-review/monthly-review.component').then(
+            (m) => m.MonthlyReviewComponent
+          ),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./features/settings/settings.component').then((m) => m.SettingsComponent),

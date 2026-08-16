@@ -32,6 +32,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { label: 'Pomodoro', route: '/app/pomodoro', icon: 'timer' },
       { label: 'Statistics', route: '/app/statistics', icon: 'bar-chart-3' },
       { label: 'Weekly review', route: '/app/weekly-review', icon: 'refresh-cw' },
+      { label: 'Monthly review', route: '/app/monthly-review', icon: 'calendar-range' },
     ],
   },
 ];

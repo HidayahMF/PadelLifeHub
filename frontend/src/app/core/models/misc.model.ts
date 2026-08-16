@@ -49,6 +49,39 @@ export interface FinanceSummaryBlock {
   monthIncome: number;
   monthExpense: number;
   balance: number;
+  liquid: number;
+  investment: number;
+}
+
+export interface FocusTotals {
+  count: number;
+  duration: number; // seconds
+}
+
+export interface FocusStats {
+  today: FocusTotals;
+  week: FocusTotals;
+  month: FocusTotals;
+}
+
+export interface FocusSession {
+  _id: string;
+  clientId: string;
+  startTime: string;
+  endTime?: string | null;
+  duration: number; // seconds
+  status: 'completed' | 'interrupted';
+  taskId?: string | null;
+  createdAt: string;
+}
+
+export interface FocusSessionPayload {
+  clientId: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  status: 'completed' | 'interrupted';
+  taskId?: string;
 }
 
 export interface DashboardSummary {
@@ -56,6 +89,7 @@ export interface DashboardSummary {
   financeSummary: FinanceSummaryBlock;
   recentTransactions: Transaction[];
   activeGoals: Goal[];
+  focus: FocusStats;
 }
 
 export interface CategorySpend {
@@ -90,6 +124,7 @@ export interface FinanceStats {
 export interface Statistics {
   productivity: ProductivityStats;
   finance: FinanceStats;
+  focus: FocusStats;
 }
 
 export interface NotificationItem {
@@ -149,12 +184,37 @@ export interface WeeklyReviewData {
   habits: { bestStreak: number; averageCompletion: number; tracked: number };
   finance: { income: number; expense: number; saved: number };
   goals: { progressed: number; completed: number };
+  focus: FocusTotals;
   topCategory: { name: string; total: number } | null;
   reflection: { wentWell: string; improve: string };
 }
 
+export interface NetWorthBreakdown {
+  total: number;
+  liquid: number;
+  investment: number;
+  byType: { type: string; balance: number; pct: number }[];
+}
+
+export interface FinancialHealthDimension {
+  key: string;
+  label: string;
+  score: number;
+  weight: number;
+  detail: string;
+}
+
+export interface FinancialHealth {
+  score: number;
+  label: string;
+  dimensions: FinancialHealthDimension[];
+  disclaimer: string;
+}
+
 export interface InsightsData {
   month: string;
+  netWorth: NetWorthBreakdown;
+  financialHealth: FinancialHealth | null;
   income: { thisMonth: number; lastMonth: number };
   expense: { thisMonth: number; lastMonth: number };
   savingsRate: number;
@@ -171,4 +231,43 @@ export interface InsightsData {
   };
   cashFlow: { _id: string; income: number; expense: number; net: number }[];
   weekendVsWeekday: { weekendAvg: number; weekdayAvg: number };
+}
+
+export interface MonthlyReviewData {
+  month: string;
+  monthLabel: string;
+  productivity: {
+    completed: number;
+    created: number;
+    completionRate: number;
+    overdue: number;
+  };
+  habits: { bestStreak: number; averageCompletion: number; tracked: number };
+  finance: {
+    income: number;
+    expense: number;
+    saved: number;
+    previous: { income: number; expense: number; saved: number };
+    incomeChangePct: number;
+    expenseChangePct: number;
+  };
+  goals: { progressed: number; completed: number };
+  focus: FocusTotals;
+  topCategories: { name: string; color: string; total: number }[];
+  budgetPerformance: {
+    name: string;
+    amount: number;
+    spent: number;
+    pct: number;
+    over: boolean;
+  }[];
+  netWorth: NetWorthBreakdown;
+  summary: {
+    tasksCompleted: number;
+    tasksCreated: number;
+    taskCompletionRate: number;
+    topSpendingCategory: string | null;
+    netCashFlow: number;
+    netWorthTotal: number;
+  };
 }

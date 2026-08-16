@@ -15,7 +15,7 @@ export interface ToggleOption {
   template: `
     <div
       role="tablist"
-      class="inline-flex items-center gap-1 rounded-button border-2 border-ink bg-surface-2 p-1 shadow-soft"
+      class="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-button border-2 border-ink bg-surface-2 p-1 shadow-soft"
     >
       @for (opt of options(); track opt.value) {
         <button
