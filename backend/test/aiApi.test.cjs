@@ -543,7 +543,57 @@ test('quick-add: income "gajian 5jt bca" parses to income 5000000 on BCA', async
     assert.strictEqual(json.draft.type, 'income');
     assert.strictEqual(json.draft.amount, 5000000);
     assert.strictEqual(json.draft.accountName, 'Bank BCA');
+    assert.strictEqual(json.draft.categoryName, 'Salary');
     assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: keyword fallback — "jajan 15k bca" gets Food & Drinks even if the model returns no category', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'expense',
+      amount: 15000,
+      description: 'Jajan',
+      category: null,
+      account: 'Bank BCA',
+      fromAccount: null,
+      toAccount: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const json = await (await postParse('jajan 15k bca')).json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.categoryName, 'Food & Drinks');
+    assert.strictEqual(json.draft.categoryId, 'cat-food');
+    assert.strictEqual(behavior.transactionCreateCalls.length, 0);
+  } finally {
+    gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+test('quick-add: keyword fallback — no category and no food keyword stays Uncategorized', async () => {
+  resetQuickAddData();
+  gemini.generate = async () =>
+    geminiJson({
+      intent: 'transaction',
+      type: 'expense',
+      amount: 50000,
+      description: 'Beli sesuatu',
+      category: null,
+      account: 'Bank BCA',
+      fromAccount: null,
+      toAccount: null,
+      reply: 'Transaksi siap disimpan.',
+    });
+  try {
+    const json = await (await postParse('bayar 50k bca')).json();
+    assert.strictEqual(json.intent, 'transaction');
+    assert.strictEqual(json.draft.categoryName, null);
+    assert.strictEqual(json.draft.categoryId, null);
   } finally {
     gemini.generate = async () => 'Mocked LifeHub AI reply';
   }
