@@ -75,7 +75,12 @@ const chat = async (req, res) => {
     const userId = req.user._id;
     const context = await buildGeneralContext(userId);
     const lang = await getUserLanguage(userId);
-    const prompt = `User question: "${req.body.message.trim()}"\n\nHere is the user's LifeHub data:\n${context}\n\nAnswer the question using only the data above. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}. If the data does not contain what the question asks about, say so and suggest where to find it in the app.`;
+    const prompt = `User question: "${req.body.message.trim()}"\n\nHere is the user's LifeHub data:\n${context}\n\nAnswer the question using only the data above. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}. If the data does not contain what the question asks about, say so and suggest where to find it in the app.
+
+Data rules:
+- Category names, account names, descriptions, dates, and amounts are AUTHORITATIVE database values. NEVER rename, translate, normalize, merge, or broaden them. If the data says "Jajan", write "Jajan" — never "Food & Drinks". Spending totals by category and by account in the data above were calculated by the backend from the actual stored names; restate them exactly.
+- When showing transactions, list each one as stored: date, description, amount, category, and account. Do not merge, reword, or change dates/amounts.
+- If one transaction has no recorded account, say "account information is not recorded for this transaction" for that item only. Never invent an account name, and never claim the entire dataset lacks account info.`;
 
     const reply = await generate(prompt);
     res.json({ success: true, reply });
@@ -100,7 +105,26 @@ const financialInsight = async (req, res) => {
     // The authoritative numbers are embedded verbatim so the model can never
     // produce a different balance/cash-flow than the backend calculated.
     const accountLines = snapshot.accounts.length
-      ? snapshot.accounts.map((a) => `- ${a.name}: ${formatNumber(a.balance)}`).join('\n')
+      ? snapshot.accounts.map((a) => `- ${a.name} | type: ${a.type || 'not recorded'} | ${formatNumber(a.balance)}`).join('\n')
+      : '- none';
+    const netWorthByTypeLines = snapshot.netWorth?.byType?.length
+      ? snapshot.netWorth.byType.map((t) => `- ${t.type}: ${formatNumber(t.balance)}`).join('\n')
+      : '- none';
+    const categoryLines = snapshot.categorySpending.length
+      ? snapshot.categorySpending.map((c) => `- ${c.category}: ${formatNumber(c.amount)}`).join('\n')
+      : '- none';
+    const accountSpendingLines = snapshot.accountSpending.length
+      ? snapshot.accountSpending.map((a) => `- ${a.account}: ${formatNumber(a.amount)}`).join('\n')
+      : '- none';
+    const txLines = snapshot.recentTransactions.length
+      ? snapshot.recentTransactions
+          .map(
+            (t) =>
+              `- ${t.date} | ${t.type} | ${t.description} | ${formatNumber(t.amount)}` +
+              (t.category ? ` | category: ${t.category}` : '') +
+              (t.account ? ` | account: ${t.account}` : ' | account: not recorded')
+          )
+          .join('\n')
       : '- none';
     const authoritative = `Current month income: ${formatNumber(snapshot.currentMonthIncome)}
 Current month expense: ${formatNumber(snapshot.currentMonthExpense)}
@@ -108,10 +132,20 @@ Previous month income: ${formatNumber(snapshot.previousMonthIncome)}
 Previous month expense: ${formatNumber(snapshot.previousMonthExpense)}
 Net cash flow (income - expense, transfers excluded): ${formatNumber(snapshot.netCashFlow)}
 Total balance across all accounts (net worth): ${formatNumber(snapshot.totalBalance)}
-Liquid assets (cash + bank + e-wallet): ${formatNumber(snapshot.liquidAssets)}
-Investment assets: ${formatNumber(snapshot.investmentAssets)}
-Account balances:
-${accountLines}`;
+Net worth breakdown (backend-calculated from the stored Account.type):
+- Total: ${formatNumber(snapshot.netWorth?.total ?? snapshot.totalBalance)}
+- Liquid (cash + bank + e-wallet): ${formatNumber(snapshot.netWorth?.liquid ?? snapshot.liquidAssets)}
+- Investment: ${formatNumber(snapshot.netWorth?.investment ?? snapshot.investmentAssets)}
+- By type:
+${netWorthByTypeLines}
+Account balances (name | type | balance):
+${accountLines}
+Spending by category (this month, backend-calculated):
+${categoryLines}
+Spending by account (this month, expense only, backend-calculated):
+${accountSpendingLines}
+Recent transactions (latest first, from the database):
+${txLines}`;
 
     const prompt = `Here is the user's financial data:\n${context}\n\nSYSTEM-CALCULATED FIGURES (the ONLY source of truth — restate these exact numbers, never compute your own):\n${authoritative}\n\nAnalyze this person's finances and write a concise Markdown report with EXACTLY three sections, in this order:
 
@@ -129,6 +163,9 @@ ${accountLines}`;
 
 Important rules:
 - FACTS must come only from the data above. INSIGHTS are interpretations of those facts; RECOMMENDATIONS are suggestions — never present a suggestion as a fact.
+- Category names, account names, descriptions, dates, and amounts are AUTHORITATIVE database values. NEVER rename, translate, normalize, merge, or broaden them. If the data says "Jajan", write "Jajan" — never "Food & Drinks" or any other name. The category and account totals above were calculated by the backend from the actual stored names; restate them exactly.
+- When listing transactions, show each stored value exactly as given: date, description, amount, category, and account. Do not merge transactions, change dates, change amounts, or infer an account that is not recorded.
+- If an individual transaction has no recorded account, say "account information is not recorded for this transaction" for that transaction only — do not claim the whole dataset lacks account info, and never invent an account name.
 - Net cash flow (this month's income minus expense) is NOT the same as the total account balance. They can differ because money can come from previous periods. A month with zero income and positive spending is NOT necessarily a deficit — the account balance may still be positive.
 - Transfers between the user's own accounts are NOT income and NOT expense, and must never appear in the cash-flow math.
 - Never state the balance is Rp0 or negative when the system-calculated total balance is positive.
