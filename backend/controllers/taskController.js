@@ -1,6 +1,7 @@
 const Task = require('../models/Task');
 const Category = require('../models/Category');
 const { nextOccurrence } = require('../services/taskScheduler');
+const { cleanupTaskReminders } = require('../services/reminderScheduler');
 
 /** Recompute nextOccurrence from a task's due date + recurring config. */
 function computeNextOccurrence(dueDate, recurring) {
@@ -135,6 +136,18 @@ const updateTask = async (req, res, next) => {
 
     Object.assign(task, body);
     const updated = await task.save();
+
+    // A completed, archived or trashed task must never fire a reminder again:
+    // deactivate every Reminder doc linked to it (visible in the calendar but
+    // inert). The scheduler also validates this at runtime as a backstop.
+    if (updated.status === 'completed' || updated.archived || updated.trashed) {
+      await cleanupTaskReminders({
+        user: req.user._id,
+        taskId: updated._id,
+        remove: false,
+      });
+    }
+
     res.json(updated);
   } catch (err) {
     next(err);
@@ -152,6 +165,13 @@ const deleteTask = async (req, res, next) => {
       res.status(404);
       throw new Error('Task not found');
     }
+
+    // Remove linked reminders so a deleted task can never fire again.
+    await cleanupTaskReminders({
+      user: req.user._id,
+      taskId: task._id,
+      remove: true,
+    });
 
     res.json({ message: 'Task removed' });
   } catch (err) {
