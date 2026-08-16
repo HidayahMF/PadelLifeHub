@@ -54,6 +54,50 @@ Rules:
 7. description: a short label (e.g. "Jajan", "Gaji", "Kopi", "Transfer").
 8. reply: Indonesian short text. For intent "transaction" -> a short confirmation. For "clarify" -> ask ONLY for the missing piece, e.g. "Mau dipotong dari rekening mana?", "Berapa nominal transaksinya?", "Transfer dari rekening mana?", "Transfer ke rekening mana?".`;
 
+/**
+ * Deterministic keyword → category fallback. The AI model is asked to pick the
+ * closest category, but it may return null (or invent a name that does not
+ * exist). So when no suggestion comes back we map the message itself to one of
+ * the standard categories. Kept deliberately conservative — it only runs when
+ * the model gave no category at all.
+ */
+const CATEGORY_KEYWORDS = [
+  {
+    name: 'Food & Drinks',
+    re: /jajan|makan|makanan|kopi|sarapan|minum|minuman|snack|cemilan|gorengan|nasi|ayam|mie|bakmi|bakso|sate|kebab|burger|pizza|restoran|warung|cafe|caf[eé]|coffee|lunch|dinner|breakfast|teh|bubble|eskrim|roti|kue|lapar|laper|ngemil|makan siang|makan malam/i,
+  },
+  {
+    name: 'Transport',
+    re: /bensin|bbm|pertalite|pertamax|ojek|grab|gojek|maxim|taksi|transport|angkot|tol|parkir|bengkel|servis|ganti oli/i,
+  },
+  {
+    name: 'Bills',
+    re: /listrik|token listrik|pdam|bayar air|tagihan air|pulsa|internet|wifi|televisi|tv kabel|tagihan|bpjs|paket data/i,
+  },
+  {
+    name: 'Shopping',
+    re: /belanja|baju|sepatu|tas|kosmetik|skincare|shopee|tokopedia|marketplace|barang|gadget|ponsel|smartphone|elektronik|rumah tangga/i,
+  },
+  {
+    name: 'Entertainment',
+    re: /nonton|netflix|spotify|game|steam|bioskop|musik|konser|youtube|hiburan/i,
+  },
+  {
+    name: 'Health',
+    re: /obat|apotek|klinik|dokter|vitamin|rumah sakit|berobat|konsul|kesehatan/i,
+  },
+  {
+    name: 'Salary',
+    re: /gaji|gajian|salary|upah|honor/i,
+  },
+];
+
+function guessCategory(text) {
+  const t = String(text || '').toLowerCase();
+  const hit = CATEGORY_KEYWORDS.find((k) => k.re.test(t));
+  return hit ? hit.name : null;
+}
+
 /** Pull a code-fenced or prose JSON object out of a model reply. */
 function extractJson(text) {
   if (!text || typeof text !== 'string') return null;
@@ -238,6 +282,13 @@ async function parseTransaction(userId, message) {
     return { success: true, intent: 'clarify', reply: 'Berapa nominal transaksinya?' };
   }
 
+  // Fallback to the deterministic keyword map when the model returned no
+  // category, so messages like "jajan 15k bca" never end up Uncategorized.
+  const categorySuggestion =
+    typeof data.category === 'string' && data.category.trim()
+      ? data.category
+      : guessCategory(`${message} ${cleanDescription(data.description) || ''}`);
+
   if (type === 'transfer') {
     const fromRes = resolveAccount(accounts, data.fromAccount);
     const toRes = resolveAccount(accounts, data.toAccount);
@@ -272,7 +323,7 @@ async function parseTransaction(userId, message) {
       return { success: true, intent: 'clarify', reply: 'Rekening asal dan tujuan tidak boleh sama.' };
     }
 
-    const cat = resolveCategory(categories, data.category);
+    const cat = resolveCategory(categories, categorySuggestion);
     return {
       success: true,
       intent: 'transaction',
@@ -304,7 +355,7 @@ async function parseTransaction(userId, message) {
     return { success: true, intent: 'clarify', reply: 'Mau dipotong dari rekening mana?' };
   }
 
-  const cat = resolveCategory(categories, data.category);
+  const cat = resolveCategory(categories, categorySuggestion);
   const description = cleanDescription(data.description) || (type === 'income' ? 'Pemasukan' : 'Pengeluaran');
   return {
     success: true,
@@ -414,5 +465,6 @@ module.exports = {
   normalizeAmount,
   resolveAccount,
   resolveCategory,
+  guessCategory,
   fmtIDR,
 };
