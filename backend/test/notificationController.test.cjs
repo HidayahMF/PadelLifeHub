@@ -20,11 +20,13 @@ const notifId = (n) => `notif${n}`;
 const behavior = {
   notifications: [],
   tasks: [],
+  reminders: [],
 };
 
 function reset() {
   behavior.notifications.length = 0;
   behavior.tasks.length = 0;
+  behavior.reminders.length = 0;
 }
 
 function stubModule(relativePath, exportsObj) {
@@ -77,6 +79,11 @@ function makeTask(status, opts = {}) {
   return t;
 }
 
+function makeReminder(id) {
+  behavior.reminders.push({ _id: id, user: USER, active: true });
+  return id;
+}
+
 stubModule('../models/Notification', {
   find: (filter) =>
     chainQuery(() =>
@@ -99,6 +106,14 @@ stubModule('../models/Task', {
     chainQuery(() => {
       const ids = (filter?._id?.$in || []).map(String);
       return behavior.tasks.filter((t) => ids.includes(String(t._id)));
+    }),
+});
+
+stubModule('../models/Reminder', {
+  find: (filter) =>
+    chainQuery(() => {
+      const ids = (filter?._id?.$in || []).map(String);
+      return behavior.reminders.filter((r) => ids.includes(String(r._id)));
     }),
 });
 
@@ -150,5 +165,29 @@ test('live task → notification kept', async () => {
   const result = await call();
   assert.strictEqual(result.length, 1);
   assert.strictEqual(result[0].type, 'task');
+  assert.strictEqual(behavior.notifications.length, 1);
+});
+
+test('deleted reminder → its "Reminder — …" notification is pruned', async () => {
+  reset();
+  const rid = makeReminder('rem1');
+  behavior.reminders.length = 0; // simulate deletion: reminder no longer exists
+  makeNotif('reminder', rid);
+  makeNotif('habit', 'habit1');
+
+  const result = await call();
+  assert.strictEqual(result.length, 1);
+  assert.strictEqual(result[0].type, 'habit');
+  assert.strictEqual(behavior.notifications.length, 1);
+});
+
+test('live reminder → its notification is kept', async () => {
+  reset();
+  const rid = makeReminder('rem1');
+  makeNotif('reminder', rid);
+
+  const result = await call();
+  assert.strictEqual(result.length, 1);
+  assert.strictEqual(result[0].type, 'reminder');
   assert.strictEqual(behavior.notifications.length, 1);
 });
