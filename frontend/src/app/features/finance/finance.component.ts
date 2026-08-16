@@ -587,6 +587,7 @@ export class FinanceComponent implements OnInit {
     { value: 'cash', label: this.t('Cash') },
     { value: 'bank', label: this.t('Bank') },
     { value: 'ewallet', label: this.t('E-wallet') },
+    { value: 'investment', label: this.t('Investment') },
   ]);
 
   protected readonly recurringOptions = computed(() => [
@@ -1012,6 +1013,7 @@ export class FinanceComponent implements OnInit {
   protected accountIcon(type: string): string {
     if (type === 'cash') return 'banknote';
     if (type === 'ewallet') return 'smartphone';
+    if (type === 'investment') return 'trending-up';
     return 'credit-card';
   }
 
@@ -1023,6 +1025,7 @@ export class FinanceComponent implements OnInit {
     if (n.includes('dana')) return 'assets/dana.png';
     if (/gopay|go[\s-]*pay/.test(n)) return 'assets/gopay.png';
     if (n.includes('sea')) return 'assets/seabank.png';
+    if (n.includes('ajaib')) return 'assets/ajaib.jpg';
     return null;
   }
 

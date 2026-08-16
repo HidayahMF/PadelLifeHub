@@ -1,5 +1,5 @@
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type AccountType = 'cash' | 'bank' | 'ewallet';
+export type AccountType = 'cash' | 'bank' | 'ewallet' | 'investment';
 export type RecurringFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export interface Recurring {

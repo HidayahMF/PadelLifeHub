@@ -428,6 +428,7 @@ export const ID: Record<string, string> = {
   'Cash': 'Tunai',
   'Bank': 'Bank',
   'E-wallet': 'E-wallet',
+  'Investment': 'Investasi',
   'Account name is required.': 'Nama rekening wajib diisi.',
   'Please enter a valid balance.': 'Masukkan saldo yang valid.',
   'Account updated': 'Rekening diperbarui',
