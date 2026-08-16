@@ -37,10 +37,18 @@ const reminderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Lifecycle guard: the scheduler ONLY processes reminders with active=true.
+    // Set to false when the linked entity is completed, archived, trashed or
+    // deleted, so a cancelled reminder can never fire — even a recurring one.
+    active: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
 
 reminderSchema.index({ user: 1, datetime: 1 });
+reminderSchema.index({ user: 1, type: 1, relatedId: 1 });
 
 module.exports = mongoose.model('Reminder', reminderSchema);
