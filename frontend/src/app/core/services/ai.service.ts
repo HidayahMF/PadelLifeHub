@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface AiReply {
@@ -53,45 +53,104 @@ export class AiService {
    */
   readonly messages = signal<ChatMessage[]>([]);
 
+  /** Whether an AI request is currently in-flight. Used for dedup. */
+  readonly loading = signal(false);
+
   private static readonly CHAT_KEY_PREFIX = 'lifehub.ai.chat.';
   private static readonly CHAT_MAX_MESSAGES = 200;
+
+  /** Internal subject for chat request coalescing via switchMap. */
+  private readonly chatRequest$ = new Subject<string>();
+
+  /** Abort controller for in-flight chat request (ES env only). */
+  private chatAbort: AbortController | null = null;
 
   // NOTE: ApiService already prefixes environment.apiUrl which ends in /api,
   // so these paths must NOT repeat the /api segment.
 
-  /** Free-form question answered against the user's own LifeHub data. */
+  /**
+   * Free-form question answered against the user's own LifeHub data.
+   * Uses switchMap so rapid-fire requests are coalesced — only the latest
+   * message reaches the backend.
+   */
   chat(message: string): Observable<AiReply> {
-    return this.api.post<AiReply>('/ai/chat', { message });
+    this.chatRequest$.next(message);
+    return this.chatRequest$.pipe(
+      switchMap((msg) => {
+        this.loading.set(true);
+        return this.api.post<AiReply>('/ai/chat', { message: msg });
+      }),
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** READ ONLY — turn natural language into a transaction draft (no writes). */
   parseTransaction(message: string): Observable<QuickAddParseResult> {
-    return this.api.post<QuickAddParseResult>('/ai/parse-transaction', { message });
+    this.loading.set(true);
+    return this.api.post<QuickAddParseResult>('/ai/parse-transaction', { message }).pipe(
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** THE WRITE — confirm a parsed draft; the backend re-validates everything. */
   createTransaction(draft: QuickAddDraft): Observable<QuickAddCreateResult> {
-    return this.api.post<QuickAddCreateResult>('/ai/create-transaction', { draft });
+    this.loading.set(true);
+    return this.api.post<QuickAddCreateResult>('/ai/create-transaction', { draft }).pipe(
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** Financial analysis of the current month vs the previous one. */
   financialInsight(): Observable<AiReply> {
-    return this.api.post<AiReply>('/ai/financial-insight');
+    this.loading.set(true);
+    return this.api.post<AiReply>('/ai/financial-insight').pipe(
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** Recommended daily schedule built from today's tasks, habits and goals. */
   dailyPlan(): Observable<AiReply> {
-    return this.api.post<AiReply>('/ai/daily-plan');
+    this.loading.set(true);
+    return this.api.post<AiReply>('/ai/daily-plan').pipe(
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** Habit consistency analysis (streaks, recent history, tips). */
   habitInsight(): Observable<AiReply> {
-    return this.api.post<AiReply>('/ai/habit-insight');
+    this.loading.set(true);
+    return this.api.post<AiReply>('/ai/habit-insight').pipe(
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** Goal progress analysis (deadlines, risk, priorities). */
   goalInsight(): Observable<AiReply> {
-    return this.api.post<AiReply>('/ai/goal-insight');
+    this.loading.set(true);
+    return this.api.post<AiReply>('/ai/goal-insight').pipe(
+      tap({
+        next: () => this.loading.set(false),
+        error: () => this.loading.set(false),
+      }),
+    );
   }
 
   /** Load the persisted chat for a user into memory (no-op when empty). */

@@ -401,6 +401,12 @@ test('per-minute rate limit returns 429 after the limit', async () => {
 // Data minimization (context builders)
 // ---------------------------------------------------------------------------
 test('financial context never contains password/JWT/API key/googleId fields', async () => {
+  // Clear AI context cache so fresh data is used
+  const { _cacheUtils } = require('../services/aiContext');
+  if (_cacheUtils?.invalidateUserCache) {
+    _cacheUtils.invalidateUserCache(USER_A);
+    _cacheUtils.invalidateUserCache(USER_B);
+  }
   behavior.txFind = [
     {
       description: 'Lunch with client',
@@ -435,6 +441,12 @@ test('every financial query is scoped to the requesting user', async () => {
 test('user A cannot see user B data through the context builders', async () => {
   // The isolation guarantee lives in the queries: every builder call must be
   // scoped to the requesting user's id — never the client, never another user.
+  // Clear AI context cache so fresh data is used
+  const { _cacheUtils } = require('../services/aiContext');
+  if (_cacheUtils?.invalidateUserCache) {
+    _cacheUtils.invalidateUserCache(USER_A);
+    _cacheUtils.invalidateUserCache(USER_B);
+  }
   captured.taskFindFilters.length = 0;
   await aiContext.buildDailyContext(USER_A);
   assert.ok(captured.taskFindFilters.length > 0);

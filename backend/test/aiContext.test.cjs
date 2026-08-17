@@ -26,6 +26,12 @@ const behavior = {
 function reset() {
   behavior.transactions.length = 0;
   behavior.accounts.length = 0;
+  // Clear the in-memory cache so each test starts fresh
+  const { _cacheUtils } = require('../services/aiContext');
+  if (_cacheUtils?.invalidateUserCache) {
+    _cacheUtils.invalidateUserCache(USER);
+    _cacheUtils.invalidateUserCache(OTHER);
+  }
 }
 
 function chain(getDocs) {

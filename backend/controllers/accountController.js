@@ -1,5 +1,14 @@
 const Account = require('../models/Account');
 
+function invalidateCache(userId) {
+  try {
+    const { invalidateUserCache } = require('../services/aiContext')._cacheUtils;
+    if (invalidateUserCache) invalidateUserCache(userId);
+  } catch {
+    // Non-fatal — cache module may not be loaded yet in test stubs.
+  }
+}
+
 const getAccounts = async (req, res, next) => {
   try {
     const accounts = await Account.find({ user: req.user._id }).sort({
@@ -17,6 +26,7 @@ const createAccount = async (req, res, next) => {
       user: req.user._id,
       ...req.body,
     });
+    invalidateCache(req.user._id);
     res.status(201).json(account);
   } catch (err) {
     next(err);
@@ -37,6 +47,7 @@ const updateAccount = async (req, res, next) => {
 
     Object.assign(account, req.body);
     const updated = await account.save();
+    invalidateCache(req.user._id);
     res.json(updated);
   } catch (err) {
     next(err);
@@ -55,6 +66,7 @@ const deleteAccount = async (req, res, next) => {
       throw new Error('Account not found');
     }
 
+    invalidateCache(req.user._id);
     res.json({ message: 'Account removed' });
   } catch (err) {
     next(err);

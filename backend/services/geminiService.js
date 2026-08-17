@@ -61,7 +61,7 @@ Rules:
  * Send a prompt to Gemini and return the text reply.
  *
  * @param {string} prompt - user-facing prompt (includes the LifeHub context)
- * @param {{ systemInstruction?: string }} [options]
+ * @param {{ systemInstruction?: string, maxOutputTokens?: number }} [options]
  * @returns {Promise<string>}
  * @throws {Error} with a stable `code` property:
  *   - AI_NOT_CONFIGURED — no API key
@@ -69,7 +69,7 @@ Rules:
  *   - AI_EMPTY_RESPONSE— model returned no usable text
  *   - (other)          — Gemini/network failure
  */
-async function generate(prompt, { systemInstruction = SYSTEM_PROMPT } = {}) {
+async function generate(prompt, { systemInstruction = SYSTEM_PROMPT, maxOutputTokens } = {}) {
   if (!client) {
     const err = new Error('AI service is not configured');
     err.code = 'AI_NOT_CONFIGURED';
@@ -86,11 +86,16 @@ async function generate(prompt, { systemInstruction = SYSTEM_PROMPT } = {}) {
   });
 
   try {
+    const config = { systemInstruction };
+    if (maxOutputTokens && Number.isFinite(maxOutputTokens) && maxOutputTokens > 0) {
+      config.maxOutputTokens = Math.round(maxOutputTokens);
+    }
+
     const response = await Promise.race([
       client.models.generateContent({
         model: MODEL,
         contents: prompt,
-        config: { systemInstruction },
+        config,
       }),
       timeout,
     ]);
