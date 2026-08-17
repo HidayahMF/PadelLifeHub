@@ -43,7 +43,7 @@ type LastAttempt = { kind: 'chat'; text: string } | { kind: 'action'; key: Quick
             alt="LifeHub AI"
             class="h-11 w-11 shrink-0 rounded-lg border-2 border-ink bg-surface object-contain p-1 shadow-soft"
           />
-          ✨ LifeHub AI
+          LifeHub AI
         </h1>
         <p class="mt-2.5 text-sm font-medium text-ink-soft">
           {{ t('Your personal productivity and financial assistant.') }}
@@ -105,7 +105,7 @@ type LastAttempt = { kind: 'chat'; text: string } | { kind: 'action'; key: Quick
                   class="h-14 w-14 shrink-0 rounded-lg border-2 border-ink bg-surface object-contain p-1 shadow-soft"
                 />
                 <div>
-                  <p class="font-display text-lg text-ink">✨ LifeHub AI</p>
+                  <p class="font-display text-lg text-ink">LifeHub AI</p>
                   <p class="mx-auto mt-1 max-w-md text-sm text-ink-soft">
                     {{ t('LifeHub AI analyzes your real data — tasks, finances, habits, and goals — to give you practical insights.') }}
                   </p>

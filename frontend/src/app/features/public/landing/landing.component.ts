@@ -1,4 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -6,90 +12,108 @@ import { SeoService } from '../../../core/services/seo.service';
 import { PublicNavbarComponent } from '../shared/public-navbar.component';
 import { PublicFooterComponent } from '../shared/public-footer.component';
 
-interface Feature {
+interface ValueCard {
   icon: string;
   title: string;
   description: string;
   tone: string;
-  /** Optional brand image shown instead of the icon (e.g. the LifeHub AI logo). */
-  image?: string;
 }
 
-const FEATURES: Feature[] = [
+interface EcosystemItem {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+interface Step {
+  step: string;
+  title: string;
+  text: string;
+}
+
+const VALUE_CARDS: ValueCard[] = [
   {
     icon: 'wallet',
     title: 'Finance',
-    description: 'Track accounts, income, expenses, budgets, and spending categories in one ledger.',
-    tone: 'bg-success',
+    description:
+      'Know where your money goes. Track income, expenses, accounts, budgets, transfers, net worth, liquid assets, and investments.',
+    tone: 'bg-success/10 text-success',
   },
   {
     icon: 'list-todo',
     title: 'Tasks',
-    description: 'Deadlines, reminders, recurring tasks, priorities, categories, and tags.',
-    tone: 'bg-primary',
-  },
-  {
-    icon: 'flame',
-    title: 'Habits',
-    description: 'Build streaks and keep the momentum with daily habit tracking.',
-    tone: 'bg-secondary',
+    description:
+      'Turn plans into action. Manage tasks, priorities, due dates, reminders, and completion.',
+    tone: 'bg-primary/20 text-ink',
   },
   {
     icon: 'target',
     title: 'Goals',
-    description: 'Set targets, track progress over time, and hit your deadlines.',
-    tone: 'bg-warning',
+    description:
+      'Turn goals into measurable progress. Track targets, progress, savings goals, and required monthly contributions.',
+    tone: 'bg-warning/10 text-warning',
   },
   {
-    icon: 'calendar-days',
-    title: 'Calendar',
-    description: 'Plan your days with tasks, reminders, and events in one view.',
-    tone: 'bg-primary-strong',
-  },
-  {
-    icon: 'sticky-note',
-    title: 'Notes',
-    description: 'Capture thoughts instantly and find them again with global search.',
-    tone: 'bg-surface-2',
-  },
-  {
-    icon: 'gift',
-    title: 'Wishlist & Needs',
-    description: 'Save the things you want, plan what you need, and track savings toward them.',
-    tone: 'bg-secondary',
+    icon: 'flame',
+    title: 'Habits',
+    description: 'Build consistency. Track habits, streaks, and long-term progress.',
+    tone: 'bg-secondary/10 text-secondary',
   },
   {
     icon: 'timer',
-    title: 'Pomodoro',
-    description: 'Focus in timed sessions and protect deep work from interruptions.',
-    tone: 'bg-danger',
+    title: 'Focus',
+    description:
+      'Make your time count. Use Pomodoro and track focus sessions and productivity statistics.',
+    tone: 'bg-danger/10 text-danger',
+  },
+  {
+    icon: 'calendar-range',
+    title: 'Reviews',
+    description:
+      'Understand how you’re doing. Weekly and Monthly Reviews connect finance, productivity, habits, goals, and focus.',
+    tone: 'bg-primary/20 text-ink',
   },
   {
     icon: 'bot',
-    title: 'LifeHub AI',
-    description: 'Ask questions about your own data and get practical, personalized advice.',
-    tone: 'bg-accent',
-    image: 'assets/LifeHubAI.png',
+    title: 'AI',
+    description:
+      'Understand your life through your data. LifeHub AI analyzes your recorded data and provides facts, insights, and recommendations.',
+    tone: 'bg-accent text-white',
   },
 ];
 
-const HOW_IT_WORKS = [
-  { step: '01', title: 'Create your account', text: 'Sign up in seconds — email or Google.' },
-  { step: '02', title: 'Set up your life', text: 'Add accounts, categories, habits, and goals.' },
-  { step: '03', title: 'Track everything', text: 'Log tasks and transactions as you go.' },
-  { step: '04', title: 'Get insights', text: 'See patterns with dashboards, statistics, and AI.' },
-  { step: '05', title: 'Improve every day', text: 'Weekly reviews and habit streaks keep you moving.' },
+const ECOSYSTEM: EcosystemItem[] = [
+  { icon: 'wallet', title: 'Finance', description: 'Accounts, transactions, transfers, budgets, net worth.' },
+  { icon: 'list-todo', title: 'Tasks', description: 'Priorities, deadlines, reminders, and recurring work.' },
+  { icon: 'calendar-days', title: 'Calendar', description: 'Tasks, reminders, and events in one view.' },
+  { icon: 'target', title: 'Goals', description: 'Targets, progress, and savings plans.' },
+  { icon: 'flame', title: 'Habits', description: 'Streaks and consistency tracking.' },
+  { icon: 'timer', title: 'Pomodoro', description: 'Focus sessions with work and break cycles.' },
+  { icon: 'gift', title: 'Wishlist', description: 'Save what you want and track progress toward it.' },
+  { icon: 'shopping-basket', title: 'Needs', description: 'Track what you need, with quantities and prices.' },
+  { icon: 'sticky-note', title: 'Notes', description: 'Capture thoughts, searchable anywhere.' },
+  { icon: 'bar-chart-3', title: 'Statistics', description: 'Trends, breakdowns, and monthly summaries.' },
+  { icon: 'refresh-cw', title: 'Weekly Review', description: 'A guided recap of your week.' },
+  { icon: 'calendar-range', title: 'Monthly Review', description: 'Understand your month — with an AI summary.' },
+  { icon: 'bot', title: 'LifeHub AI', description: 'Facts, insights, and recommendations from your data.' },
+  { icon: 'bell', title: 'Notifications', description: 'Reminders and warnings in one notification center.' },
+  { icon: 'search', title: 'Global Search', description: 'One search across everything — Ctrl/Cmd + K.' },
+  { icon: 'settings', title: 'Settings', description: 'Profile, appearance, security, and data export.' },
 ];
 
-const TECH_STACK = [
-  'Angular',
-  'Express.js',
-  'MongoDB Atlas',
-  'Tailwind CSS',
-  'Google Identity Services',
-  'Gemini AI',
-  'Cloudinary',
-  'Vercel',
+const STEPS: Step[] = [
+  { step: '01', title: 'Organize', text: 'Add your accounts, tasks, goals, habits, and plans.' },
+  { step: '02', title: 'Track', text: 'LifeHub records your activity and progress as you go.' },
+  { step: '03', title: 'Understand', text: 'Statistics, weekly & monthly reviews, and AI turn your data into insights.' },
+  { step: '04', title: 'Improve', text: 'Use those insights to make better decisions every day.' },
+];
+
+const PRODUCTIVITY_FLOW = [
+  { icon: 'list-todo', title: 'Tasks', text: 'Plan what matters' },
+  { icon: 'timer', title: 'Focus', text: 'Protect deep work' },
+  { icon: 'flame', title: 'Habits', text: 'Stay consistent' },
+  { icon: 'bar-chart-3', title: 'Statistics', text: 'See the trends' },
+  { icon: 'refresh-cw', title: 'Review', text: 'Reflect weekly' },
 ];
 
 @Component({
@@ -101,160 +125,169 @@ const TECH_STACK = [
       <app-public-navbar />
 
       <main>
-        <!-- ── Hero ─────────────────────────────────────────────── -->
+        <!-- ══════════════════ HERO ══════════════════ -->
         <section class="relative overflow-hidden">
-          <div class="neo-dots pointer-events-none absolute inset-0 opacity-30"></div>
-          <div aria-hidden="true" class="pointer-events-none absolute inset-0 hidden lg:block">
-            <div class="absolute left-[6%] top-[14%] h-20 w-20 rotate-6 rounded-[16px] border-2 border-ink bg-primary shadow-soft"></div>
-            <div class="absolute bottom-[18%] left-[12%] h-14 w-14 -rotate-12 rounded-full border-2 border-ink bg-secondary shadow-soft"></div>
-            <div class="absolute left-[38%] top-[10%] h-4 w-4 rounded-full border-2 border-ink bg-accent"></div>
-            <div class="neo-stripes absolute right-[5%] top-[18%] h-6 w-28 rotate-3 border-2 border-ink"></div>
-          </div>
+          <div aria-hidden="true" class="landing-glow pointer-events-none absolute inset-0"></div>
+          <div
+            aria-hidden="true"
+            class="landing-dots pointer-events-none absolute inset-0 opacity-40"
+          ></div>
 
-          <div class="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 lg:grid-cols-2 lg:gap-10 lg:px-6 lg:py-24">
+          <div
+            class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-4 pb-20 pt-14 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8 lg:pb-28 lg:pt-20"
+          >
             <!-- Copy -->
-            <div>
+            <div class="max-w-xl">
               <p
-                class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-ink shadow-soft"
+                class="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-neutral-600 shadow-sm"
               >
-                <app-icon name="sparkles" [size]="14" />
+                <span class="h-2 w-2 rounded-full bg-primary"></span>
                 Personal Life Management Platform
               </p>
 
               <h1
-                class="mt-6 font-display text-5xl leading-[1.02] tracking-tight text-ink sm:text-6xl lg:text-7xl"
+                class="mt-6 text-5xl font-bold leading-[1.04] tracking-tight text-ink sm:text-6xl lg:text-7xl"
               >
-                Life,
-                <span class="relative inline-block">
-                  <span
-                    class="absolute -inset-x-1 -inset-y-1 -rotate-1 border-2 border-ink bg-primary shadow-[6px_6px_0_0_var(--color-ink)]"
-                  ></span>
-                  <span class="relative px-2">organized.</span>
-                </span>
+                Your Life.
+                <span class="text-gradient-gold">One Hub.</span>
               </h1>
 
-              <p class="mt-6 max-w-lg text-base font-medium text-ink-soft sm:text-lg">
-                LifeHub brings your personal finance, tasks, habits, goals, calendar, notes,
-                wishlist, and an AI assistant into one brutal-simple workspace — so you can run
-                your whole life from a single dashboard.
+              <p class="mt-6 text-lg font-medium leading-relaxed text-neutral-700 sm:text-xl">
+                Manage your money, productivity, goals, and habits — all in one place.
+              </p>
+              <p class="mt-3 text-base font-medium leading-relaxed text-neutral-600">
+                LifeHub combines finance, tasks, goals, habits, calendar, focus sessions, weekly
+                &amp; monthly reviews, and AI insights — so your whole life works from a single
+                command center.
               </p>
 
-              <div class="mt-8 flex flex-wrap gap-3">
+              <div class="mt-8 flex flex-wrap items-center gap-3">
                 <a
                   [routerLink]="startRoute()"
-                  class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-6 py-3.5 text-base font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[2px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  class="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-ink shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary-strong hover:shadow-md"
                 >
-                  Get Started
+                  Get Started Free
                   <app-icon name="arrow-right" [size]="18" />
                 </a>
                 <a
                   routerLink="/features"
-                  class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-6 py-3.5 text-base font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[2px] hover:bg-surface-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  class="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-6 py-3.5 text-base font-semibold text-neutral-700 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-neutral-50 hover:text-ink hover:shadow-md"
                 >
                   Explore Features
                 </a>
-                <a
-                  routerLink="/ai"
-                  class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface-2 px-6 py-3.5 text-base font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[2px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                >
-                  <app-icon name="bot" [size]="18" />
-                  Try LifeHub AI
-                </a>
               </div>
 
-              <ul class="mt-8 flex flex-wrap gap-2.5">
-                @for (chip of heroChips; track chip) {
-                  <li
-                    class="rounded-[10px] border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-[2px_2px_0_0_var(--color-ink)]"
-                  >
-                    {{ chip }}
-                  </li>
-                }
+              <ul class="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-neutral-600">
+                <li class="flex items-center gap-1.5">
+                  <app-icon name="check" [size]="15" class="text-success" [strokeWidth]="3" />
+                  Free to start
+                </li>
+                <li class="flex items-center gap-1.5">
+                  <app-icon name="check" [size]="15" class="text-success" [strokeWidth]="3" />
+                  No credit card
+                </li>
+                <li class="flex items-center gap-1.5">
+                  <app-icon name="check" [size]="15" class="text-success" [strokeWidth]="3" />
+                  Your data stays yours
+                </li>
               </ul>
             </div>
 
             <!-- Product mockup -->
-            <div class="relative mx-auto w-full max-w-xl lg:mx-0">
-              <div
-                aria-hidden="true"
-                class="absolute -inset-3 rotate-2 rounded-card border-2 border-ink bg-primary shadow-soft"
-              ></div>
-              <div class="relative overflow-hidden rounded-card border-2 border-ink bg-surface shadow-pop">
+            <div class="relative mx-auto w-full max-w-xl lg:mx-0" data-reveal>
+              <div class="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl shadow-neutral-900/10">
                 <!-- Window chrome -->
-                <div class="flex items-center gap-2 border-b-2 border-ink bg-surface-2 px-4 py-3">
-                  <span class="h-3 w-3 rounded-full border-2 border-ink bg-danger"></span>
-                  <span class="h-3 w-3 rounded-full border-2 border-ink bg-warning"></span>
-                  <span class="h-3 w-3 rounded-full border-2 border-ink bg-success"></span>
-                  <span class="ml-3 flex-1 truncate rounded-md border-2 border-ink bg-surface px-3 py-1 text-[11px] font-bold text-ink-faint">
-                    lifehub-psi-two.vercel.app/app/dashboard
+                <div class="flex items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-3">
+                  <span class="h-3 w-3 rounded-full bg-[#ff5f57]"></span>
+                  <span class="h-3 w-3 rounded-full bg-[#febc2e]"></span>
+                  <span class="h-3 w-3 rounded-full bg-[#28c840]"></span>
+                  <span
+                    class="ml-3 flex-1 truncate rounded-md border border-neutral-200 bg-white px-3 py-1 text-center text-[11px] font-medium text-neutral-500"
+                  >
+                    lifehub.app/app/dashboard
+                  </span>
+                  <span
+                    class="hidden items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[10px] font-semibold text-neutral-500 sm:flex"
+                  >
+                    <app-icon name="search" [size]="11" />
+                    ⌘K
                   </span>
                 </div>
 
                 <div class="flex">
                   <!-- Mock sidebar -->
-                  <div class="hidden w-28 shrink-0 border-r-2 border-ink bg-surface-2 p-3 sm:block">
-                    <div class="flex items-center gap-1.5 rounded-md border-2 border-ink bg-primary px-2 py-1.5">
-                      <img src="assets/logolifehub.png" alt="" class="h-4 w-4" />
-                      <span class="font-display text-[10px] text-ink">LH</span>
-                    </div>
-                    <ul class="mt-3 space-y-1.5">
+                  <div class="hidden w-36 shrink-0 border-r border-neutral-200 bg-neutral-50/60 p-3 sm:block">
+                    <ul class="space-y-1">
                       @for (item of mockSidebar; track item.label) {
                         <li
-                          class="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[10px] font-bold"
-                          [class]="item.active ? 'bg-primary text-ink shadow-[2px_2px_0_0_var(--color-ink)]' : 'text-ink-faint'"
+                          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
+                          [class]="
+                            item.active
+                              ? 'bg-primary text-ink shadow-sm'
+                              : 'text-neutral-500'
+                          "
                         >
-                          <app-icon [name]="item.icon" [size]="12" />
+                          <app-icon [name]="item.icon" [size]="13" />
                           {{ item.label }}
                         </li>
                       }
                     </ul>
+                    <div
+                      class="mt-4 flex items-center gap-2 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-white"
+                    >
+                      <app-icon name="bot" [size]="13" />
+                      LifeHub AI
+                    </div>
                   </div>
 
                   <!-- Mock content -->
                   <div class="min-w-0 flex-1 space-y-3 p-4">
                     <div class="flex items-center justify-between gap-2">
                       <div>
-                        <p class="font-display text-sm text-ink">Good morning 👋</p>
-                        <p class="text-[10px] font-semibold text-ink-faint">Saturday, 15 August</p>
+                        <p class="text-sm font-bold text-ink">Good morning 👋</p>
+                        <p class="text-[10px] font-medium text-neutral-500">Saturday, 15 August</p>
                       </div>
-                      <span class="rounded-md border-2 border-ink bg-primary px-2 py-1 text-[10px] font-bold text-ink">
+                      <span
+                        class="rounded-lg bg-primary px-2.5 py-1 text-[10px] font-bold text-ink shadow-sm"
+                      >
                         + Add
                       </span>
                     </div>
 
                     <!-- Finance row -->
                     <div class="grid grid-cols-3 gap-2">
-                      <div class="rounded-md border-2 border-ink bg-surface p-2 shadow-[2px_2px_0_0_var(--color-ink)]">
-                        <p class="text-[9px] font-bold uppercase tracking-wide text-ink-faint">Balance</p>
-                        <p class="font-display text-sm text-ink">Rp 12.4jt</p>
+                      <div class="rounded-xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+                        <p class="text-[9px] font-bold uppercase tracking-wide text-neutral-500">Net worth</p>
+                        <p class="mt-0.5 text-sm font-bold text-ink">Rp 63,4jt</p>
                       </div>
-                      <div class="rounded-md border-2 border-ink bg-surface p-2 shadow-[2px_2px_0_0_var(--color-ink)]">
-                        <p class="text-[9px] font-bold uppercase tracking-wide text-ink-faint">Income</p>
-                        <p class="font-display text-sm text-success">+8jt</p>
+                      <div class="rounded-xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+                        <p class="text-[9px] font-bold uppercase tracking-wide text-neutral-500">Income</p>
+                        <p class="mt-0.5 text-sm font-bold text-success">+8jt</p>
                       </div>
-                      <div class="rounded-md border-2 border-ink bg-surface p-2 shadow-[2px_2px_0_0_var(--color-ink)]">
-                        <p class="text-[9px] font-bold uppercase tracking-wide text-ink-faint">Expense</p>
-                        <p class="font-display text-sm text-danger">−4.5jt</p>
+                      <div class="rounded-xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+                        <p class="text-[9px] font-bold uppercase tracking-wide text-neutral-500">Expense</p>
+                        <p class="mt-0.5 text-sm font-bold text-danger">−4,5jt</p>
                       </div>
                     </div>
 
                     <!-- Tasks -->
-                    <div class="rounded-md border-2 border-ink bg-surface p-2.5">
-                      <p class="flex items-center gap-1 text-[10px] font-bold text-ink">
-                        <app-icon name="list-todo" [size]="11" /> Today's tasks
+                    <div class="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
+                      <p class="flex items-center gap-1.5 text-[11px] font-bold text-ink">
+                        <app-icon name="list-todo" [size]="12" />
+                        Today’s tasks
                       </p>
                       <ul class="mt-2 space-y-1.5">
                         @for (task of mockTasks; track task.title) {
-                          <li class="flex items-center gap-2 text-[10px] font-medium text-ink">
+                          <li class="flex items-center gap-2 text-[11px] font-medium text-ink">
                             <span
-                              class="flex h-3.5 w-3.5 items-center justify-center rounded-full border-2"
-                              [class]="task.done ? 'border-success bg-success' : 'border-ink-faint'"
+                              class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+                              [class]="task.done ? 'border-success bg-success' : 'border-neutral-300'"
                             >
                               @if (task.done) {
-                                <app-icon name="check" [size]="8" [strokeWidth]="3" class="text-surface" />
+                                <app-icon name="check" [size]="9" [strokeWidth]="3" class="text-white" />
                               }
                             </span>
-                            <span [class.line-through]="task.done" [class.text-ink-faint]="task.done">
+                            <span class="truncate" [class.line-through]="task.done" [class.text-neutral-400]="task.done">
                               {{ task.title }}
                             </span>
                           </li>
@@ -262,14 +295,22 @@ const TECH_STACK = [
                       </ul>
                     </div>
 
-                    <!-- Habits -->
-                    <div class="flex items-center justify-between rounded-md border-2 border-ink bg-surface p-2.5">
-                      <p class="flex items-center gap-1 text-[10px] font-bold text-ink">
-                        <app-icon name="flame" [size]="11" /> Exercise · 12-day streak
-                      </p>
-                      <span class="rounded-full border-2 border-ink bg-success/20 px-2 py-0.5 text-[9px] font-bold text-ink">
-                        Done ✓
-                      </span>
+                    <!-- Habits + Focus -->
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="rounded-xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+                        <p class="flex items-center gap-1 text-[10px] font-bold text-ink">
+                          <app-icon name="flame" [size]="12" class="text-warning" />
+                          Exercise
+                        </p>
+                        <p class="mt-1 text-[10px] font-semibold text-neutral-500">12-day streak</p>
+                      </div>
+                      <div class="rounded-xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+                        <p class="flex items-center gap-1 text-[10px] font-bold text-ink">
+                          <app-icon name="timer" [size]="12" class="text-danger" />
+                          Focus
+                        </p>
+                        <p class="mt-1 text-[10px] font-semibold text-neutral-500">Session 3 of 4 · 25:00</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -277,214 +318,276 @@ const TECH_STACK = [
 
               <!-- Floating badges -->
               <div
-                class="absolute -left-4 -top-5 rotate-[-4deg] rounded-[12px] border-2 border-ink bg-secondary px-3 py-1.5 text-xs font-bold text-ink shadow-soft animate-float"
-                style="--tilt: -4deg"
+                class="absolute -left-3 -top-4 hidden -rotate-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 shadow-lg sm:block"
               >
                 💰 Budget on track
               </div>
               <div
-                class="absolute -bottom-5 -right-3 rotate-3 rounded-[12px] border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold text-ink shadow-soft animate-float-slow"
-                style="--tilt: 3deg"
+                class="absolute -bottom-4 -right-3 hidden rotate-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 shadow-lg sm:block"
               >
-                ✨ AI: save Rp 200k this month
+                ✨ AI · 2 reminders today
               </div>
             </div>
           </div>
+
+          <p
+            class="relative mx-auto max-w-7xl px-4 pb-8 text-center text-xs font-medium text-neutral-500 sm:px-6 lg:px-8"
+          >
+            Illustrative preview — your LifeHub shows your own numbers.
+          </p>
         </section>
 
-        <!-- ── Features grid ────────────────────────────────────── -->
-        <section id="features" class="border-t-2 border-ink bg-surface">
-          <div class="mx-auto max-w-6xl px-4 py-16 lg:px-6 lg:py-20">
-            <div class="max-w-2xl">
-              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">Everything in one place</p>
-              <h2 class="mt-3 font-display text-3xl text-ink sm:text-4xl">
-                One app for the whole picture of your life.
+        <!-- ══════════════════ VALUE PROPOSITION ══════════════════ -->
+        <section class="bg-white">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+              <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">
+                One system
+              </p>
+              <h2
+                class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl"
+              >
+                Everything you need to stay on top of your life.
               </h2>
-              <p class="mt-4 text-base font-medium text-ink-soft">
-                Stop juggling five apps. LifeHub connects your money, time, habits, and goals so
-                every part of your life stays in sync.
+              <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                Not twenty disconnected apps — one connected system where your money, time, habits,
+                and goals inform each other.
               </p>
             </div>
 
-            <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              @for (feature of FEATURES; track feature.title) {
+            <div class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              @for (card of VALUE_CARDS; track card.title; let i = $index) {
                 <article
-                  class="group rounded-card border-2 border-ink bg-bg p-6 shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-card"
+                  data-reveal
+                  [style.transition-delay]="(i % 3) * 80 + 'ms'"
+                  class="group rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg"
                 >
                   <span
-                    class="flex h-12 w-12 items-center justify-center rounded-[12px] border-2 border-ink shadow-soft transition-transform duration-200 group-hover:-rotate-6"
-                    [class]="feature.tone"
+                    class="flex h-11 w-11 items-center justify-center rounded-xl"
+                    [class]="card.tone"
                   >
-                    @if (feature.image) {
-                      <img
-                        [src]="feature.image"
-                        [alt]="feature.title + ' logo'"
-                        class="h-8 w-8 object-contain"
-                      />
-                    } @else {
-                      <app-icon [name]="feature.icon" [size]="22" />
-                    }
+                    <app-icon [name]="card.icon" [size]="20" />
                   </span>
-                  <h3 class="mt-4 font-display text-lg text-ink">{{ feature.title }}</h3>
-                  <p class="mt-2 text-sm font-medium leading-relaxed text-ink-soft">
-                    {{ feature.description }}
+                  <h3 class="mt-4 text-lg font-bold tracking-tight text-ink">{{ card.title }}</h3>
+                  <p class="mt-2 text-sm font-medium leading-relaxed text-neutral-600">
+                    {{ card.description }}
                   </p>
                 </article>
               }
             </div>
-
-            <div class="mt-10 text-center">
-              <a
-                routerLink="/features"
-                class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-6 py-3 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              >
-                See every feature
-                <app-icon name="arrow-right" [size]="16" />
-              </a>
-            </div>
           </div>
         </section>
 
-        <!-- ── Finance showcase ─────────────────────────────────── -->
-        <section class="border-t-2 border-ink bg-bg">
-          <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 lg:grid-cols-2 lg:px-6 lg:py-20">
-            <div class="order-2 lg:order-1">
-              <div class="relative mx-auto w-full max-w-md">
-                <div
-                  aria-hidden="true"
-                  class="absolute -inset-3 -rotate-2 rounded-card border-2 border-ink bg-success shadow-soft"
-                ></div>
-                <div class="relative rounded-card border-2 border-ink bg-surface p-5 shadow-pop">
-                  <div class="flex items-center justify-between">
+        <!-- ══════════════════ FINANCE SHOWCASE ══════════════════ -->
+        <section id="finance" class="scroll-mt-20">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="grid grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-16">
+              <!-- Copy -->
+              <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Finance</p>
+                <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                  Your money, finally in one place.
+                </h2>
+                <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                  Track income, expenses, budgets, accounts, investments, and net worth — with a
+                  clear view of what you can spend and what you’re investing.
+                </p>
+                <ul class="mt-7 space-y-3.5">
+                  @for (point of financePoints; track point) {
+                    <li class="flex items-start gap-3">
+                      <span
+                        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-ink"
+                      >
+                        <app-icon name="check" [size]="13" [strokeWidth]="3" />
+                      </span>
+                      <span class="text-sm font-medium text-neutral-700">{{ point }}</span>
+                    </li>
+                  }
+                </ul>
+                <div class="mt-9">
+                  <a
+                    routerLink="/features"
+                    class="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary-strong hover:shadow-md"
+                  >
+                    Explore Finance
+                    <app-icon name="arrow-right" [size]="16" />
+                  </a>
+                </div>
+              </div>
+
+              <!-- Net worth mockup -->
+              <div class="mx-auto w-full max-w-md" data-reveal>
+                <div class="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg shadow-neutral-900/5">
+                  <div class="border-b border-neutral-200 bg-neutral-50/60 px-5 py-4">
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                        Net worth
+                      </p>
+                      <span
+                        class="rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-bold text-success"
+                      >
+                        Health 78/100
+                      </span>
+                    </div>
+                    <p class="mt-2 text-3xl font-bold tracking-tight text-ink">Rp63.409.000</p>
+                  </div>
+
+                  <div class="space-y-4 p-5">
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-xl border border-neutral-200 bg-white p-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                          Liquid assets
+                        </p>
+                        <p class="mt-1 text-base font-bold text-ink">Rp845.000</p>
+                        <p class="text-[10px] font-medium text-neutral-500">Cash + e-wallets + banks</p>
+                      </div>
+                      <div class="rounded-xl border border-neutral-200 bg-white p-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                          Investment assets
+                        </p>
+                        <p class="mt-1 text-base font-bold text-ink">Rp62.564.000</p>
+                        <p class="text-[10px] font-medium text-neutral-500">Investments only</p>
+                      </div>
+                    </div>
+
                     <div>
-                      <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Total balance</p>
-                      <p class="mt-1 font-display text-3xl text-ink">Rp 12.400.000</p>
-                    </div>
-                    <span class="rounded-md border-2 border-ink bg-success/15 px-2.5 py-1.5 text-xs font-bold text-ink">
-                      ▲ +18% vs last month
-                    </span>
-                  </div>
-
-                  <div class="mt-5 grid grid-cols-2 gap-3">
-                    <div class="rounded-button border-2 border-ink bg-bg p-3">
-                      <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">Income</p>
-                      <p class="mt-0.5 font-display text-lg text-success">Rp 8.000.000</p>
-                    </div>
-                    <div class="rounded-button border-2 border-ink bg-bg p-3">
-                      <p class="text-[11px] font-bold uppercase tracking-wide text-ink-faint">Expense</p>
-                      <p class="mt-0.5 font-display text-lg text-danger">Rp 4.500.000</p>
-                    </div>
-                  </div>
-
-                  <div class="mt-5">
-                    <p class="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-ink-faint">
-                      Spending this month
-                    </p>
-                    <ul class="space-y-2.5">
-                      @for (cat of mockCategories; track cat.label) {
-                        <li>
-                          <div class="mb-1 flex items-center justify-between text-xs">
-                            <span class="font-bold text-ink">{{ cat.label }}</span>
-                            <span class="font-semibold text-ink-soft">{{ cat.amount }}</span>
+                      <p class="mb-2 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                        Accounts
+                      </p>
+                      <div class="space-y-1.5">
+                        @for (account of mockAccounts; track account.name) {
+                          <div class="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2">
+                            <span class="flex items-center gap-2 text-xs font-semibold text-ink">
+                              <span class="h-2 w-2 rounded-full" [class]="account.dot"></span>
+                              {{ account.name }}
+                              <span
+                                class="rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-neutral-500"
+                              >
+                                {{ account.type }}
+                              </span>
+                            </span>
+                            <span class="text-xs font-bold text-ink">{{ account.balance }}</span>
                           </div>
-                          <div class="h-3 rounded-full border-2 border-ink bg-surface-2">
-                            <div
-                              class="h-full rounded-full border-r-2 border-ink"
-                              [class]="cat.color"
-                              [style.width.%]="cat.percent"
-                            ></div>
-                          </div>
-                        </li>
-                      }
-                    </ul>
+                        }
+                      </div>
+                    </div>
+
+                    <div>
+                      <p class="mb-2 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                        Budgets
+                      </p>
+                      <div class="rounded-xl border border-neutral-200 p-3">
+                        <div class="flex items-center justify-between text-xs">
+                          <span class="font-semibold text-ink">Food &amp; Drinks</span>
+                          <span class="font-medium text-neutral-500">Rp438.000 / Rp500.000</span>
+                        </div>
+                        <div class="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
+                          <div class="h-full rounded-full bg-warning" style="width: 88%"></div>
+                        </div>
+                        <p class="mt-1.5 text-[10px] font-semibold text-warning">
+                          Approaching your limit
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
+                <p class="mt-3 text-center text-xs font-medium text-neutral-500">
+                  Sample data for illustration.
+                </p>
               </div>
             </div>
 
-            <div class="order-1 lg:order-2">
-              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">Finance</p>
-              <h2 class="mt-3 font-display text-3xl text-ink sm:text-4xl">
-                Understand where your money goes.
-              </h2>
-              <p class="mt-4 text-base font-medium text-ink-soft">
-                Connect your accounts, log income and expenses, set monthly budgets per category,
-                and watch your savings goals grow. No spreadsheets, no guessing.
-              </p>
-              <ul class="mt-6 space-y-3">
-                @for (point of financePoints; track point) {
-                  <li class="flex items-start gap-3">
-                    <span
-                      class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-primary text-ink"
-                    >
-                      <app-icon name="check" [size]="13" [strokeWidth]="3" />
-                    </span>
-                    <span class="text-sm font-medium text-ink">{{ point }}</span>
-                  </li>
-                }
-              </ul>
-              <div class="mt-8">
-                <a
-                  routerLink="/features"
-                  class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-6 py-3 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            <!-- Quick-add demo -->
+            <div
+              class="mx-auto mt-16 max-w-4xl rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+              data-reveal
+            >
+              <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 class="text-lg font-bold tracking-tight text-ink">
+                    Quick-add transactions naturally
+                  </h3>
+                  <p class="mt-1 text-sm font-medium text-neutral-600">
+                    Type it like you’d say it. LifeHub parses the amount, category, and account —
+                    then updates the balance.
+                  </p>
+                </div>
+                <span
+                  class="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-500"
                 >
-                  Explore Finance
+                  Real feature
+                </span>
+              </div>
+
+              <div class="mt-6 grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
+                <div class="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                  <app-icon name="message-square" [size]="16" class="text-neutral-400" />
+                  <span class="text-sm font-medium text-neutral-700">“jajan 15k bca”</span>
+                </div>
+                <span
+                  class="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-primary text-ink shadow-sm"
+                >
                   <app-icon name="arrow-right" [size]="16" />
-                </a>
+                </span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-lg bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
+                    Expense
+                  </span>
+                  <span class="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-bold text-ink">
+                    Rp15.000
+                  </span>
+                  <span class="rounded-lg bg-primary/20 px-2.5 py-1 text-xs font-bold text-ink">
+                    Food &amp; Drinks
+                  </span>
+                  <span class="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-bold text-ink">
+                    BCA
+                  </span>
+                  <span class="text-xs font-semibold text-neutral-500">
+                    → BCA balance −Rp15.000
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- ── Productivity showcase ────────────────────────────── -->
-        <section class="border-t-2 border-ink bg-surface">
-          <div class="mx-auto max-w-6xl px-4 py-16 lg:px-6 lg:py-20">
-            <div class="mx-auto max-w-2xl text-center">
-              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">Productivity</p>
-              <h2 class="mt-3 font-display text-3xl text-ink sm:text-4xl">
-                Turn intentions into daily progress.
-              </h2>
-              <p class="mt-4 text-base font-medium text-ink-soft">
-                Start every day on Today, knock out tasks, keep your streaks alive, and protect
-                deep work with Pomodoro — your plan, executed.
-              </p>
-            </div>
-
-            <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              @for (item of productivityCards; track item.title) {
-                <div
-                  class="rounded-card border-2 border-ink bg-bg p-5 shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-card"
+        <!-- ══════════════════ AI SHOWCASE ══════════════════ -->
+        <section id="ai" class="scroll-mt-20 bg-ink">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="grid grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-16">
+              <!-- Copy -->
+              <div data-reveal>
+                <p
+                  class="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-neutral-300"
                 >
-                  <span class="flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-primary shadow-soft">
-                    <app-icon [name]="item.icon" [size]="18" />
-                  </span>
-                  <h3 class="mt-3 font-display text-base text-ink">{{ item.title }}</h3>
-                  <p class="mt-1.5 text-sm font-medium text-ink-soft">{{ item.text }}</p>
-                </div>
-              }
-            </div>
-          </div>
-        </section>
-
-        <!-- ── LifeHub AI ───────────────────────────────────────── -->
-        <section class="border-t-2 border-ink bg-bg">
-          <div class="mx-auto max-w-6xl px-4 py-16 lg:px-6 lg:py-20">
-            <div class="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-              <div>
-                <p class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-ink shadow-soft">
-                  <img src="assets/LifeHubAI.png" alt="LifeHub AI logo" class="h-5 w-5 shrink-0 object-contain" />
+                  <img src="assets/LifeHubAI.png" alt="" class="h-4 w-4 object-contain" />
                   LifeHub AI
                 </p>
-                <h2 class="mt-4 font-display text-3xl text-ink sm:text-4xl">Meet LifeHub AI.</h2>
-                <p class="mt-4 text-base font-medium text-ink-soft">
-                  Not a generic chatbot — LifeHub AI reads your actual LifeHub data and answers
-                  questions about it. Ask why your spending went up, plan your day around your real
-                  deadlines, or get a read on your habits and goals.
+                <h2 class="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                  Your personal AI, powered by your own data.
+                </h2>
+                <p class="mt-4 text-base font-medium leading-relaxed text-neutral-400">
+                  LifeHub AI turns your personal data into useful insights without asking you to
+                  manually analyze everything.
                 </p>
-                <div class="mt-8">
+
+                <ul class="mt-7 space-y-3">
+                  @for (pillar of aiPillars; track pillar) {
+                    <li class="flex items-center gap-3">
+                      <span
+                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-ink"
+                      >
+                        <app-icon name="check" [size]="13" [strokeWidth]="3" />
+                      </span>
+                      <span class="text-sm font-medium text-neutral-300">{{ pillar }}</span>
+                    </li>
+                  }
+                </ul>
+
+                <div class="mt-9 flex flex-wrap gap-3">
                   <a
                     routerLink="/ai"
-                    class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-6 py-3 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    class="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary-strong hover:shadow-md"
                   >
                     <app-icon name="bot" [size]="17" />
                     Try LifeHub AI
@@ -492,49 +595,383 @@ const TECH_STACK = [
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                @for (useCase of aiUseCases; track useCase.title) {
-                  <div class="rounded-card border-2 border-ink bg-surface p-4 shadow-soft">
-                    <div class="flex items-center gap-2">
-                      <span class="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-accent text-white">
-                        <app-icon [name]="useCase.icon" [size]="15" />
-                      </span>
-                      <p class="text-sm font-bold text-ink">{{ useCase.title }}</p>
+              <!-- Chat mockup -->
+              <div class="mx-auto w-full max-w-lg" data-reveal>
+                <div class="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 shadow-2xl shadow-black/40">
+                  <div class="flex items-center gap-2 border-b border-neutral-800 px-4 py-3">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-accent">
+                      <img src="assets/LifeHubAI.png" alt="" class="h-4 w-4 object-contain" />
+                    </span>
+                    <p class="text-sm font-semibold text-white">LifeHub AI</p>
+                    <span class="ml-auto flex items-center gap-1.5 text-[10px] font-semibold text-neutral-500">
+                      <span class="h-1.5 w-1.5 rounded-full bg-success"></span>
+                      Connected to your data
+                    </span>
+                  </div>
+
+                  <div class="space-y-4 p-5">
+                    <!-- User -->
+                    <div class="flex justify-end">
+                      <div class="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm font-medium text-ink">
+                        Can I afford a Rp5M purchase next month?
+                      </div>
                     </div>
-                    <p class="mt-2 text-xs font-medium leading-relaxed text-ink-soft">
-                      {{ useCase.text }}
+
+                    <!-- AI -->
+                    <div class="space-y-2.5">
+                      <div class="rounded-2xl rounded-tl-sm border border-neutral-800 bg-neutral-800/60 p-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                          FACTS <span class="font-medium normal-case text-neutral-600">— from your recorded data</span>
+                        </p>
+                        <p class="mt-1.5 text-sm font-medium leading-relaxed text-neutral-300">
+                          Total assets <strong class="text-white">Rp63,4M</strong> · Liquid
+                          <strong class="text-white">Rp845K</strong> · Investments
+                          <strong class="text-white">Rp62,5M</strong> · Net cash flow last month
+                          <strong class="text-white">+Rp3,2M</strong>.
+                        </p>
+                      </div>
+                      <div class="rounded-2xl rounded-tl-sm border border-neutral-800 bg-neutral-800/60 p-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                          INSIGHTS
+                        </p>
+                        <p class="mt-1.5 text-sm font-medium leading-relaxed text-neutral-300">
+                          Almost all of your money sits in investments, so a Rp5M purchase would
+                          mostly draw from your liquid funds.
+                        </p>
+                      </div>
+                      <div class="rounded-2xl rounded-tl-sm border border-neutral-800 bg-neutral-800/60 p-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                          RECOMMENDATIONS
+                        </p>
+                        <p class="mt-1.5 text-sm font-medium leading-relaxed text-neutral-300">
+                          Move funds from investments, or delay the purchase one month while you
+                          rebuild your liquid cash.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="border-t border-neutral-800 px-5 py-3">
+                    <p class="text-[11px] font-medium text-neutral-500">
+                      Facts from your data · Insights with context · Recommendations you can act on
                     </p>
                   </div>
-                }
+                </div>
+                <p class="mt-3 text-center text-xs font-medium text-neutral-500">
+                  Illustrative example — LifeHub AI always answers from your own recorded data.
+                </p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- ── How it works ─────────────────────────────────────── -->
-        <section class="border-t-2 border-ink bg-surface">
-          <div class="mx-auto max-w-6xl px-4 py-16 lg:px-6 lg:py-20">
-            <div class="mx-auto max-w-2xl text-center">
-              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">How it works</p>
-              <h2 class="mt-3 font-display text-3xl text-ink sm:text-4xl">From zero to in control.</h2>
+        <!-- ══════════════════ PRODUCTIVITY SHOWCASE ══════════════════ -->
+        <section id="productivity" class="scroll-mt-20 bg-white">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+              <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Productivity</p>
+              <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                Plan less. Accomplish more.
+              </h2>
+              <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                Tasks feed your focus sessions, focus feeds your statistics, and every week closes
+                with a review — so your momentum compounds.
+              </p>
             </div>
 
-            <ol class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-              @for (item of HOW_IT_WORKS; track item.step) {
-                <li class="relative rounded-card border-2 border-ink bg-bg p-5 shadow-soft">
-                  <span
-                    class="flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-primary font-display text-sm text-ink shadow-soft"
+            <div
+              class="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
+              data-reveal
+            >
+              @for (item of PRODUCTIVITY_FLOW; track item.title; let i = $index) {
+                <div class="relative">
+                  <div
+                    class="flex h-full flex-col items-start rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                    [style.transition-delay]="(i % 5) * 60 + 'ms'"
                   >
-                    {{ item.step }}
-                  </span>
-                  <h3 class="mt-3 font-display text-base text-ink">{{ item.title }}</h3>
-                  <p class="mt-1.5 text-sm font-medium text-ink-soft">{{ item.text }}</p>
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-ink">
+                      <app-icon [name]="item.icon" [size]="18" />
+                    </span>
+                    <p class="mt-3 text-sm font-bold text-ink">{{ item.title }}</p>
+                    <p class="mt-1 text-xs font-medium text-neutral-500">{{ item.text }}</p>
+                  </div>
                   @if (!$last) {
                     <app-icon
                       name="arrow-right"
-                      [size]="18"
-                      class="absolute -right-4 top-1/2 hidden -translate-y-1/2 text-ink-faint lg:block"
+                      [size]="16"
+                      class="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 text-neutral-400 lg:block"
                     />
+                  }
+                </div>
+              }
+            </div>
+
+            <div
+              class="mx-auto mt-10 max-w-2xl rounded-2xl border border-neutral-200 bg-bg px-6 py-4 text-center"
+              data-reveal
+            >
+              <p class="text-sm font-medium text-neutral-700">
+                <span class="font-bold text-ink">Focus sessions are persisted.</span> Completed
+                Pomodoro time feeds your Dashboard, Statistics, Weekly &amp; Monthly Reviews, and AI
+                context.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════ GOALS + HABITS ══════════════════ -->
+        <section class="scroll-mt-20">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="grid grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-16">
+              <!-- Goal mockup -->
+              <div class="mx-auto w-full max-w-md" data-reveal>
+                <div class="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg shadow-neutral-900/5">
+                  <div class="border-b border-neutral-200 bg-neutral-50/60 px-5 py-4">
+                    <div class="flex items-center justify-between">
+                      <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">Savings goal</p>
+                      <span class="rounded-full bg-primary/20 px-2.5 py-1 text-[11px] font-bold text-ink">
+                        40%
+                      </span>
+                    </div>
+                    <h3 class="mt-2 text-xl font-bold tracking-tight text-ink">Save for laptop</h3>
+                  </div>
+                  <div class="space-y-4 p-5">
+                    <div>
+                      <div class="flex items-baseline justify-between">
+                        <p class="text-2xl font-bold tracking-tight text-ink">Rp3,2M</p>
+                        <p class="text-sm font-medium text-neutral-500">of Rp8M</p>
+                      </div>
+                      <div class="mt-2 h-3 overflow-hidden rounded-full bg-neutral-100">
+                        <div class="h-full rounded-full bg-primary" style="width: 40%"></div>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-xl border border-neutral-200 p-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                          Required monthly
+                        </p>
+                        <p class="mt-1 text-base font-bold text-ink">Rp1,2M</p>
+                      </div>
+                      <div class="rounded-xl border border-neutral-200 p-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                          Deadline
+                        </p>
+                        <p class="mt-1 text-base font-bold text-ink">Dec 2026</p>
+                      </div>
+                    </div>
+                    <p class="text-[11px] font-medium text-neutral-500">
+                      Estimated from your target, deadline, and recorded savings.
+                    </p>
+                  </div>
+                </div>
+                <p class="mt-3 text-center text-xs font-medium text-neutral-500">
+                  Sample data for illustration.
+                </p>
+              </div>
+
+              <!-- Copy + habits -->
+              <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Goals &amp; habits</p>
+                <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                  Build the life you’re working toward.
+                </h2>
+                <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                  Savings goals connect to your accounts and show the monthly contribution your
+                  deadline requires. Habits keep you consistent — one day at a time.
+                </p>
+
+                <div class="mt-8 space-y-3">
+                  @for (habit of mockHabits; track habit.name) {
+                    <div class="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                      <div class="flex items-center gap-3">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                          <app-icon name="flame" [size]="17" />
+                        </span>
+                        <div>
+                          <p class="text-sm font-bold text-ink">{{ habit.name }}</p>
+                          <p class="text-xs font-medium text-neutral-500">{{ habit.streak }}</p>
+                        </div>
+                      </div>
+                      <div class="hidden gap-1 sm:flex">
+                        @for (day of habit.days; track $index) {
+                          <span
+                            class="h-5 w-5 rounded-md text-[9px] font-bold"
+                            [class]="day ? 'bg-success text-white' : 'bg-neutral-100 text-neutral-400'"
+                          >
+                            {{ day ? '✓' : '·' }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════ MONTHLY REVIEW SHOWCASE ══════════════════ -->
+        <section class="scroll-mt-20 bg-white">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+              <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Monthly Review</p>
+              <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                Don’t just track your life. Understand it.
+              </h2>
+              <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                LifeHub brings your activity together so you can see what changed, what went well,
+                and what deserves your attention next.
+              </p>
+            </div>
+
+            <!-- Review mockup -->
+            <div class="mx-auto mt-12 max-w-4xl" data-reveal>
+              <div class="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg shadow-neutral-900/5">
+                <div class="flex items-center justify-between border-b border-neutral-200 bg-neutral-50/60 px-5 py-4 sm:px-7">
+                  <div>
+                    <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">Monthly Review</p>
+                    <h3 class="mt-1 text-lg font-bold tracking-tight text-ink">July 2026</h3>
+                  </div>
+                  <span
+                    class="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-bold text-success"
+                  >
+                    ▲ Net worth +4,2% vs June
+                  </span>
+                </div>
+
+                <div class="space-y-5 p-5 sm:p-7">
+                  <!-- Metrics -->
+                  <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <div class="rounded-xl border border-neutral-200 p-3.5">
+                      <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Financial health</p>
+                      <p class="mt-1 text-lg font-bold text-ink">78<span class="text-xs font-semibold text-neutral-500">/100</span></p>
+                    </div>
+                    <div class="rounded-xl border border-neutral-200 p-3.5">
+                      <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Income</p>
+                      <p class="mt-1 text-lg font-bold text-success">Rp8,0jt</p>
+                    </div>
+                    <div class="rounded-xl border border-neutral-200 p-3.5">
+                      <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Expenses</p>
+                      <p class="mt-1 text-lg font-bold text-danger">Rp4,5jt</p>
+                    </div>
+                    <div class="rounded-xl border border-neutral-200 p-3.5">
+                      <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Net cash flow</p>
+                      <p class="mt-1 text-lg font-bold text-ink">+Rp3,5jt</p>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                    <!-- Top categories -->
+                    <div class="rounded-xl border border-neutral-200 p-4">
+                      <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+                        Top categories
+                      </p>
+                      <ul class="mt-3 space-y-2.5">
+                        @for (cat of reviewCategories; track cat.label) {
+                          <li>
+                            <div class="mb-1 flex items-center justify-between text-xs">
+                              <span class="font-semibold text-ink">{{ cat.label }}</span>
+                              <span class="font-medium text-neutral-500">{{ cat.amount }} · {{ cat.percent }}%</span>
+                            </div>
+                            <div class="h-2 overflow-hidden rounded-full bg-neutral-100">
+                              <div
+                                class="h-full rounded-full"
+                                [class]="cat.bar"
+                                [style.width.%]="cat.percent"
+                              ></div>
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+
+                    <!-- Budget performance + productivity -->
+                    <div class="space-y-4">
+                      <div class="rounded-xl border border-neutral-200 p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+                          Budget performance
+                        </p>
+                        <ul class="mt-3 space-y-2">
+                          @for (b of reviewBudgets; track b.label) {
+                            <li class="flex items-center justify-between text-xs">
+                              <span class="font-semibold text-ink">{{ b.label }}</span>
+                              <span
+                                class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                                [class]="b.status === 'Over' ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'"
+                              >
+                                {{ b.used }} · {{ b.status }}
+                              </span>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                      <div class="grid grid-cols-3 gap-3">
+                        <div class="rounded-xl border border-neutral-200 p-3">
+                          <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Tasks</p>
+                          <p class="mt-1 text-sm font-bold text-ink">42/48 <span class="text-[10px] font-semibold text-neutral-500">88%</span></p>
+                        </div>
+                        <div class="rounded-xl border border-neutral-200 p-3">
+                          <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Focus</p>
+                          <p class="mt-1 text-sm font-bold text-ink">18h 32m</p>
+                        </div>
+                        <div class="rounded-xl border border-neutral-200 p-3">
+                          <p class="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Goals</p>
+                          <p class="mt-1 text-sm font-bold text-ink">3/4 <span class="text-[10px] font-semibold text-neutral-500">on track</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- AI summary -->
+                  <div class="rounded-xl border border-neutral-200 bg-bg p-4">
+                    <p class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+                      <app-icon name="bot" [size]="13" />
+                      AI monthly summary
+                    </p>
+                    <p class="mt-2 text-sm font-medium leading-relaxed text-neutral-700">
+                      <span class="font-bold text-success">What went well:</span> focus time up 32%
+                      and all goals progressed. <span class="font-bold text-warning">Needs attention:</span>
+                      Entertainment ran 20% over budget. <span class="font-bold text-ink">Next month:</span>
+                      hold entertainment to Rp400K and keep the laptop goal on schedule.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p class="mt-3 text-center text-xs font-medium text-neutral-500">
+                Sample data for illustration.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════ HOW IT WORKS ══════════════════ -->
+        <section id="how-it-works" class="scroll-mt-20">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+              <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">How it works</p>
+              <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                From scattered to in control.
+              </h2>
+              <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                Four steps between you and a life that runs itself.
+              </p>
+            </div>
+
+            <ol class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              @for (step of STEPS; track step.step; let i = $index) {
+                <li
+                  data-reveal
+                  [style.transition-delay]="(i % 4) * 80 + 'ms'"
+                  class="relative rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <span class="text-4xl font-bold tracking-tight text-primary">{{ step.step }}</span>
+                  <h3 class="mt-3 text-lg font-bold tracking-tight text-ink">{{ step.title }}</h3>
+                  <p class="mt-1.5 text-sm font-medium leading-relaxed text-neutral-600">{{ step.text }}</p>
+                  @if (!$last) {
+                    <span
+                      aria-hidden="true"
+                      class="absolute -right-4 top-1/2 hidden h-px w-8 bg-neutral-300 lg:block"
+                    ></span>
                   }
                 </li>
               }
@@ -542,50 +979,151 @@ const TECH_STACK = [
           </div>
         </section>
 
-        <!-- ── Tech stack ───────────────────────────────────────── -->
-        <section class="border-t-2 border-ink bg-bg">
-          <div class="mx-auto max-w-6xl px-4 py-14 lg:px-6">
-            <p class="text-center text-xs font-bold uppercase tracking-widest text-ink-faint">
-              Built with modern technologies
-            </p>
-            <ul class="mt-6 flex flex-wrap items-center justify-center gap-3">
-              @for (tech of TECH_STACK; track tech) {
-                <li
-                  class="rounded-button border-2 border-ink bg-surface px-4 py-2 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-primary-strong"
+        <!-- ══════════════════ FEATURE ECOSYSTEM ══════════════════ -->
+        <section class="bg-white">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+              <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">The ecosystem</p>
+              <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                One system. Every part of your life.
+              </h2>
+              <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                Sixteen tools that share one source of truth — so nothing lives in a silo.
+              </p>
+            </div>
+
+            <div class="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              @for (item of ECOSYSTEM; track item.title; let i = $index) {
+                <div
+                  data-reveal
+                  [style.transition-delay]="(i % 4) * 50 + 'ms'"
+                  class="group flex items-start gap-3.5 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md"
                 >
-                  {{ tech }}
-                </li>
+                  <span
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-ink transition-colors group-hover:bg-primary"
+                  >
+                    <app-icon [name]="item.icon" [size]="18" />
+                  </span>
+                  <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-ink">{{ item.title }}</h3>
+                    <p class="mt-0.5 text-xs font-medium leading-relaxed text-neutral-600">
+                      {{ item.description }}
+                    </p>
+                  </div>
+                </div>
               }
-            </ul>
+            </div>
           </div>
         </section>
 
-        <!-- ── Final CTA ────────────────────────────────────────── -->
-        <section class="border-t-2 border-ink bg-primary">
-          <div class="mx-auto max-w-4xl px-4 py-16 text-center lg:px-6 lg:py-20">
-            <h2 class="font-display text-3xl text-ink sm:text-4xl">
-              Your life has a lot going on. <br class="hidden sm:block" />
-              <span class="box-decoration-clone bg-ink px-2 text-primary">Now it fits in one place.</span>
+        <!-- ══════════════════ COMMAND CENTER ══════════════════ -->
+        <section class="scroll-mt-20">
+          <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+            <div class="grid grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-16">
+              <!-- Copy -->
+              <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Command center</p>
+                <h2 class="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+                  One place to access everything.
+                </h2>
+                <p class="mt-4 text-base font-medium leading-relaxed text-neutral-600">
+                  Press Ctrl/Cmd + K anywhere in LifeHub to search tasks, notes, transactions,
+                  goals, and more — or type a quick-add like “jajan 15k bca” to log it instantly.
+                </p>
+                <ul class="mt-7 space-y-3">
+                  @for (point of commandPoints; track point) {
+                    <li class="flex items-start gap-3">
+                      <span
+                        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-ink"
+                      >
+                        <app-icon name="check" [size]="13" [strokeWidth]="3" />
+                      </span>
+                      <span class="text-sm font-medium text-neutral-700">{{ point }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              <!-- Palette mockup -->
+              <div class="relative mx-auto w-full max-w-md" data-reveal>
+                <div class="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 shadow-2xl shadow-black/30">
+                  <div class="flex items-center gap-3 border-b border-neutral-800 px-4 py-3.5">
+                    <app-icon name="search" [size]="16" class="text-neutral-500" />
+                    <span class="flex-1 text-sm text-neutral-300">
+                      Search tasks, notes, transactions…
+                    </span>
+                    <span class="flex items-center gap-1 rounded-md border border-neutral-700 bg-neutral-800 px-1.5 py-0.5 text-[10px] font-bold text-neutral-400">
+                      <app-icon name="search" [size]="10" /> K
+                    </span>
+                  </div>
+                  <div class="p-2">
+                    @for (result of searchResults; track result.title; let i = $index) {
+                      <div
+                        class="flex items-center gap-3 rounded-lg px-3 py-2.5"
+                        [class]="i === 0 ? 'bg-primary/15' : ''"
+                      >
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-800 text-neutral-300">
+                          <app-icon [name]="result.icon" [size]="14" />
+                        </span>
+                        <div class="min-w-0 flex-1">
+                          <p class="truncate text-sm font-medium text-white">{{ result.title }}</p>
+                          <p class="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                            {{ result.type }}
+                          </p>
+                        </div>
+                        @if (i === 0) {
+                          <span class="rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                            Enter
+                          </span>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <div class="flex items-center gap-3 border-t border-neutral-800 px-4 py-2.5 text-[10px] font-medium text-neutral-500">
+                    <span>↑↓ Navigate</span>
+                    <span>Enter Open</span>
+                    <span>Esc Close</span>
+                    <span class="ml-auto">Real global search</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════ FINAL CTA ══════════════════ -->
+        <section class="relative overflow-hidden bg-ink">
+          <div
+            aria-hidden="true"
+            class="pointer-events-none absolute inset-0"
+            style="background: radial-gradient(60% 70% at 50% 0%, color-mix(in srgb, #ffd600 18%, transparent), transparent 70%)"
+          ></div>
+          <div class="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-28">
+            <h2 class="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              Your life deserves a<br class="hidden sm:block" />
+              <span class="text-gradient-gold">better dashboard.</span>
             </h2>
-            <p class="mx-auto mt-4 max-w-xl text-base font-medium text-ink">
-              Create your free account and start organizing today. No credit card, no setup maze —
-              just pick it up and go.
+            <p class="mx-auto mt-5 max-w-xl text-base font-medium leading-relaxed text-neutral-400">
+              Bring your finances, productivity, goals, and habits together with LifeHub.
             </p>
-            <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
               <a
                 [routerLink]="startRoute()"
-                class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-6 py-3.5 text-base font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[2px] hover:bg-surface-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                class="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-semibold text-ink shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary-strong hover:shadow-md"
               >
-                Get Started
+                Get Started Free
                 <app-icon name="arrow-right" [size]="18" />
               </a>
               <a
-                routerLink="/login"
-                class="inline-flex items-center rounded-button border-2 border-ink bg-ink px-6 py-3.5 text-base font-bold text-primary shadow-soft transition-all duration-150 hover:-translate-y-[2px] hover:opacity-90 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                routerLink="/features"
+                class="inline-flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900 px-7 py-3.5 text-base font-semibold text-white transition-all duration-150 hover:-translate-y-0.5 hover:bg-neutral-800"
               >
-                Log in
+                Explore LifeHub
               </a>
             </div>
+            <p class="mt-6 text-xs font-medium text-neutral-500">
+              Free to start · No credit card · Your data stays yours
+            </p>
           </div>
         </section>
       </main>
@@ -594,21 +1132,34 @@ const TECH_STACK = [
     </div>
   `,
 })
-export class LandingComponent implements OnInit {
+export class LandingComponent implements OnInit, AfterViewInit {
   private seo = inject(SeoService);
   private auth = inject(AuthService);
+  private el = inject(ElementRef);
 
-  protected readonly FEATURES = FEATURES;
-  protected readonly HOW_IT_WORKS = HOW_IT_WORKS;
-  protected readonly TECH_STACK = TECH_STACK;
+  protected readonly VALUE_CARDS = VALUE_CARDS;
+  protected readonly ECOSYSTEM = ECOSYSTEM;
+  protected readonly STEPS = STEPS;
+  protected readonly PRODUCTIVITY_FLOW = PRODUCTIVITY_FLOW;
 
-  protected readonly heroChips = [
-    '✅ Task manager',
-    '💰 Finance tracker',
-    '🎯 Goals & habits',
-    '⏱ Pomodoro focus',
-    '📝 Notes',
-    '✨ AI assistant',
+  protected readonly financePoints = [
+    'Net worth, liquid assets, and investments computed from your real account balances',
+    'Transfers between accounts never count as income or expense',
+    'Account-level transaction history and spending per account',
+    'Budgets compare plan vs actual, with warnings before you overspend',
+    'Financial Health Score — a transparent, explainable metric, not advice',
+  ];
+
+  protected readonly aiPillars = [
+    'Facts come from your recorded data — never invented',
+    'Insights add context to what you actually track',
+    'Recommendations you can act on, with no generic advice',
+  ];
+
+  protected readonly commandPoints = [
+    'Search across tasks, notes, transactions, goals, habits, and more',
+    'Quick-add transactions by typing naturally, e.g. “jajan 15k bca”',
+    'Keyboard-first: navigate and act without leaving the keyboard',
   ];
 
   protected readonly mockSidebar = [
@@ -617,6 +1168,7 @@ export class LandingComponent implements OnInit {
     { label: 'Tasks', icon: 'list-todo', active: false },
     { label: 'Finance', icon: 'wallet', active: false },
     { label: 'Habits', icon: 'flame', active: false },
+    { label: 'Pomodoro', icon: 'timer', active: false },
   ];
 
   protected readonly mockTasks = [
@@ -626,41 +1178,66 @@ export class LandingComponent implements OnInit {
     { title: 'Review monthly budget', done: false },
   ];
 
-  protected readonly mockCategories = [
-    { label: 'Food & dining', amount: 'Rp 1.200.000', percent: 78, color: 'bg-primary' },
-    { label: 'Transport', amount: 'Rp 500.000', percent: 42, color: 'bg-secondary' },
-    { label: 'Entertainment', amount: 'Rp 700.000', percent: 58, color: 'bg-success' },
+  protected readonly mockAccounts = [
+    { name: 'BCA', type: 'Bank', balance: 'Rp12,4jt', dot: 'bg-primary' },
+    { name: 'GoPay', type: 'E-wallet', balance: 'Rp845rb', dot: 'bg-success' },
+    { name: 'Ajaib', type: 'Investment', balance: 'Rp62,5jt', dot: 'bg-secondary' },
   ];
 
-  protected readonly financePoints = [
-    'Accounts, income, expenses, transfers, and budgets in one ledger',
-    'Spending breakdown by category — know exactly where it goes',
-    'Monthly budget limits with progress at a glance',
-    'Savings goals you can fund directly from the dashboard',
+  protected readonly mockHabits = [
+    { name: 'Exercise', streak: '12-day streak', days: [true, true, true, true, true, true, true] },
+    { name: 'Read 30 minutes', streak: '8-day streak', days: [true, true, false, true, true, true, false] },
+    { name: 'Drink 2L water', streak: '21-day streak', days: [true, true, true, true, true, true, true] },
   ];
 
-  protected readonly productivityCards = [
-    { icon: 'calendar-check', title: "Today's Focus", text: 'A single view of what matters right now.' },
-    { icon: 'list-todo', title: 'Tasks', text: 'Deadlines, priorities, and recurring work.' },
-    { icon: 'flame', title: 'Habits', text: 'Daily streaks that compound into results.' },
-    { icon: 'timer', title: 'Pomodoro', text: 'Focused sessions that protect deep work.' },
+  protected readonly reviewCategories = [
+    { label: 'Food & Drinks', amount: 'Rp1,2jt', percent: 78, bar: 'bg-primary' },
+    { label: 'Transport', amount: 'Rp520rb', percent: 46, bar: 'bg-success' },
+    { label: 'Entertainment', amount: 'Rp410rb', percent: 34, bar: 'bg-warning' },
   ];
 
-  protected readonly aiUseCases = [
-    { icon: 'list-todo', title: 'Daily planning', text: 'A realistic schedule built from your real tasks and deadlines.' },
-    { icon: 'wallet', title: 'Financial insights', text: 'Spot spending patterns and get practical money advice.' },
-    { icon: 'zap', title: 'Productivity suggestions', text: 'Clear next steps based on what you actually track.' },
-    { icon: 'target', title: 'Goal & habit insights', text: 'See what is on track and what needs attention.' },
+  protected readonly reviewBudgets = [
+    { label: 'Food & Drinks', used: '88%', status: 'On track' },
+    { label: 'Entertainment', used: '120%', status: 'Over' },
+  ];
+
+  protected readonly searchResults = [
+    { icon: 'list-todo', title: 'Finish API documentation', type: 'Task' },
+    { icon: 'wallet', title: 'GoPay top-up 50rb', type: 'Transaction' },
+    { icon: 'sticky-note', title: 'Weekly planning', type: 'Note' },
+    { icon: 'layout-dashboard', title: 'Go to Finance', type: 'Action' },
   ];
 
   ngOnInit(): void {
     this.seo.setPage({
-      title: 'LifeHub — Personal Life Management & Productivity App',
+      title: 'LifeHub — Your Life. One Hub.',
       description:
-        'LifeHub is an all-in-one personal life management platform for managing finances, tasks, habits, goals, notes, planning, and productivity in one place.',
+        'Manage your finances, tasks, goals, habits, and productivity in one personal life management platform.',
       path: '/',
       type: 'software.application',
     });
+  }
+
+  ngAfterViewInit(): void {
+    // Scroll-reveal — fade/slide sections in once, respecting reduced motion
+    // (the CSS media query disables the transition entirely).
+    const elements = this.el.nativeElement.querySelectorAll('[data-reveal]');
+    if (typeof IntersectionObserver === 'undefined') {
+      elements.forEach((el: HTMLElement) => el.classList.add('is-visible'));
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -48px 0px' }
+    );
+    elements.forEach((el: HTMLElement) => observer.observe(el));
   }
 
   protected startRoute(): string {
