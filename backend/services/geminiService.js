@@ -100,6 +100,24 @@ async function generate(prompt, { systemInstruction = SYSTEM_PROMPT, maxOutputTo
       timeout,
     ]);
 
+    // Check finish reason — partial responses must never be returned as success.
+    const finishReason = response?.candidates?.[0]?.finishReason;
+    const usage = response?.usageMetadata;
+    const outputTokens = usage?.candidatesTokenCount ?? 0;
+
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn(
+        `[ai] response truncated — finishReason: MAX_TOKENS, outputTokens: ${outputTokens}, ` +
+        `maxOutputTokens: ${config.maxOutputTokens ?? 'none'}`
+      );
+      const err = new Error(
+        `AI response truncated at ${outputTokens} output tokens (maxOutputTokens: ${config.maxOutputTokens ?? 'none'})`
+      );
+      err.code = 'AI_TRUNCATED';
+      err.outputTokens = outputTokens;
+      throw err;
+    }
+
     const text = typeof response?.text === 'string' ? response.text.trim() : '';
     if (!text) {
       const err = new Error('AI returned an empty response');
