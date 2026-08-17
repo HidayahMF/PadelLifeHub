@@ -483,6 +483,7 @@ export const ID: Record<string, string> = {
   'Deleted permanently': 'Dihapus permanen',
   'Permanently delete "{name}"? This cannot be undone.': 'Hapus permanen "{name}"? Tindakan ini tidak dapat dibatalkan.',
   '{saved} saved of {total}': '{saved} tersimpan dari {total}',
+  'View link': 'Lihat tautan',
 
   // ---------- Needs ----------
   'Household essentials and shopping lists.': 'Kebutuhan rumah tangga dan daftar belanja.',
