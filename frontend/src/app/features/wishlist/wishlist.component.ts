@@ -130,6 +130,15 @@ import { formatCurrency, formatDate, percent } from '../../core/utils/format';
 
               <div class="mt-auto">
                 <div class="mt-5 flex items-center gap-2 border-t border-line pt-4">
+                  @if (item.link) {
+                    <a [href]="item.link" target="_blank" rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 rounded-button border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-[2px_2px_0_0_var(--color-ink)] transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_var(--color-ink)]"
+                      [attr.aria-label]="t('View link')"
+                    >
+                      <app-icon name="external-link" [size]="13" />
+                      <span class="hidden sm:inline">{{ t('View link') }}</span>
+                    </a>
+                  }
                   @if (view() === 'active') {
                     @if (item.status !== 'purchased') {
                       <app-button size="sm" icon="check" (click)="markPurchased(item)">{{ t('Purchased') }}</app-button>
