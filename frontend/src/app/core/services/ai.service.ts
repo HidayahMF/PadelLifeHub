@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Observable, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface AiReply {
@@ -59,27 +59,16 @@ export class AiService {
   private static readonly CHAT_KEY_PREFIX = 'lifehub.ai.chat.';
   private static readonly CHAT_MAX_MESSAGES = 200;
 
-  /** Internal subject for chat request coalescing via switchMap. */
-  private readonly chatRequest$ = new Subject<string>();
-
-  /** Abort controller for in-flight chat request (ES env only). */
-  private chatAbort: AbortController | null = null;
-
   // NOTE: ApiService already prefixes environment.apiUrl which ends in /api,
   // so these paths must NOT repeat the /api segment.
 
   /**
    * Free-form question answered against the user's own LifeHub data.
-   * Uses switchMap so rapid-fire requests are coalesced — only the latest
-   * message reaches the backend.
+   * The component's `sending()` guard prevents duplicate in-flight requests.
    */
   chat(message: string): Observable<AiReply> {
-    this.chatRequest$.next(message);
-    return this.chatRequest$.pipe(
-      switchMap((msg) => {
-        this.loading.set(true);
-        return this.api.post<AiReply>('/ai/chat', { message: msg });
-      }),
+    this.loading.set(true);
+    return this.api.post<AiReply>('/ai/chat', { message }).pipe(
       tap({
         next: () => this.loading.set(false),
         error: () => this.loading.set(false),
