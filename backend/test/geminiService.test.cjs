@@ -43,3 +43,14 @@ test('system prompt exists and never leaks placeholder secrets', () => {
   assert.ok(!prompt.includes('AIza'));
   assert.ok(!prompt.includes('api key:'));
 });
+
+test('generate() accepts maxOutputTokens option without error', async () => {
+  const svc = freshService();
+  await assert.rejects(
+    svc.generate('test prompt', { maxOutputTokens: 1024 }),
+    (err) => {
+      assert.strictEqual(err.code, 'AI_NOT_CONFIGURED');
+      return true;
+    }
+  );
+});

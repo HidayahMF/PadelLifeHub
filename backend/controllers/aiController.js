@@ -49,6 +49,13 @@ function respondWithError(res, err) {
     console.error('[ai] request failed:', err.message);
     return res.status(502).json({ success: false, message: 'AI service is temporarily unavailable.' });
   }
+  if (err?.code === 'AI_TRUNCATED') {
+    console.error('[ai] response truncated after retry:', err.message);
+    return res.status(502).json({
+      success: false,
+      message: 'AI response was too long and could not be completed. Please try a shorter question.',
+    });
+  }
   console.error('[ai] request failed:', err?.message);
   return res.status(502).json({ success: false, message: 'AI service is temporarily unavailable.' });
 }
@@ -93,7 +100,19 @@ Data rules:
 - When showing transactions, list each one as stored: date, description, amount, category, and account. Do not merge, reword, or change dates/amounts.
 - If one transaction has no recorded account, say "account information is not recorded for this transaction" for that item only. Never invent an account name, and never claim the entire dataset lacks account info.`;
 
-    const reply = await generate(prompt, { maxOutputTokens: 2048 });
+    const BASE_TOKENS = 2048;
+    const RETRY_TOKENS = 4096;
+    let reply;
+    try {
+      reply = await generate(prompt, { maxOutputTokens: BASE_TOKENS });
+    } catch (err) {
+      if (err.code === 'AI_TRUNCATED') {
+        console.log(`[ai] chat truncated at ${err.outputTokens} tokens — retrying with ${RETRY_TOKENS}`);
+        reply = await generate(prompt, { maxOutputTokens: RETRY_TOKENS });
+      } else {
+        throw err;
+      }
+    }
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -185,7 +204,19 @@ Important rules:
 
 Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt, { maxOutputTokens: 2048 });
+    const BASE_TOKENS = 2048;
+    const RETRY_TOKENS = 4096;
+    let reply;
+    try {
+      reply = await generate(prompt, { maxOutputTokens: BASE_TOKENS });
+    } catch (err) {
+      if (err.code === 'AI_TRUNCATED') {
+        console.log(`[ai] financial-insight truncated at ${err.outputTokens} tokens — retrying with ${RETRY_TOKENS}`);
+        reply = await generate(prompt, { maxOutputTokens: RETRY_TOKENS });
+      } else {
+        throw err;
+      }
+    }
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -203,7 +234,19 @@ const dailyPlan = async (req, res) => {
     const lang = await getUserLanguage(req.user._id);
     const prompt = `Here is the user's day:\n${context}\n\nCreate a realistic daily schedule recommendation using ONLY these tasks, habits, goals, and reminders. Group it as:\n- **Morning:** ...\n- **Afternoon:** ...\n- **Evening:** ...\n\nPrioritize overdue and high-priority tasks, leave room for habits, and keep it to a manageable number of items. If the day is empty, say so and suggest a light plan. Never invent tasks that are not listed. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt, { maxOutputTokens: 1536 });
+    const BASE_TOKENS = 1536;
+    const RETRY_TOKENS = 3072;
+    let reply;
+    try {
+      reply = await generate(prompt, { maxOutputTokens: BASE_TOKENS });
+    } catch (err) {
+      if (err.code === 'AI_TRUNCATED') {
+        console.log(`[ai] daily-plan truncated at ${err.outputTokens} tokens — retrying with ${RETRY_TOKENS}`);
+        reply = await generate(prompt, { maxOutputTokens: RETRY_TOKENS });
+      } else {
+        throw err;
+      }
+    }
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -232,7 +275,19 @@ const habitInsight = async (req, res) => {
 
 Rules: FACTS must come only from the data above; INSIGHTS are interpretations; RECOMMENDATIONS are suggestions. If there are no habits or not enough history, say so in the relevant section. Do NOT make medical or psychological claims. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt, { maxOutputTokens: 1024 });
+    const BASE_TOKENS = 1024;
+    const RETRY_TOKENS = 2048;
+    let reply;
+    try {
+      reply = await generate(prompt, { maxOutputTokens: BASE_TOKENS });
+    } catch (err) {
+      if (err.code === 'AI_TRUNCATED') {
+        console.log(`[ai] habit-insight truncated at ${err.outputTokens} tokens — retrying with ${RETRY_TOKENS}`);
+        reply = await generate(prompt, { maxOutputTokens: RETRY_TOKENS });
+      } else {
+        throw err;
+      }
+    }
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -261,7 +316,19 @@ const goalInsight = async (req, res) => {
 
 Rules: FACTS must come only from the data above; INSIGHTS are interpretations; RECOMMENDATIONS are suggestions. Never invent numbers; if there are no active goals, say so in the relevant section and suggest how to set one up in LifeHub. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt, { maxOutputTokens: 1024 });
+    const BASE_TOKENS = 1024;
+    const RETRY_TOKENS = 2048;
+    let reply;
+    try {
+      reply = await generate(prompt, { maxOutputTokens: BASE_TOKENS });
+    } catch (err) {
+      if (err.code === 'AI_TRUNCATED') {
+        console.log(`[ai] goal-insight truncated at ${err.outputTokens} tokens — retrying with ${RETRY_TOKENS}`);
+        reply = await generate(prompt, { maxOutputTokens: RETRY_TOKENS });
+      } else {
+        throw err;
+      }
+    }
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);

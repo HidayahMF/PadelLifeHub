@@ -373,6 +373,55 @@ test('Gemini failure returns a safe 502 without leaking internals', async () => 
   }
 });
 
+test('truncated Gemini response (MAX_TOKENS) is not returned as success', async () => {
+  const original = gemini.generate;
+  let callCount = 0;
+  gemini.generate = async () => {
+    callCount++;
+    if (callCount === 1) {
+      // Simulate first call hitting MAX_TOKENS
+      const err = new Error('AI response truncated at 2048 output tokens (maxOutputTokens: 2048)');
+      err.code = 'AI_TRUNCATED';
+      err.outputTokens = 2048;
+      throw err;
+    }
+    // Retry succeeds with complete response
+    return 'Complete response after retry with more tokens.';
+  };
+  try {
+    const res = await post('/api/ai/chat', { message: 'Analisis keuangan saya secara detail' }, authHeaders());
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.success, true);
+    assert.strictEqual(json.reply, 'Complete response after retry with more tokens.');
+    assert.strictEqual(callCount, 2, 'should have retried once after truncation');
+  } finally {
+    gemini.generate = original;
+    callCount = 0;
+  }
+});
+
+test('double truncation returns 502 with safe message', async () => {
+  const original = gemini.generate;
+  gemini.generate = async () => {
+    const err = new Error('AI response truncated');
+    err.code = 'AI_TRUNCATED';
+    err.outputTokens = 4096;
+    throw err;
+  };
+  try {
+    const res = await post('/api/ai/chat', { message: 'Analisis keuangan saya' }, authHeaders());
+    assert.strictEqual(res.status, 502);
+    const json = await res.json();
+    assert.strictEqual(json.success, false);
+    assert.ok(json.message.includes('too long') || json.message.includes('unavailable'));
+    assert.ok(!JSON.stringify(json).includes('AI_TRUNCATED'));
+    assert.ok(!JSON.stringify(json).includes('outputTokens'));
+  } finally {
+    gemini.generate = original;
+  }
+});
+
 test('all quick-action endpoints answer with success:true', async () => {
   for (const path of [
     '/api/ai/financial-insight',
