@@ -37,7 +37,12 @@ interface SocialCard {
               {{ t('Let’s talk about the project.') }}
             </h1>
             <p class="mx-auto mt-4 max-w-2xl text-base font-medium text-ink-soft">
-              {{ t('LifeHub was designed and built by {name} — a full-stack developer who likes products that feel finished. Interested in the project or want to collaborate?', { name: SITE.developer.name }) }}
+              {{
+                t(
+                  'LifeHub was designed and built by {name} — a full-stack developer who likes products that feel finished. Interested in the project or want to collaborate?',
+                  { name: SITE.developer.name }
+                )
+              }}
             </p>
           </div>
         </section>
@@ -50,7 +55,9 @@ interface SocialCard {
                 aria-hidden="true"
                 class="absolute -inset-2 rotate-1 rounded-card border-2 border-ink bg-primary shadow-soft"
               ></div>
-              <div class="relative rounded-card border-2 border-ink bg-surface p-7 shadow-pop sm:p-8">
+              <div
+                class="relative rounded-card border-2 border-ink bg-surface p-7 shadow-pop sm:p-8"
+              >
                 <div class="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
                   <span
                     class="flex h-20 w-20 shrink-0 items-center justify-center rounded-card border-2 border-ink bg-accent font-display text-3xl text-primary shadow-soft"
@@ -64,7 +71,11 @@ interface SocialCard {
                       {{ t(SITE.developer.role) }}
                     </p>
                     <p class="mt-3 text-sm font-medium leading-relaxed text-ink-soft">
-                      {{ t('Designer and developer of LifeHub — from the Angular frontend and the neo-brutalist design system to the Express + MongoDB backend, authentication, and the Gemini-powered LifeHub AI.') }}
+                      {{
+                        t(
+                          'Designer and developer of LifeHub — from the Angular frontend and the neo-brutalist design system to the Express + MongoDB backend, authentication, and the Gemini-powered LifeHub AI.'
+                        )
+                      }}
                     </p>
                   </div>
                 </div>
@@ -95,14 +106,22 @@ interface SocialCard {
                       />
                     </span>
                     <h3 class="mt-3 font-display text-base text-ink">{{ social.label }}</h3>
-                    <p class="mt-1 text-xs font-medium text-ink-soft">{{ t(social.description) }}</p>
+                    <p class="mt-1 text-xs font-medium text-ink-soft">
+                      {{ t(social.description) }}
+                    </p>
                   </a>
                 }
               </div>
             } @else {
-              <div class="mt-6 rounded-card border-2 border-ink bg-surface p-6 text-center shadow-soft">
+              <div
+                class="mt-6 rounded-card border-2 border-ink bg-surface p-6 text-center shadow-soft"
+              >
                 <p class="text-sm font-medium text-ink-soft">
-                  {{ t('Social links are not configured yet. Add your GitHub, LinkedIn, and Instagram URLs in') }}
+                  {{
+                    t(
+                      'Social links are not configured yet. Add your GitHub, LinkedIn, and Instagram URLs in'
+                    )
+                  }}
                   <code
                     class="inline-block max-w-full break-all rounded-md border-2 border-ink bg-surface-2 px-1.5 py-0.5 align-middle text-xs font-bold text-ink"
                   >
@@ -114,10 +133,16 @@ interface SocialCard {
             }
 
             <!-- CTA -->
-            <div class="mt-12 rounded-card border-2 border-ink bg-primary p-7 text-center shadow-card sm:p-9">
+            <div
+              class="mt-12 rounded-card border-2 border-ink bg-primary p-7 text-center shadow-card sm:p-9"
+            >
               <h2 class="font-display text-2xl text-ink">{{ t('Interested in the project?') }}</h2>
               <p class="mx-auto mt-2 max-w-md text-sm font-medium text-ink">
-                {{ t('Create an account to try LifeHub, or reach out through any of the links above.') }}
+                {{
+                  t(
+                    'Create an account to try LifeHub, or reach out through any of the links above.'
+                  )
+                }}
               </p>
               <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <a
@@ -161,8 +186,8 @@ export class ContactComponent {
         : s.label === 'LinkedIn'
           ? 'Professional profile'
           : s.label === 'TikTok'
-            ? 'Short videos & updates'
-            : 'Behind the scenes',
+            ? ' '
+            : '',
   }));
 
   constructor() {
@@ -171,7 +196,7 @@ export class ContactComponent {
       this.seo.setPage({
         title: this.i18n.t('Contact — LifeHub'),
         description: this.i18n.t(
-          'Get in touch about LifeHub, a personal life management platform. Connect with the developer Hidayah Muhammad Fadillah on GitHub, LinkedIn, or Instagram.'
+          'Get in touch about LifeHub, a personal life management platform. Connect with the developer Hidayah Muhammad Fadillah on GitHub, LinkedIn, or Instagram.',
         ),
         path: '/contact',
       });
