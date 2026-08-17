@@ -206,6 +206,23 @@ stubModule('../models/Transaction', createModel({
     captured.txFindFilters.push(filter);
     return behavior.txFind;
   },
+  findOne: async (filter) => {
+    if (!filter?._id) return null;
+    const tx = behavior.txFind.find(
+      (t) => String(t._id) === String(filter._id) && (!filter.user || String(t.user) === String(filter.user))
+    );
+    if (!tx) return null;
+    if (!tx._patched) {
+      tx._patched = true;
+      tx.save = async function () { return this; };
+      tx.deleteOne = async function () {
+        const idx = behavior.txFind.indexOf(this);
+        if (idx >= 0) behavior.txFind.splice(idx, 1);
+        return true;
+      };
+    }
+    return tx;
+  },
   aggregate: (pipeline) => {
     captured.txAggregateMatches.push(pipeline[0]?.$match || {});
     return behavior.txAggregate(pipeline);
@@ -241,6 +258,17 @@ const post = (path, body, headers = {}) =>
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
+  });
+const put = (path, body, headers = {}) =>
+  fetch(`${base}${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+const del = (path, headers = {}) =>
+  fetch(`${base}${path}`, {
+    method: 'DELETE',
+    headers,
   });
 
 // ---------------------------------------------------------------------------
@@ -950,5 +978,134 @@ test('quick-add: parse with no accounts asks the user to create one first', asyn
     assert.strictEqual(behavior.transactionCreateCalls.length, 0);
   } finally {
     gemini.generate = async () => 'Mocked LifeHub AI reply';
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Transaction update/delete → financial context cache invalidation (P2 fix)
+// ---------------------------------------------------------------------------
+const TX_AUTH = authHeaders(USER_A);
+
+test('update transaction invalidates financial context cache', async () => {
+  behavior.txFind = [
+    { _id: 'tx-cache-upd', user: USER_A, type: 'expense', amount: 500000, account: 'acc-bca', category: 'cat-food', description: 'Cache test', date: new Date() },
+  ];
+  const origTxAgg = behavior.txAggregate;
+  behavior.txAggregate = (p) => {
+    const m = p[0]?.$match || {};
+    if (m.type === 'expense') return [{ total: 500000 }];
+    return [];
+  };
+  try {
+    const { _cacheUtils } = require('../services/aiContext');
+    _cacheUtils.invalidateUserCache(USER_A);
+    const before = await aiContext.buildFinancialContext(USER_A);
+    assert.ok(before.includes('500.000'));
+    const cached = await aiContext.buildFinancialContext(USER_A);
+    assert.strictEqual(before, cached);
+    behavior.txAggregate = (p) => {
+      const m = p[0]?.$match || {};
+      if (m.type === 'expense') return [{ total: 800000 }];
+      return [];
+    };
+    const res = await put('/api/transactions/tx-cache-upd', { amount: 800000 }, TX_AUTH);
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.amount, 800000);
+    const after = await aiContext.buildFinancialContext(USER_A);
+    assert.ok(after.includes('800.000'));
+    assert.notStrictEqual(before, after);
+  } finally {
+    behavior.txAggregate = origTxAgg;
+    behavior.txFind = [];
+  }
+});
+
+test('delete transaction invalidates financial context cache', async () => {
+  behavior.txFind = [
+    { _id: 'tx-cache-del', user: USER_A, type: 'expense', amount: 300000, account: 'acc-bca', category: 'cat-food', description: 'Del test', date: new Date() },
+  ];
+  const origTxAgg = behavior.txAggregate;
+  behavior.txAggregate = (p) => {
+    const m = p[0]?.$match || {};
+    if (m.type === 'expense') return [{ total: 300000 }];
+    return [];
+  };
+  try {
+    const { _cacheUtils } = require('../services/aiContext');
+    _cacheUtils.invalidateUserCache(USER_A);
+    const before = await aiContext.buildFinancialContext(USER_A);
+    assert.ok(before.includes('300.000'));
+    const cached = await aiContext.buildFinancialContext(USER_A);
+    assert.strictEqual(before, cached);
+    const res = await del('/api/transactions/tx-cache-del', TX_AUTH);
+    assert.strictEqual(res.status, 200);
+    behavior.txAggregate = () => [];
+    const after = await aiContext.buildFinancialContext(USER_A);
+    assert.ok(!after.includes('300.000'));
+    assert.notStrictEqual(before, after);
+  } finally {
+    behavior.txAggregate = origTxAgg;
+    behavior.txFind = [];
+  }
+});
+
+test('cache invalidation for user A does not affect user B cache', async () => {
+  behavior.txFind = [
+    { _id: 'tx-ua', user: USER_A, type: 'expense', amount: 100000, account: 'acc-bca', category: 'cat-food', description: 'A tx', date: new Date() },
+    { _id: 'tx-ub', user: USER_B, type: 'expense', amount: 200000, account: 'acc-bca-b', category: 'cat-b-food', description: 'B tx', date: new Date() },
+  ];
+  const origTxAgg = behavior.txAggregate;
+  behavior.txAggregate = (p) => {
+    const m = p[0]?.$match || {};
+    if (m.type === 'expense') return [{ total: String(m.user) === String(USER_A) ? 100000 : 200000 }];
+    return [];
+  };
+  try {
+    const { _cacheUtils } = require('../services/aiContext');
+    _cacheUtils.invalidateUserCache(USER_A);
+    _cacheUtils.invalidateUserCache(USER_B);
+    const ctxA = await aiContext.buildFinancialContext(USER_A);
+    const ctxB = await aiContext.buildFinancialContext(USER_B);
+    assert.ok(ctxA.includes('100.000'));
+    assert.ok(ctxB.includes('200.000'));
+    _cacheUtils.invalidateUserCache(USER_A);
+    const ctxA2 = await aiContext.buildFinancialContext(USER_A);
+    assert.ok(ctxA2.includes('100.000'));
+    const ctxB2 = await aiContext.buildFinancialContext(USER_B);
+    assert.strictEqual(ctxB, ctxB2);
+  } finally {
+    behavior.txAggregate = origTxAgg;
+    behavior.txFind = [];
+  }
+});
+
+test('failed update/delete does not invalidate cache', async () => {
+  behavior.txFind = [
+    { _id: 'tx-err', user: USER_A, type: 'expense', amount: 100000, account: 'acc-bca', category: 'cat-food', description: 'Err test', date: new Date() },
+  ];
+  const origTxAgg = behavior.txAggregate;
+  behavior.txAggregate = (p) => {
+    const m = p[0]?.$match || {};
+    if (m.type === 'expense') return [{ total: 100000 }];
+    return [];
+  };
+  try {
+    const { _cacheUtils } = require('../services/aiContext');
+    _cacheUtils.invalidateUserCache(USER_A);
+    const before = await aiContext.buildFinancialContext(USER_A);
+    const cached = await aiContext.buildFinancialContext(USER_A);
+    assert.strictEqual(before, cached);
+    const res = await put('/api/transactions/nonexistent', { amount: 999 }, TX_AUTH);
+    assert.strictEqual(res.status, 404);
+    const after = await aiContext.buildFinancialContext(USER_A);
+    assert.strictEqual(before, after);
+    const res2 = await del('/api/transactions/nonexistent', TX_AUTH);
+    assert.strictEqual(res2.status, 404);
+    const after2 = await aiContext.buildFinancialContext(USER_A);
+    assert.strictEqual(before, after2);
+  } finally {
+    behavior.txAggregate = origTxAgg;
+    behavior.txFind = [];
   }
 });
