@@ -74,7 +74,8 @@ const getToday = async (req, res, next) => {
     let expense = 0;
     for (const txn of todayTransactions) {
       if (txn.type === 'income') income += txn.amount;
-      else expense += txn.amount;
+      else if (txn.type === 'expense') expense += txn.amount;
+      // transfers are intentionally excluded from cash flow
     }
 
     const habitsToday = habits.map((habit) => ({

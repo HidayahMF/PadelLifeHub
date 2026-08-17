@@ -270,6 +270,11 @@ const del = (path, headers = {}) =>
     method: 'DELETE',
     headers,
   });
+const get = (path, headers = {}) =>
+  fetch(`${base}${path}`, {
+    method: 'GET',
+    headers,
+  });
 
 // ---------------------------------------------------------------------------
 // Authentication
@@ -1156,5 +1161,36 @@ test('failed update/delete does not invalidate cache', async () => {
   } finally {
     behavior.txAggregate = origTxAgg;
     behavior.txFind = [];
+  }
+});
+
+test('today endpoint excludes transfers from income/expense (net cash flow)', async () => {
+  const origTxFind = behavior.txFind;
+  const origTaskFind = behavior.taskFind;
+  const origHabitFind = behavior.habitFind;
+  const origGoalFind = behavior.goalFind;
+  const origReminderFind = behavior.reminderFind;
+  behavior.txFind = [
+    { _id: 'tx-income', user: USER_A, type: 'income', amount: 200000, date: new Date() },
+    { _id: 'tx-expense', user: USER_A, type: 'expense', amount: 50000, date: new Date() },
+    { _id: 'tx-transfer', user: USER_A, type: 'transfer', amount: 115000, date: new Date() },
+  ];
+  behavior.taskFind = [];
+  behavior.habitFind = [];
+  behavior.goalFind = [];
+  behavior.reminderFind = [];
+  try {
+    const res = await get('/api/today', authHeaders());
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.finance.income, 200000, 'transfer should not count as income');
+    assert.strictEqual(json.finance.expense, 50000, 'transfer should not count as expense');
+    assert.strictEqual(json.finance.net, 150000, 'net = income - expense only');
+  } finally {
+    behavior.txFind = origTxFind;
+    behavior.taskFind = origTaskFind;
+    behavior.habitFind = origHabitFind;
+    behavior.goalFind = origGoalFind;
+    behavior.reminderFind = origReminderFind;
   }
 });
