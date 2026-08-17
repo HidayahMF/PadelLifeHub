@@ -177,6 +177,16 @@ async function createTransactionForUser(userId, body) {
   });
 
   await adjustAccountBalance(transaction, 1);
+
+  // Invalidate any cached AI context for this user so the next AI call
+  // sees the freshly created transaction.
+  try {
+    const { invalidateUserCache } = require('./aiContext')._cacheUtils;
+    if (invalidateUserCache) invalidateUserCache(userId);
+  } catch {
+    // Non-fatal — cache module may not be loaded yet in test stubs.
+  }
+
   return transaction;
 }
 

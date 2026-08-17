@@ -21,6 +21,53 @@ const Setting = require('../models/Setting');
 const FocusSession = require('../models/FocusSession');
 const { startOfLocalDay, addLocalDays, getTodayLocalDate } = require('../utils/date');
 
+// ── In-memory user-scoped cache ────────────────────────────────────────────
+// Lightweight TTL cache to avoid redundant DB-heavy context builds within
+// short windows. Key format: `${userId}:${contextType}`.
+// NOT shared across users. Entries expire after TTL_MS.
+
+const CACHE_TTL_MS = 60_000; // 60 seconds — short enough to stay fresh
+const _cache = new Map();
+
+function cacheKey(userId, type) {
+  return `${String(userId)}:${type}`;
+}
+
+function cacheGet(userId, type) {
+  const entry = _cache.get(cacheKey(userId, type));
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    _cache.delete(cacheKey(userId, type));
+    return undefined;
+  }
+  return entry.value;
+}
+
+function cacheSet(userId, type, value) {
+  // Cap cache size at 500 entries to prevent memory leaks
+  if (_cache.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of _cache) {
+      if (now > v.expiresAt) _cache.delete(k);
+    }
+    // If still over 500, clear oldest half
+    if (_cache.size > 500) {
+      const keys = [..._cache.keys()];
+      for (let i = 0; i < Math.ceil(keys.length / 2); i++) {
+        _cache.delete(keys[i]);
+      }
+    }
+  }
+  _cache.set(cacheKey(userId, type), { value, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+
+function invalidateUserCache(userId) {
+  const prefix = `${String(userId)}:`;
+  for (const key of _cache.keys()) {
+    if (key.startsWith(prefix)) _cache.delete(key);
+  }
+}
+
 const IDR = new Intl.NumberFormat('id-ID', {
   style: 'currency',
   currency: 'IDR',
@@ -173,6 +220,12 @@ async function loadFinancialData(userId) {
  * recent transactions. No transaction descriptions over ~40 chars are kept.
  */
 async function buildFinancialContext(userId) {
+  const cached = cacheGet(userId, 'financial');
+  if (cached) {
+    console.log('[AI] cache hit — financial context');
+    return cached;
+  }
+  console.log('[AI] cache miss — financial context');
   const {
     monthIncome,
     monthExpense,
@@ -272,11 +325,19 @@ async function buildFinancialContext(userId) {
     }
   }
 
-  return lines.join('\n');
+  const result = lines.join('\n');
+  cacheSet(userId, 'financial', result);
+  return result;
 }
 
 /** Daily planning context: focus tasks, overdue, habits, goals, reminders. */
 async function buildDailyContext(userId) {
+  const cached = cacheGet(userId, 'daily');
+  if (cached) {
+    console.log('[AI] cache hit — daily context');
+    return cached;
+  }
+  console.log('[AI] cache miss — daily context');
   const now = new Date();
   const today = startOfLocalDay(now);
   const tomorrow = addLocalDays(today, 1);
@@ -364,7 +425,9 @@ async function buildDailyContext(userId) {
     }
   }
 
-  return lines.join('\n');
+  const result = lines.join('\n');
+  cacheSet(userId, 'daily', result);
+  return result;
 }
 
 /** Habit analysis context: streaks, best streaks, recent completion history. */
@@ -525,6 +588,8 @@ module.exports = {
   buildGeneralContext,
   buildFocusContext,
   getUserLanguage,
+  computeNetWorth,
+  _cacheUtils: { cacheGet, cacheSet, invalidateUserCache },
 };
 
 /**
@@ -534,8 +599,14 @@ module.exports = {
  * Never derived from the model's output.
  */
 async function getFinancialSnapshot(userId) {
+  const cached = cacheGet(userId, 'snapshot');
+  if (cached) {
+    console.log('[AI] cache hit — financial snapshot');
+    return cached;
+  }
+  console.log('[AI] cache miss — financial snapshot');
   const data = await loadFinancialData(userId);
-  return {
+  const snapshot = {
     currentMonthIncome: data.monthIncome,
     currentMonthExpense: data.monthExpense,
     previousMonthIncome: data.prevIncome,
@@ -574,4 +645,6 @@ async function getFinancialSnapshot(userId) {
       account: t.account?.name ?? null,
     })),
   };
+  cacheSet(userId, 'snapshot', snapshot);
+  return snapshot;
 }

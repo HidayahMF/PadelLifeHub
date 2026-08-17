@@ -142,12 +142,16 @@ function resolveAccount(accounts, query) {
   if (matches.length === 1) return { account: matches[0], ambiguous: false };
   if (matches.length > 1) return { account: null, ambiguous: true };
 
-  matches = accounts.filter((a) => {
-    const an = normalizeName(a.name);
-    return an && (an.includes(q) || q.includes(an));
-  });
-  if (matches.length === 1) return { account: matches[0], ambiguous: false };
-  if (matches.length > 1) return { account: null, ambiguous: true };
+  // Security: only use "contains" fallback when query >= 4 normalized chars
+  // to prevent short abbreviations like "bca" matching compound names.
+  if (q.length >= 4) {
+    matches = accounts.filter((a) => {
+      const an = normalizeName(a.name);
+      return an && (an.includes(q) || q.includes(an));
+    });
+    if (matches.length === 1) return { account: matches[0], ambiguous: false };
+    if (matches.length > 1) return { account: null, ambiguous: true };
+  }
 
   return { account: null, ambiguous: false };
 }
@@ -231,6 +235,160 @@ function buildPrompt(message, accounts, categories) {
   return `Accounts:\n${accountLines}\n\nCategories:\n${categoryLines}\n\nUser message: "${message}"`;
 }
 
+// ── Deterministic quick-add parser ───────────────────────────────────────────
+// Attempts to parse simple, pattern-based transaction messages without calling
+// Gemini. Returns a draft object or null (null = fall back to Gemini).
+
+/** Parse an IDR amount string like "15k", "1.5jt", "15rb", "50000", "15.000". */
+function parseAmount(raw) {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+
+  const isRibu = /(?:rb|k|ribu)\b/i.test(s);
+  const isJuta = /(?:jt|juta)\b/i.test(s);
+  const isMiliar = /(?:miliar|milyar)\b/i.test(s);
+  const numStr = s.replace(/[^\d.,]/g, '').trim();
+  if (!numStr) return null;
+
+  const hasDot = numStr.includes('.');
+  const hasComma = numStr.includes(',');
+  let num;
+
+  if (hasDot && hasComma) {
+    num = parseFloat(numStr.replace(/\./g, '').replace(',', '.'));
+  } else if (hasDot) {
+    const parts = numStr.split('.');
+    const isThousands = parts.length > 1 && parts[1].length === 3 && !isJuta && !isRibu && !isMiliar;
+    num = isThousands ? parseFloat(numStr.replace(/\./g, '')) : parseFloat(numStr);
+  } else if (hasComma) {
+    const parts = numStr.split(',');
+    const isThousands = parts.length > 1 && parts[1].length === 3 && !isJuta && !isRibu && !isMiliar;
+    num = isThousands ? parseFloat(numStr.replace(/,/g, '')) : parseFloat(numStr.replace(',', '.'));
+  } else {
+    num = parseFloat(numStr);
+  }
+
+  if (!Number.isFinite(num) || num <= 0) return null;
+  if (isRibu) num *= 1000;
+  if (isJuta) num *= 1e6;
+  if (isMiliar) num *= 1e9;
+  num = Math.round(num);
+  return num > 0 ? num : null;
+}
+
+/**
+ * Try to parse a simple transaction message deterministically.
+ *
+ * Supported patterns:
+ *   expense:  "[desc] [amount] [account]"      e.g. "jajan 15k bca"
+ *   income:   "[desc] [amount] [account]"      e.g. "gajian 5jt bca"
+ *   transfer: "transfer [amount] [from] ke [to]" e.g. "transfer 100k bni ke gopay"
+ *
+ * Returns { type, amount, description, account/fromAccount/toAccount } or null.
+ */
+function deterministicParse(message, accounts) {
+  const text = String(message || '').trim();
+  if (!text || text.length < 3) return null;
+
+  // ── Transfer pattern ──
+  // "transfer 100k bni ke gopay", "transfer 100k dari bni ke gopay"
+  const transferRe = /^transfer(?:\s+(?:dari|dari\s+rekening|rekening))?\s+([\d.,]+(?:\s*(?:rb|k|ribu|jt|juta|miliar|milyar))?)\s+(.+?)\s+(?:ke|to|ke\s+rekening)\s+(.+)$/i;
+  const txMatch = text.match(transferRe);
+  if (txMatch) {
+    const amount = parseAmount(txMatch[1]);
+    if (!amount) return null;
+    const fromName = txMatch[2].trim();
+    const toName = txMatch[3].trim();
+    if (!fromName || !toName) return null;
+    return { type: 'transfer', amount, fromAccount: fromName, toAccount: toName };
+  }
+
+  // ── Income keywords ──
+  const INCOME_KEYWORDS = /^(?:gajian|gaji|salary|income|masuk|pemasukan|penjualan|bonus|fee|honor|upah|pendapatan|transfer\s+masuk)/i;
+  const isIncome = INCOME_KEYWORDS.test(text);
+
+  // ── Expense keywords (conservative — must be clearly a spend) ──
+  const EXPENSE_KEYWORDS = /^(?:jajan|makan|beli|bayar|belanja|isi\s+saldo|top\s*up|充|topup|isi|spend|expense|beli\s+token|beli\s+pulsa|beli\s+listrik|beli\s+bensin|nonton|sewa|sewaan|donasi|donate|sumbangan|bayar\s+listrik|bayar\s+air|bayar\s+wifi|bayar\s+internet|bayar\s+bpjs|bayar\s+tagihan|sewa|sewaan|sewa\s+kos|sewa\s+rumah)/i;
+  const isExpense = isIncome ? false : EXPENSE_KEYWORDS.test(text);
+
+  // ── Generic pattern: [description] [amount] [account] ──
+  // Try to extract: description (word(s)) + amount + account (word(s))
+  // Examples: "jajan 15k bca", "beli pulsa 50k mandiri", "gajian 5jt bca"
+  // The amount is always the numeric part.
+
+  // Match: everything before the number = description, the number = amount, everything after = account
+  const GENERIC_RE = /^(.+?)\s+([\d.,]+(?:\s*(?:rb|k|ribu|jt|juta|miliar|milyar))?)\s+(.+?)$/i;
+  const genMatch = text.match(GENERIC_RE);
+  if (genMatch) {
+    const descRaw = genMatch[1].trim();
+    const amount = parseAmount(genMatch[2]);
+    const accRaw = genMatch[3].trim();
+    if (amount && accRaw) {
+      // Determine type
+      let type = 'expense';
+      if (isIncome) type = 'income';
+
+      // Clean description — capitalize first letter
+      const desc = descRaw.charAt(0).toUpperCase() + descRaw.slice(1);
+      return { type, amount, description: desc, account: accRaw };
+    }
+  }
+
+  // ── Fallback: no amount found → cannot determine deterministically ──
+  return null;
+}
+
+/**
+ * Try deterministic parse, resolve accounts/categories, build draft.
+ * Returns draft object (with intent: 'transaction') or null.
+ */
+function tryDeterministicQuickAdd(message, accounts, categories) {
+  const parsed = deterministicParse(message, accounts);
+  if (!parsed) return null;
+
+  if (parsed.type === 'transfer') {
+    const fromRes = resolveAccount(accounts, parsed.fromAccount);
+    const toRes = resolveAccount(accounts, parsed.toAccount);
+    if (fromRes.ambiguous || toRes.ambiguous) return null;
+    if (!fromRes.account || !toRes.account) return null;
+    if (fromRes.account._id && toRes.account._id && String(fromRes.account._id) === String(toRes.account._id)) return null;
+    return {
+      intent: 'transaction',
+      draft: {
+        type: 'transfer',
+        amount: parsed.amount,
+        description: 'Transfer',
+        fromAccountId: fromRes.account._id,
+        fromAccountName: fromRes.account.name,
+        toAccountId: toRes.account._id,
+        toAccountName: toRes.account.name,
+      },
+    };
+  }
+
+  // income / expense
+  const accRes = resolveAccount(accounts, parsed.account);
+  if (accRes.ambiguous || !accRes.account) return null;
+
+  const categorySuggestion = guessCategory(parsed.description || message);
+  const cat = resolveCategory(categories, categorySuggestion);
+  const description = cleanDescription(parsed.description) || (parsed.type === 'income' ? 'Pemasukan' : 'Pengeluaran');
+
+  return {
+    intent: 'transaction',
+    draft: {
+      type: parsed.type,
+      amount: parsed.amount,
+      description,
+      categoryId: cat.category?._id ?? null,
+      categoryName: cat.name,
+      accountId: accRes.account._id,
+      accountName: accRes.account.name,
+    },
+  };
+}
+
 /**
  * READ ONLY. Parse a natural-language message into a transaction draft.
  * Never writes to the database — only confirmation via createTransaction does.
@@ -249,8 +407,32 @@ async function parseTransaction(userId, message) {
     };
   }
 
+  // Try deterministic parsing first — avoids Gemini call for simple patterns.
+  const detResult = tryDeterministicQuickAdd(message, accounts, categories);
+  if (detResult) {
+    console.log('[AI] quick-add deterministic');
+    const draft = detResult.draft;
+    if (draft.type === 'transfer') {
+      return {
+        success: true,
+        intent: 'transaction',
+        draft,
+        reply: `Transfer ${draft.fromAccountName} ke ${draft.toAccountName} sebesar ${fmtIDR(draft.amount)} siap disimpan.`,
+      };
+    }
+    return {
+      success: true,
+      intent: 'transaction',
+      draft,
+      reply: `Catat ${draft.type === 'income' ? 'pemasukan' : 'pengeluaran'} "${draft.description}" ${fmtIDR(draft.amount)} pada ${draft.accountName}?`,
+    };
+  }
+
+  // Fallback to Gemini for complex natural language.
+  console.log('[AI] quick-add Gemini fallback');
   const raw = await generate(buildPrompt(message, accounts, categories), {
     systemInstruction: TRANSACTION_PARSER_SYSTEM_PROMPT,
+    maxOutputTokens: 512,
   });
   const data = extractJson(raw);
   if (!data) {
@@ -466,5 +648,7 @@ module.exports = {
   resolveAccount,
   resolveCategory,
   guessCategory,
+  deterministicParse,
+  tryDeterministicQuickAdd,
   fmtIDR,
 };

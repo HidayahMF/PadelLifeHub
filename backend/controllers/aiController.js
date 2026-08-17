@@ -17,6 +17,7 @@ const {
   getUserLanguage,
 } = require('../services/aiContext');
 const aiTransaction = require('../services/aiTransactionService');
+const deterministicRouter = require('../services/deterministicRouter');
 
 const MAX_MESSAGE_LENGTH = 4000;
 
@@ -70,19 +71,29 @@ const chat = async (req, res) => {
     if (invalid) {
       return res.status(400).json({ success: false, message: invalid });
     }
-    if (!requireConfigured(res)) return;
 
     const userId = req.user._id;
+    const message = req.body.message.trim();
+
+    // Try deterministic answer first — no Gemini needed for simple lookups.
+    const deterministic = await deterministicRouter.handleQuery(userId, message);
+    if (deterministic.handled) {
+      return res.json({ success: true, reply: deterministic.reply });
+    }
+
+    // Fallback to Gemini for questions that need reasoning/interpretation.
+    if (!requireConfigured(res)) return;
+
     const context = await buildGeneralContext(userId);
     const lang = await getUserLanguage(userId);
-    const prompt = `User question: "${req.body.message.trim()}"\n\nHere is the user's LifeHub data:\n${context}\n\nAnswer the question using only the data above. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}. If the data does not contain what the question asks about, say so and suggest where to find it in the app.
+    const prompt = `User question: "${message}"\n\nHere is the user's LifeHub data:\n${context}\n\nAnswer the question using only the data above. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}. If the data does not contain what the question asks about, say so and suggest where to find it in the app.
 
 Data rules:
 - Category names, account names, descriptions, dates, and amounts are AUTHORITATIVE database values. NEVER rename, translate, normalize, merge, or broaden them. If the data says "Jajan", write "Jajan" — never "Food & Drinks". Spending totals by category and by account in the data above were calculated by the backend from the actual stored names; restate them exactly.
 - When showing transactions, list each one as stored: date, description, amount, category, and account. Do not merge, reword, or change dates/amounts.
 - If one transaction has no recorded account, say "account information is not recorded for this transaction" for that item only. Never invent an account name, and never claim the entire dataset lacks account info.`;
 
-    const reply = await generate(prompt);
+    const reply = await generate(prompt, { maxOutputTokens: 2048 });
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -174,7 +185,7 @@ Important rules:
 
 Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt);
+    const reply = await generate(prompt, { maxOutputTokens: 2048 });
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -192,7 +203,7 @@ const dailyPlan = async (req, res) => {
     const lang = await getUserLanguage(req.user._id);
     const prompt = `Here is the user's day:\n${context}\n\nCreate a realistic daily schedule recommendation using ONLY these tasks, habits, goals, and reminders. Group it as:\n- **Morning:** ...\n- **Afternoon:** ...\n- **Evening:** ...\n\nPrioritize overdue and high-priority tasks, leave room for habits, and keep it to a manageable number of items. If the day is empty, say so and suggest a light plan. Never invent tasks that are not listed. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt);
+    const reply = await generate(prompt, { maxOutputTokens: 1536 });
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -221,7 +232,7 @@ const habitInsight = async (req, res) => {
 
 Rules: FACTS must come only from the data above; INSIGHTS are interpretations; RECOMMENDATIONS are suggestions. If there are no habits or not enough history, say so in the relevant section. Do NOT make medical or psychological claims. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt);
+    const reply = await generate(prompt, { maxOutputTokens: 1024 });
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
@@ -250,7 +261,7 @@ const goalInsight = async (req, res) => {
 
 Rules: FACTS must come only from the data above; INSIGHTS are interpretations; RECOMMENDATIONS are suggestions. Never invent numbers; if there are no active goals, say so in the relevant section and suggest how to set one up in LifeHub. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
-    const reply = await generate(prompt);
+    const reply = await generate(prompt, { maxOutputTokens: 1024 });
     res.json({ success: true, reply });
   } catch (err) {
     respondWithError(res, err);
