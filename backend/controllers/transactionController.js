@@ -10,6 +10,15 @@ const {
   computeNextRunAt,
 } = require('../services/transactionService');
 
+function invalidateCache(userId) {
+  try {
+    const { invalidateUserCache } = require('../services/aiContext')._cacheUtils;
+    if (invalidateUserCache) invalidateUserCache(userId);
+  } catch {
+    // Non-fatal — cache module may not be loaded yet in test stubs.
+  }
+}
+
 const getTransactions = async (req, res, next) => {
   try {
     const { type, account, category, startDate, endDate, search } = req.query;
@@ -132,6 +141,7 @@ const updateTransaction = async (req, res, next) => {
     else await adjustAccountBalance(transaction, 1);
 
     const updated = await transaction.save();
+    invalidateCache(req.user._id);
     res.json(updated);
   } catch (err) {
     next(err);
@@ -153,6 +163,7 @@ const deleteTransaction = async (req, res, next) => {
     if (transaction.type === 'transfer') await applyTransfer(transaction, -1);
     else await adjustAccountBalance(transaction, -1);
     await transaction.deleteOne();
+    invalidateCache(req.user._id);
     res.json({ message: 'Transaction removed' });
   } catch (err) {
     next(err);
