@@ -70,14 +70,46 @@ import type { Setting } from '../../core/models/misc.model';
         <app-card>
           <h2 class="text-base font-semibold text-ink">{{ t('Export data') }}</h2>
           <p class="mt-1 text-sm text-ink-soft">{{ t('Download only your own data — no passwords or secrets.') }}</p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <app-button variant="secondary" icon="receipt" (click)="exportCsv('transactions')">
-              {{ t('Transactions CSV') }}
-            </app-button>
-            <app-button variant="secondary" icon="list-todo" (click)="exportCsv('tasks')">
-              {{ t('Tasks CSV') }}
-            </app-button>
-            <app-button icon="download" (click)="exportAll()">{{ t('Export my LifeHub data') }}</app-button>
+
+          <div class="mt-5 space-y-4">
+            <div>
+              <p class="text-sm font-semibold text-ink">{{ t('Transactions') }}</p>
+              <p class="mt-0.5 text-xs text-ink-soft">{{ t('CSV — raw data, Excel — styled spreadsheet.') }}</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <app-button variant="secondary" icon="receipt" (click)="exportCsv('transactions')">
+                  {{ t('Transactions CSV') }}
+                </app-button>
+                <app-button variant="secondary" icon="file-spreadsheet" (click)="exportExcel('transactions')">
+                  {{ t('Export Transactions Excel') }}
+                </app-button>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-sm font-semibold text-ink">{{ t('Tasks') }}</p>
+              <p class="mt-0.5 text-xs text-ink-soft">{{ t('CSV — raw data, Excel — styled spreadsheet.') }}</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <app-button variant="secondary" icon="list-todo" (click)="exportCsv('tasks')">
+                  {{ t('Tasks CSV') }}
+                </app-button>
+                <app-button variant="secondary" icon="file-spreadsheet" (click)="exportExcel('tasks')">
+                  {{ t('Export Tasks Excel') }}
+                </app-button>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-sm font-semibold text-ink">{{ t('Full LifeHub Data') }}</p>
+              <p class="mt-0.5 text-xs text-ink-soft">{{ t('JSON — backup, Excel — full report.') }}</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <app-button variant="secondary" icon="download" (click)="exportAll()">
+                  {{ t('Export my LifeHub data') }}
+                </app-button>
+                <app-button icon="file-spreadsheet" (click)="exportAllExcel()">
+                  {{ t('Export LifeHub to Excel') }}
+                </app-button>
+              </div>
+            </div>
           </div>
         </app-card>
 
@@ -248,11 +280,33 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  protected exportExcel(kind: 'transactions' | 'tasks'): void {
+    const today = this.todayStamp();
+    const name = kind === 'transactions' ? 'Transactions' : 'Tasks';
+    this.api.download(`/export/${kind}/excel`).subscribe({
+      next: (blob) => this.saveBlob(blob, `LifeHub-${name}-${today}.xlsx`),
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
   protected exportAll(): void {
     this.api.download('/export/all').subscribe({
       next: (blob) => this.saveBlob(blob, `lifehub-data-${Date.now()}.json`),
       error: (err: Error) => this.toast.error(err.message),
     });
+  }
+
+  protected exportAllExcel(): void {
+    this.api.download('/export/all/excel').subscribe({
+      next: (blob) => this.saveBlob(blob, `LifeHub-Export-${this.todayStamp()}.xlsx`),
+      error: (err: Error) => this.toast.error(err.message),
+    });
+  }
+
+  private todayStamp(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
   private saveBlob(blob: Blob, filename: string): void {
