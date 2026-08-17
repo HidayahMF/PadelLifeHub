@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IconComponent } from '../../../layout/components/icon.component';
 import { SITE } from '../../../core/config/site.config';
 
 interface FooterSocial {
@@ -12,39 +11,39 @@ interface FooterSocial {
 @Component({
   selector: 'app-public-footer',
   standalone: true,
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink],
   template: `
-    <footer class="border-t-2 border-ink bg-surface">
-      <div class="mx-auto max-w-6xl px-4 py-12 lg:px-6">
+    <footer class="border-t border-neutral-200 bg-white">
+      <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 gap-10 md:grid-cols-12">
           <!-- Brand -->
           <div class="md:col-span-5">
             <a routerLink="/" class="flex items-center gap-2.5" aria-label="LifeHub — home">
               <span
-                class="flex h-10 w-10 items-center justify-center rounded-[10px] border-2 border-ink bg-primary shadow-soft"
+                class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-primary shadow-sm ring-1 ring-ink/10"
               >
-                <img src="assets/logolifehub.png" alt="" class="h-6 w-6 object-contain" />
+                <img src="assets/logolifehub.png" alt="" class="h-5 w-5 object-contain" />
               </span>
-              <span class="font-display text-xl text-ink">LIFEHUB</span>
+              <span class="text-xl font-bold tracking-tight text-ink">LifeHub</span>
             </a>
-            <p class="mt-3 text-sm font-bold uppercase tracking-widest text-ink-faint">
+            <p class="mt-3 text-xs font-semibold uppercase tracking-widest text-neutral-500">
               {{ SITE.tagline }}
             </p>
-            <p class="mt-4 max-w-sm text-sm font-medium text-ink-soft">
+            <p class="mt-4 max-w-sm text-sm font-medium leading-relaxed text-neutral-600">
               Your personal space to manage productivity, finances, habits, goals, and notes — with
-              an AI assistant that understands your life data.
+              weekly &amp; monthly reviews and an AI assistant that understands your life data.
             </p>
           </div>
 
           <!-- Product -->
           <nav class="md:col-span-2" aria-label="Product">
-            <p class="text-xs font-bold uppercase tracking-widest text-ink-faint">Product</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Product</p>
             <ul class="mt-3 space-y-2">
               @for (item of productLinks; track item.label) {
                 <li>
                   <a
                     [routerLink]="item.route"
-                    class="inline-block rounded-md text-sm font-semibold text-ink-soft transition-colors hover:text-ink hover:underline hover:decoration-primary hover:decoration-2 hover:underline-offset-4"
+                    class="inline-block rounded-md text-sm font-medium text-neutral-600 transition-colors hover:text-ink"
                   >
                     {{ item.label }}
                   </a>
@@ -55,12 +54,12 @@ interface FooterSocial {
 
           <!-- Get started -->
           <nav class="md:col-span-2" aria-label="Get started">
-            <p class="text-xs font-bold uppercase tracking-widest text-ink-faint">Get started</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Get started</p>
             <ul class="mt-3 space-y-2">
               <li>
                 <a
                   routerLink="/login"
-                  class="inline-block rounded-md text-sm font-semibold text-ink-soft transition-colors hover:text-ink hover:underline hover:decoration-primary hover:decoration-2 hover:underline-offset-4"
+                  class="inline-block rounded-md text-sm font-medium text-neutral-600 transition-colors hover:text-ink"
                 >
                   Log in
                 </a>
@@ -68,7 +67,7 @@ interface FooterSocial {
               <li>
                 <a
                   routerLink="/register"
-                  class="inline-block rounded-md text-sm font-semibold text-ink-soft transition-colors hover:text-ink hover:underline hover:decoration-primary hover:decoration-2 hover:underline-offset-4"
+                  class="inline-block rounded-md text-sm font-medium text-neutral-600 transition-colors hover:text-ink"
                 >
                   Create account
                 </a>
@@ -78,7 +77,7 @@ interface FooterSocial {
 
           <!-- Connect -->
           <div class="md:col-span-3">
-            <p class="text-xs font-bold uppercase tracking-widest text-ink-faint">Connect</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Connect</p>
             @if (socialLinks.length > 0) {
               <ul class="mt-3 flex flex-wrap gap-2">
                 @for (social of socialLinks; track social.label) {
@@ -89,23 +88,23 @@ interface FooterSocial {
                       rel="noopener noreferrer"
                       [attr.aria-label]="'LifeHub on ' + social.label"
                       title="{{ social.label }}"
-                      class="group flex h-11 w-11 items-center justify-center rounded-[10px] border-2 border-ink bg-surface p-1.5 shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                      class="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 bg-white p-1.5 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow"
                     >
                       <img
                         [src]="social.icon"
                         [alt]="social.label + ' logo'"
-                        class="h-6 w-6 object-contain transition-transform duration-150 group-hover:scale-110"
+                        class="h-5 w-5 object-contain"
                       />
                     </a>
                   </li>
                 }
               </ul>
             } @else {
-              <p class="mt-3 text-sm font-medium text-ink-soft">
+              <p class="mt-3 text-sm font-medium text-neutral-600">
                 Follow the project on
                 <a
                   routerLink="/contact"
-                  class="font-bold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary"
+                  class="font-semibold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary"
                 >
                   the contact page
                 </a>
@@ -116,10 +115,10 @@ interface FooterSocial {
         </div>
 
         <div
-          class="mt-10 flex flex-col items-center justify-between gap-3 border-t-2 border-ink/20 pt-6 sm:flex-row"
+          class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-neutral-200 pt-6 sm:flex-row"
         >
-          <p class="text-xs font-semibold text-ink-faint">© {{ year }} LifeHub</p>
-          <p class="text-xs font-medium text-ink-faint">
+          <p class="text-xs font-medium text-neutral-500">© {{ year }} LifeHub</p>
+          <p class="text-xs font-medium text-neutral-500">
             Built with Angular · Express · MongoDB — by {{ SITE.developer.name }}
           </p>
         </div>

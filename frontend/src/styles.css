@@ -236,3 +236,82 @@
     }
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Public landing page — modern SaaS helpers                          */
+/*  Kept in the global sheet so the marketing pages can reuse them.    */
+/* ------------------------------------------------------------------ */
+
+/* Soft radial brand glow behind the hero / CTAs */
+.landing-glow {
+  background:
+    radial-gradient(
+      55% 45% at 72% 12%,
+      color-mix(in srgb, var(--color-primary) 30%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 40% at 18% 85%,
+      color-mix(in srgb, var(--color-secondary) 10%, transparent),
+      transparent 70%
+    );
+}
+
+/* Faint dotted texture (much softer than .neo-dots) */
+.landing-dots {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-ink) 12%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+/* Gold gradient text for hero accents */
+.text-gradient-gold {
+  background: linear-gradient(115deg, #f0b400 0%, #ffd600 45%, #ff9f1c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Scroll-reveal: add .is-visible via IntersectionObserver */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hide scrollbars inside scrollable mockups (palettes, account rails) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Accessibility — honor reduced motion everywhere                    */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -23,7 +23,7 @@ const USE_CASES: AiUseCase[] = [
     icon: 'wallet',
     title: 'Financial insights',
     description:
-      'Ask why your spending went up this month. The AI reads your actual income, expenses, budgets, and savings goals before answering.',
+      'Ask why your spending went up this month. LifeHub AI analyzes your recorded income, expenses, budgets, accounts, investments, and spending patterns for context-aware answers.',
   },
   {
     icon: 'zap',
@@ -84,8 +84,8 @@ const USE_CASES: AiUseCase[] = [
               </h1>
               <p class="mx-auto mt-6 max-w-2xl text-base font-medium text-ink-soft sm:text-lg">
                 LifeHub AI is a personal productivity and finance assistant built into LifeHub. It
-                reads your own data — tasks, transactions, budgets, habits, and goals — so its
-                advice is about your life, not a generic chatbot.
+                reads your own data — tasks, transactions, budgets, accounts, habits, goals, and
+                investments — so its advice is about your life, not a generic chatbot.
               </p>
               <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <a

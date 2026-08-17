@@ -19,70 +19,158 @@ interface FeatureGroup {
 
 const GROUPS: FeatureGroup[] = [
   {
+    label: 'Finance',
+    description: 'The full picture of your money — accounts, net worth, budgets, and financial health.',
+    items: [
+      {
+        icon: 'wallet',
+        title: 'Accounts',
+        description:
+          'Cash, bank, e-wallet, and investment accounts — with balances, account types, and per-account transaction history.',
+      },
+      {
+        icon: 'receipt',
+        title: 'Income & Expenses',
+        description: 'Record income and expenses with categories, notes, and recurring schedules.',
+      },
+      {
+        icon: 'repeat',
+        title: 'Transfers',
+        description: 'Move money between accounts — transfers never count as income or expense.',
+      },
+      {
+        icon: 'piggy-bank',
+        title: 'Budgets',
+        description: 'Monthly spending limits per category with live progress and over-budget warnings.',
+      },
+      {
+        icon: 'banknote',
+        title: 'Net Worth',
+        description:
+          'Total net worth across liquid assets (cash, bank, e-wallets) and investment assets.',
+      },
+      {
+        icon: 'gauge',
+        title: 'Financial Health',
+        description:
+          'A transparent, explainable 0–100 score based on cash flow, savings, budget, liquidity, and consistency.',
+      },
+      {
+        icon: 'bar-chart-3',
+        title: 'Statistics',
+        description: 'Income vs expense trends, spending by category and account, and monthly summaries.',
+      },
+    ],
+  },
+  {
+    label: 'AI',
+    description: 'Understand your life through your own data.',
+    items: [
+      {
+        icon: 'bot',
+        title: 'AI Chat',
+        description: 'Ask questions about your own data and get practical, personalized answers.',
+      },
+      {
+        icon: 'trending-up',
+        title: 'Financial Insights',
+        description:
+          'LifeHub AI analyzes your recorded income, expenses, budgets, accounts, investments, and spending patterns.',
+      },
+      {
+        icon: 'target',
+        title: 'Habit & Goal Insights',
+        description: 'See which habits are sticking, which goals are at risk, and what to adjust.',
+      },
+      {
+        icon: 'sparkles',
+        title: 'AI Monthly Summary',
+        description:
+          'A generated recap of what went well, what needs attention, and next month’s priorities.',
+      },
+      {
+        icon: 'zap',
+        title: 'Quick Add',
+        description:
+          'Log transactions in plain language — “jajan 15k bca” becomes an expense on the right account.',
+      },
+    ],
+  },
+  {
     label: 'Productivity',
     description: 'Plan your time, protect your focus, and get things done.',
     items: [
       {
         icon: 'list-todo',
         title: 'Tasks',
-        description: 'Priorities, deadlines, reminders, recurring tasks, categories, and tags — with archive and trash.',
-      },
-      {
-        icon: 'flame',
-        title: 'Habits',
-        description: 'Daily habit tracking with streaks, best streaks, and completion history.',
-      },
-      {
-        icon: 'target',
-        title: 'Goals',
-        description: 'Set targets with deadlines, track progress, and see how much is left.',
+        description:
+          'Priorities, deadlines, reminders, recurring tasks, categories, and tags — with archive and trash.',
       },
       {
         icon: 'calendar-days',
         title: 'Calendar',
-        description: 'Tasks, reminders, and plans on one calendar — with a Today view that pulls it together.',
+        description:
+          'Tasks, reminders, and plans on one calendar — with a Today view that pulls it together.',
+      },
+      {
+        icon: 'bell',
+        title: 'Reminders',
+        description: 'Task and calendar reminders surface in a notification center that never duplicates.',
       },
       {
         icon: 'timer',
         title: 'Pomodoro',
         description: 'Timed focus sessions with work/break cycles to protect deep work.',
       },
+      {
+        icon: 'clock',
+        title: 'Focus Sessions',
+        description: 'Completed focus time is saved and feeds your statistics, reviews, and AI context.',
+      },
     ],
   },
   {
-    label: 'Finance',
-    description: 'See the full picture of your money without the spreadsheet.',
+    label: 'Goals & Habits',
+    description: 'Build the life you’re working toward.',
     items: [
       {
-        icon: 'wallet',
-        title: 'Accounts',
-        description: 'Cash, bank accounts, and e-wallets — with balances and transfers between them.',
-      },
-      {
-        icon: 'receipt',
-        title: 'Transactions',
-        description: 'Income and expenses with categories, notes, and repeat schedules.',
+        icon: 'target',
+        title: 'Goals',
+        description: 'Set targets with deadlines, track progress, and see how much is left.',
       },
       {
         icon: 'piggy-bank',
-        title: 'Budgets',
-        description: 'Monthly spending limits per category with progress tracking.',
+        title: 'Savings Goals',
+        description:
+          'Savings goals connect to your accounts and show the monthly contribution your deadline requires.',
       },
       {
-        icon: 'bar-chart-3',
-        title: 'Statistics',
-        description: 'Income vs expense trends, spending breakdowns, and monthly summaries.',
-      },
-      {
-        icon: 'sparkles',
-        title: 'Insights',
-        description: 'Smart summaries of where your money went and how it changed.',
+        icon: 'flame',
+        title: 'Habits',
+        description: 'Daily habit tracking with streaks, best streaks, and completion history.',
       },
     ],
   },
   {
-    label: 'Personal',
-    description: 'Capture, plan, and reflect on the rest of your life.',
+    label: 'Reviews',
+    description: 'Understand how you’re doing — weekly and monthly.',
+    items: [
+      {
+        icon: 'refresh-cw',
+        title: 'Weekly Review',
+        description: 'A guided recap of your week — tasks, habits, finance, and focus at a glance.',
+      },
+      {
+        icon: 'calendar-range',
+        title: 'Monthly Review',
+        description:
+          'Understand how your month went across finances, productivity, habits, goals, and focus — with an AI-generated summary.',
+      },
+    ],
+  },
+  {
+    label: 'Personal & Extras',
+    description: 'Capture, organize, and find everything else.',
     items: [
       {
         icon: 'sticky-note',
@@ -100,35 +188,20 @@ const GROUPS: FeatureGroup[] = [
         description: 'Keep track of things you need with quantities and prices.',
       },
       {
-        icon: 'refresh-cw',
-        title: 'Weekly Review',
-        description: 'A guided recap of your week — tasks, habits, and money at a glance.',
-      },
-    ],
-  },
-  {
-    label: 'Intelligence',
-    description: 'The layer that connects everything you track.',
-    items: [
-      {
-        icon: 'bot',
-        title: 'LifeHub AI',
-        description: 'Ask questions about your own data and get practical, personalized advice.',
-      },
-      {
         icon: 'search',
         title: 'Global Search',
-        description: 'One search across tasks, notes, transactions, goals, habits, and more (Ctrl/Cmd + K).',
-      },
-      {
-        icon: 'gauge',
-        title: 'Dashboard',
-        description: 'Customizable widgets showing your task, finance, habit, and goal summary.',
+        description:
+          'One search across tasks, notes, transactions, goals, habits, and more (Ctrl/Cmd + K).',
       },
       {
         icon: 'bell',
         title: 'Notifications',
-        description: 'Reminders, deadlines, and recurring items surface in a notification center.',
+        description: 'Reminders, deadlines, and recurring items in one notification center.',
+      },
+      {
+        icon: 'layout-dashboard',
+        title: 'Dashboard',
+        description: 'Customizable widgets showing your task, finance, habit, and goal summary.',
       },
     ],
   },
@@ -155,8 +228,8 @@ const GROUPS: FeatureGroup[] = [
               Everything LifeHub does.
             </h1>
             <p class="mx-auto mt-4 max-w-2xl text-base font-medium text-ink-soft">
-              One app for your productivity, personal finance, habits, goals, notes, and planning —
-              plus an AI assistant that understands it all.
+              One app for your productivity, personal finance, habits, goals, notes, planning, and
+              weekly &amp; monthly reviews — plus an AI assistant that understands it all.
             </p>
             <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a

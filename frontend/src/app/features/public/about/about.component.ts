@@ -60,8 +60,9 @@ const STACK = [
                 </p>
                 <p>
                   Today it includes personal finance, tasks, habits, goals, calendar, notes,
-                  wishlist &amp; needs, Pomodoro, statistics, weekly reviews, and LifeHub AI — an
-                  assistant that reads your own data to answer questions and suggest next steps.
+                  wishlist &amp; needs, Pomodoro, statistics, weekly and monthly reviews, and LifeHub
+                  AI — an assistant that reads your own data to answer questions and suggest next
+                  steps.
                 </p>
               </div>
             </div>
@@ -176,7 +177,7 @@ export class AboutComponent implements OnInit {
     {
       icon: 'wallet',
       title: 'Finance',
-      text: 'Accounts, transactions, budgets, and spending insights.',
+      text: 'Accounts, transactions, budgets, net worth, and spending insights.',
     },
     {
       icon: 'list-todo',
@@ -186,7 +187,7 @@ export class AboutComponent implements OnInit {
     {
       icon: 'sticky-note',
       title: 'Personal',
-      text: 'Notes, wishlist & needs, and guided weekly reviews.',
+      text: 'Notes, wishlist & needs, and guided weekly & monthly reviews.',
     },
     {
       icon: 'bot',

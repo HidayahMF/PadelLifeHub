@@ -20,7 +20,7 @@ export const ID: Record<string, string> = {
   'Pomodoro': 'Pomodoro',
   'Statistics': 'Statistik',
   'Weekly review': 'Tinjauan Mingguan',
-  'Monthly review': 'Tinjauan Bulanan',
+  'Monthly Review': 'Tinjauan Bulanan',
   'Settings': 'Pengaturan',
   'Profile': 'Profil',
   'Help': 'Bantuan',

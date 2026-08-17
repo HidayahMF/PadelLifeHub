@@ -143,6 +143,7 @@ export class FocusSessionService {
   }
 }
 
+@Injectable({ providedIn: 'root' })
 export class MonthlyReviewService {
   private api = inject(ApiService);
 
