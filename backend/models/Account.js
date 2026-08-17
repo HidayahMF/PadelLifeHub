@@ -29,4 +29,6 @@ const accountSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+accountSchema.index({ user: 1, name: 1 });
+
 module.exports = mongoose.model('Account', accountSchema);
