@@ -312,8 +312,18 @@ test('T9: ambiguous transaction returns null for Gemini fallback', async () => {
 test('T10: security — User B cannot see User A BCA', async () => {
   reset();
   seedAccounts();
+  // OTHER user has "Rival's BCA" in their own accounts (from seedAccounts).
+  // When OTHER asks "berapa saldo BCA?", they should NOT see USER's "BCA"
+  // account (balance 661000). The Account.find({ user: OTHER }) only returns
+  // OTHER's own accounts, so user scoping is guaranteed.
   const result = await deterministicRouter.handleQuery(OTHER, 'berapa saldo BCA?');
-  assert.strictEqual(result.handled, false, 'OTHER user should not find BCA');
+  if (result.handled) {
+    // OTHER may match their own "Rival's BCA" — that's fine (own account).
+    // But must NOT contain USER's balance.
+    assert.ok(!result.reply.includes(fmt(661000)),
+      'OTHER must not see USER BCA balance');
+  }
+  // In either case, OTHER cannot see USER's data.
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -474,4 +484,107 @@ test('T21: deterministic month income — "berapa pemasukan bulan ini?"', async 
 test('T22: very short message returns not handled', async () => {
   const result = await deterministicRouter.handleQuery(USER, 'hi');
   assert.strictEqual(result.handled, false);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// T23–T31: Account alias matching regression tests (Bank BCA prefix pattern)
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Seed accounts where BCA is named "Bank BCA" (prefix pattern). */
+function seedBankPrefixedAccounts() {
+  behavior.accounts = [
+    { _id: 'acc-bca', user: USER, name: 'Bank BCA', type: 'bank', balance: 661000 },
+    { _id: 'acc-mandiri', user: USER, name: 'Bank Mandiri', type: 'bank', balance: 99000 },
+    { _id: 'acc-dana', user: USER, name: 'Dana', type: 'ewallet', balance: 40000 },
+    { _id: 'acc-gopay', user: USER, name: 'GoPay', type: 'ewallet', balance: 26000 },
+    { _id: 'acc-seabank', user: USER, name: 'Seabank', type: 'bank', balance: 13000 },
+    { _id: 'acc-bni', user: USER, name: 'Bank BNI', type: 'bank', balance: 3000 },
+    { _id: 'acc-ajaib', user: USER, name: 'Ajaib', type: 'investment', balance: 62564000 },
+    { _id: 'acc-cash', user: USER, name: 'Cash', type: 'cash', balance: 3000 },
+  ];
+}
+
+test('T23: "berapa saldo BCA?" resolves to Bank BCA (prefix name)', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'berapa saldo BCA?');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('Bank BCA'));
+  assert.ok(result.reply.includes(fmt(661000)));
+});
+
+test('T24: "saldo BCA" resolves to Bank BCA', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'saldo BCA');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('Bank BCA'));
+  assert.ok(result.reply.includes(fmt(661000)));
+});
+
+test('T25: "uang di BCA berapa?" resolves to Bank BCA', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'uang di BCA berapa?');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('Bank BCA'));
+  assert.ok(result.reply.includes(fmt(661000)));
+});
+
+test('T26: "berapa saldo Bank BCA?" resolves to Bank BCA (full name)', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'berapa saldo Bank BCA?');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('Bank BCA'));
+  assert.ok(result.reply.includes(fmt(661000)));
+});
+
+test('T27: "berapa saldo Mandiri?" resolves to Bank Mandiri', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'berapa saldo Mandiri?');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('Bank Mandiri'));
+  assert.ok(result.reply.includes(fmt(99000)));
+});
+
+test('T28: "berapa saldo GoPay?" resolves to GoPay (no prefix)', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'berapa saldo GoPay?');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('GoPay'));
+  assert.ok(result.reply.includes(fmt(26000)));
+});
+
+test('T29: "berapa saldo Dana?" resolves to Dana (no prefix)', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(USER, 'berapa saldo Dana?');
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.reply.includes('Dana'));
+  assert.ok(result.reply.includes(fmt(40000)));
+});
+
+test('T30: multi-account ambiguity — "saldo BCA" with Bank BCA + My BCA', async () => {
+  reset();
+  // Both accounts end with "BCA" at a word boundary — true ambiguity.
+  behavior.accounts = [
+    { _id: 'acc-bca1', user: USER, name: 'Bank BCA', type: 'bank', balance: 661000 },
+    { _id: 'acc-bca2', user: USER, name: 'My BCA', type: 'bank', balance: 500000 },
+  ];
+  const result = await deterministicRouter.handleQuery(USER, 'saldo BCA');
+  assert.strictEqual(result.handled, true, 'should still be handled (clarification)')
+  assert.ok(
+    result.reply.includes('beberapa rekening') || result.reply.includes('lebih spesifik'),
+    'should ask for clarification'
+  );
+});
+
+test('T31: user isolation — User B cannot see User A Bank BCA via alias', async () => {
+  reset();
+  seedBankPrefixedAccounts();
+  const result = await deterministicRouter.handleQuery(OTHER, 'berapa saldo BCA?');
+  assert.strictEqual(result.handled, false, 'OTHER user should not find Bank BCA');
 });

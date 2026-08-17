@@ -29,13 +29,17 @@ function normalize(name) {
 
 /**
  * Match an account name from user query text against the user's own accounts.
- * Uses progressively looser matching: exact → normalized → contains (prefix-safe).
+ * Uses progressively looser matching: exact → normalized → token suffix.
  * Returns { account, ambiguous }.
  *
- * Security: "BCA" must NOT match "Rival's BCA" in a different user's account
- * list. We enforce that the "contains" fallback only fires when the query
- * normalized form is >= 4 characters, preventing 3-letter bank abbreviations
- * from matching longer compound names.
+ * Security: accounts are ALREADY scoped to the authenticated user via
+ * Account.find({ user: userId }) before this function is called. No global
+ * lookup is performed. "BCA" can never reach another user's accounts.
+ *
+ * The token suffix step (3) extracts word tokens from the query and checks
+ * whether any account name ends with a token at a word boundary. This lets
+ * "BCA" resolve to "Bank BCA" while preventing false matches like "ca"
+ * matching "BCA" (the token must be a meaningful word-level suffix).
  */
 function matchAccount(text, accounts) {
   const lower = text.toLowerCase();
@@ -56,17 +60,44 @@ function matchAccount(text, accounts) {
   if (hits.length === 1) return { account: hits[0], ambiguous: false };
   if (hits.length > 1) return { account: null, ambiguous: true };
 
-  // 3. Contains — only when query >= 4 normalized chars to prevent short
-  //    abbreviations like "bca" matching compound names like "rivalsbca".
-  if (normText.length >= 4) {
-    hits = accounts.filter((a) => {
-      const an = normalize(a.name);
-      return an && (an.includes(normText) || normText.includes(an));
-    });
+  // 3. Token suffix match — extract word tokens from the query text and
+  //    check whether any account name ends with a token at a word boundary.
+  //    This lets "BCA" resolve to "Bank BCA" without weakening user scoping.
+  //    Tokens must be >= 3 characters to prevent false matches on short
+  //    substrings like "ca" or "di".
+  const tokens = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter((t) => t.length >= 3);
+
+  if (tokens.length > 0) {
+    hits = accounts.filter((a) =>
+      tokens.some((token) => accountEndsWithToken(a.name, token))
+    );
     if (hits.length === 1) return { account: hits[0], ambiguous: false };
     if (hits.length > 1) return { account: null, ambiguous: true };
   }
+
   return { account: null, ambiguous: false };
+}
+
+/**
+ * Check if accountName ends with token at a word boundary.
+ * Uses the ORIGINAL account name (not normalized) so separators like
+ * spaces, hyphens, ampersands etc. act as natural word boundaries.
+ *
+ * "Bank BCA" endsWithToken("bca") → true  (preceded by space)
+ * "Bank BCA" endsWithToken("ca")  → false (preceded by 'b', mid-word)
+ * "GoPay"    endsWithToken("gopay") → true (full name)
+ * "GoPay"    endsWithToken("pay")  → false (preceded by 'o', mid-word)
+ */
+function accountEndsWithToken(accountName, token) {
+  const lower = String(accountName || '').toLowerCase();
+  if (!lower.endsWith(token)) return false;
+  const before = lower.slice(0, lower.length - token.length);
+  if (before.length === 0) return true; // token IS the full name
+  return /[^a-z0-9]/.test(before[before.length - 1]);
 }
 
 /**
