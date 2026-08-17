@@ -16,6 +16,7 @@ interface PublicNavLink {
 const NAV_LINKS: PublicNavLink[] = [
   { label: 'Features', route: '/features' },
   { label: 'AI', route: '/ai' },
+  { label: 'Contact', route: '/contact' },
   { label: 'Finance', section: 'finance' },
   { label: 'Productivity', section: 'productivity' },
   { label: 'How it works', section: 'how-it-works' },
