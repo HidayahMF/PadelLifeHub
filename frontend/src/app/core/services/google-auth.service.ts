@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { I18nService } from './i18n.service';
 
 /** Minimal typings for the Google Identity Services (GIS) API. */
 interface GsiCredentialResponse {
@@ -40,6 +41,9 @@ declare global {
  */
 @Injectable({ providedIn: 'root' })
 export class GoogleAuthService {
+  private i18n = inject(I18nService);
+  private t = this.i18n.t.bind(this.i18n);
+
   /** Emits the verified ID token when a user signs in successfully. */
   readonly success$ = new Subject<string>();
   /** Emits a user-friendly message when sign-in fails or is cancelled. */
@@ -98,7 +102,7 @@ export class GoogleAuthService {
           resolve(window.google);
         } else if (++attempts >= 50) {
           clearInterval(timer);
-          reject(new Error('Google sign-in failed to load. Please try again.'));
+          reject(new Error(this.t('Google sign-in failed to load. Please try again.')));
         }
       }, 100);
     });
@@ -118,7 +122,7 @@ export class GoogleAuthService {
     if (response?.credential) {
       this.success$.next(response.credential);
     } else {
-      this.failure$.next('Google sign-in was cancelled.');
+      this.failure$.next(this.t('Google sign-in was cancelled.'));
     }
   }
 }

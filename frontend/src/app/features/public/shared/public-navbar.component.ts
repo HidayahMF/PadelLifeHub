@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { ThemeService } from '../../../core/services/theme.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService, type Lang } from '../../../core/services/i18n.service';
 
 interface PublicNavLink {
   label: string;
@@ -28,11 +29,11 @@ const NAV_LINKS: PublicNavLink[] = [
     <header
       class="sticky top-0 z-50 border-b border-neutral-200/80 bg-white/80 backdrop-blur-md"
     >
-      <nav class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8" aria-label="Main">
+      <nav class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8" aria-label="Main">
         <a
           routerLink="/"
           class="flex shrink-0 items-center gap-2.5 rounded-lg px-1 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-          aria-label="LifeHub — home"
+          [attr.aria-label]="t('LifeHub — home')"
         >
           <span
             class="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary shadow-sm ring-1 ring-ink/10"
@@ -54,14 +55,14 @@ const NAV_LINKS: PublicNavLink[] = [
                   [attr.aria-current]="rla.isActive ? 'page' : null"
                   class="block rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-ink"
                 >
-                  {{ link.label }}
+                  {{ t(link.label) }}
                 </a>
               } @else {
                 <button
                   (click)="goToSection(link.section ?? '')"
                   class="block rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-ink"
                 >
-                  {{ link.label }}
+                  {{ t(link.label) }}
                 </button>
               }
             </li>
@@ -69,10 +70,44 @@ const NAV_LINKS: PublicNavLink[] = [
         </ul>
 
         <div class="ml-auto flex items-center gap-2">
+          <!-- Language switcher (desktop) -->
+          <div
+            role="group"
+            [attr.aria-label]="t('Language')"
+            class="hidden items-center rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm md:flex"
+          >
+            <button
+              (click)="setLang('en')"
+              [attr.aria-pressed]="lang() === 'en'"
+              [attr.aria-label]="t('English')"
+              class="rounded-md px-2.5 py-1 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
+              [class]="
+                lang() === 'en'
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800'
+              "
+            >
+              EN
+            </button>
+            <button
+              (click)="setLang('id')"
+              [attr.aria-pressed]="lang() === 'id'"
+              [attr.aria-label]="t('Bahasa Indonesia')"
+              class="rounded-md px-2.5 py-1 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
+              [class]="
+                lang() === 'id'
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800'
+              "
+            >
+              ID
+            </button>
+          </div>
+
           <button
             (click)="toggleTheme()"
             class="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 shadow-sm transition-colors hover:bg-neutral-50 hover:text-ink"
-            [attr.aria-label]="dark() ? 'Switch to light mode' : 'Switch to dark mode'"
+            [attr.aria-label]="dark() ? t('Switch to light mode') : t('Switch to dark mode')"
           >
             <app-icon [name]="dark() ? 'sun' : 'moon'" [size]="17" />
           </button>
@@ -83,20 +118,20 @@ const NAV_LINKS: PublicNavLink[] = [
               class="hidden items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-primary-strong hover:shadow sm:inline-flex"
             >
               <app-icon name="layout-dashboard" [size]="16" />
-              Open LifeHub
+              {{ t('Open LifeHub') }}
             </a>
           } @else {
             <a
               routerLink="/login"
               class="hidden rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 hover:text-ink sm:inline-flex"
             >
-              Log in
+              {{ t('Log in') }}
             </a>
             <a
               routerLink="/register"
               class="hidden items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-primary-strong hover:shadow sm:inline-flex"
             >
-              Get Started
+              {{ t('Get Started') }}
               <app-icon name="arrow-right" [size]="15" />
             </a>
           }
@@ -107,7 +142,7 @@ const NAV_LINKS: PublicNavLink[] = [
             class="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 md:hidden"
             [attr.aria-expanded]="mobileOpen()"
             aria-controls="public-mobile-menu"
-            [attr.aria-label]="mobileOpen() ? 'Close menu' : 'Open menu'"
+            [attr.aria-label]="mobileOpen() ? t('Close menu') : t('Open menu')"
           >
             <app-icon [name]="mobileOpen() ? 'x' : 'menu'" [size]="19" />
           </button>
@@ -120,7 +155,7 @@ const NAV_LINKS: PublicNavLink[] = [
           id="public-mobile-menu"
           class="border-t border-neutral-200 bg-white md:hidden"
           role="menu"
-          aria-label="Mobile navigation"
+          [attr.aria-label]="t('Main navigation')"
         >
           <nav class="mx-auto max-w-7xl px-4 py-3 sm:px-6" aria-label="Mobile">
             <ul class="space-y-1">
@@ -132,19 +167,53 @@ const NAV_LINKS: PublicNavLink[] = [
                       (click)="mobileOpen.set(false)"
                       class="block rounded-lg px-3 py-2.5 text-base font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-ink"
                     >
-                      {{ link.label }}
+                      {{ t(link.label) }}
                     </a>
                   } @else {
                     <button
                       (click)="goToSection(link.section ?? '')"
                       class="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-ink"
                     >
-                      {{ link.label }}
+                      {{ t(link.label) }}
                     </button>
                   }
                 </li>
               }
             </ul>
+
+            <!-- Language selector (mobile) -->
+            <div class="mt-3 border-t border-neutral-200 pt-3">
+              <p class="px-1 text-xs font-bold uppercase tracking-widest text-neutral-500">
+                {{ t('Language') }}
+              </p>
+              <div class="mt-2 flex gap-2">
+                <button
+                  (click)="setLang('en')"
+                  [attr.aria-pressed]="lang() === 'en'"
+                  class="flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
+                  [class]="
+                    lang() === 'en'
+                      ? 'border-neutral-900 bg-neutral-900 text-white'
+                      : 'border-neutral-200 bg-white text-neutral-700'
+                  "
+                >
+                  English
+                </button>
+                <button
+                  (click)="setLang('id')"
+                  [attr.aria-pressed]="lang() === 'id'"
+                  class="flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
+                  [class]="
+                    lang() === 'id'
+                      ? 'border-neutral-900 bg-neutral-900 text-white'
+                      : 'border-neutral-200 bg-white text-neutral-700'
+                  "
+                >
+                  Bahasa Indonesia
+                </button>
+              </div>
+            </div>
+
             <div class="mt-3 flex gap-2 border-t border-neutral-200 pt-3">
               @if (isAuthed()) {
                 <a
@@ -153,7 +222,7 @@ const NAV_LINKS: PublicNavLink[] = [
                   class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-sm"
                 >
                   <app-icon name="layout-dashboard" [size]="16" />
-                  Open LifeHub
+                  {{ t('Open LifeHub') }}
                 </a>
               } @else {
                 <a
@@ -161,14 +230,14 @@ const NAV_LINKS: PublicNavLink[] = [
                   (click)="mobileOpen.set(false)"
                   class="flex-1 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-neutral-700 shadow-sm"
                 >
-                  Log in
+                  {{ t('Log in') }}
                 </a>
                 <a
                   routerLink="/register"
                   (click)="mobileOpen.set(false)"
                   class="flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-ink shadow-sm"
                 >
-                  Get Started
+                  {{ t('Get Started') }}
                 </a>
               }
             </div>
@@ -182,14 +251,21 @@ export class PublicNavbarComponent {
   private theme = inject(ThemeService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
 
   protected readonly links = NAV_LINKS;
   protected readonly dark = this.theme.dark;
   protected readonly isAuthed = this.auth.isAuthenticated;
+  protected readonly lang = this.i18n.lang;
+  protected readonly t = this.i18n.t.bind(this.i18n);
   protected readonly mobileOpen = signal(false);
 
   protected toggleTheme(): void {
     this.theme.toggle();
+  }
+
+  protected setLang(lang: Lang): void {
+    this.i18n.setLang(lang);
   }
 
   /**

@@ -1,7 +1,8 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { SeoService } from '../../../core/services/seo.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { PublicNavbarComponent } from '../shared/public-navbar.component';
 import { PublicFooterComponent } from '../shared/public-footer.component';
 
@@ -220,23 +221,24 @@ const GROUPS: FeatureGroup[] = [
         <section class="relative overflow-hidden border-b-2 border-ink bg-surface">
           <div class="neo-dots pointer-events-none absolute inset-0 opacity-25"></div>
           <div class="relative mx-auto max-w-6xl px-4 py-14 text-center lg:px-6 lg:py-20">
-            <p class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-ink shadow-soft">
+            <p
+              class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-ink shadow-soft"
+            >
               <app-icon name="layout-dashboard" [size]="14" />
-              Features
+              {{ t('Features') }}
             </p>
             <h1 class="mt-5 font-display text-4xl text-ink sm:text-5xl">
-              Everything LifeHub does.
+              {{ t('Everything LifeHub does.') }}
             </h1>
             <p class="mx-auto mt-4 max-w-2xl text-base font-medium text-ink-soft">
-              One app for your productivity, personal finance, habits, goals, notes, planning, and
-              weekly &amp; monthly reviews — plus an AI assistant that understands it all.
+              {{ t('One app for your productivity, personal finance, habits, goals, notes, planning, and weekly & monthly reviews — plus an AI assistant that understands it all.') }}
             </p>
             <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
                 routerLink="/register"
                 class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-6 py-3 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-primary-strong active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               >
-                Get Started
+                {{ t('Get Started') }}
                 <app-icon name="arrow-right" [size]="16" />
               </a>
               <a
@@ -244,7 +246,7 @@ const GROUPS: FeatureGroup[] = [
                 class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-6 py-3 text-sm font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-surface-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               >
                 <app-icon name="bot" [size]="16" />
-                Meet LifeHub AI
+                {{ t('Meet LifeHub AI') }}
               </a>
             </div>
           </div>
@@ -256,10 +258,12 @@ const GROUPS: FeatureGroup[] = [
             @for (group of GROUPS; track group.label) {
               <div>
                 <div class="flex items-center gap-4">
-                  <h2 class="font-display text-2xl text-ink sm:text-3xl">{{ group.label }}</h2>
+                  <h2 class="font-display text-2xl text-ink sm:text-3xl">{{ t(group.label) }}</h2>
                   <span class="hidden h-1 flex-1 border-b-2 border-dashed border-ink/30 sm:block"></span>
                 </div>
-                <p class="mt-2 max-w-xl text-sm font-medium text-ink-soft">{{ group.description }}</p>
+                <p class="mt-2 max-w-xl text-sm font-medium text-ink-soft">
+                  {{ t(group.description) }}
+                </p>
 
                 <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   @for (item of group.items; track item.title) {
@@ -271,9 +275,9 @@ const GROUPS: FeatureGroup[] = [
                       >
                         <app-icon [name]="item.icon" [size]="18" />
                       </span>
-                      <h3 class="mt-3 font-display text-base text-ink">{{ item.title }}</h3>
+                      <h3 class="mt-3 font-display text-base text-ink">{{ t(item.title) }}</h3>
                       <p class="mt-1.5 text-sm font-medium leading-relaxed text-ink-soft">
-                        {{ item.description }}
+                        {{ t(item.description) }}
                       </p>
                     </article>
                   }
@@ -286,15 +290,15 @@ const GROUPS: FeatureGroup[] = [
         <!-- CTA -->
         <section class="border-t-2 border-ink bg-primary">
           <div class="mx-auto max-w-3xl px-4 py-14 text-center lg:px-6">
-            <h2 class="font-display text-3xl text-ink">Ready to see it in action?</h2>
+            <h2 class="font-display text-3xl text-ink">{{ t('Ready to see it in action?') }}</h2>
             <p class="mx-auto mt-3 max-w-lg text-base font-medium text-ink">
-              Create your account — everything above is one sign-up away.
+              {{ t('Create your account — everything above is one sign-up away.') }}
             </p>
             <a
               routerLink="/register"
               class="mt-7 inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-6 py-3 text-base font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[1px] hover:bg-surface-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
-              Get Started
+              {{ t('Get Started') }}
               <app-icon name="arrow-right" [size]="17" />
             </a>
           </div>
@@ -305,17 +309,23 @@ const GROUPS: FeatureGroup[] = [
     </div>
   `,
 })
-export class FeaturesComponent implements OnInit {
+export class FeaturesComponent {
   private seo = inject(SeoService);
+  private i18n = inject(I18nService);
 
+  protected readonly t = this.i18n.t.bind(this.i18n);
   protected readonly GROUPS = GROUPS;
 
-  ngOnInit(): void {
-    this.seo.setPage({
-      title: 'Features — LifeHub',
-      description:
-        'Explore LifeHub features: tasks, personal finance, budgets, habits, goals, calendar, notes, wishlist, Pomodoro, statistics, and an AI productivity assistant — all in one app.',
-      path: '/features',
+  constructor() {
+    effect(() => {
+      this.i18n.lang();
+      this.seo.setPage({
+        title: this.i18n.t('Features — LifeHub'),
+        description: this.i18n.t(
+          'Explore LifeHub features: tasks, personal finance, budgets, habits, goals, calendar, notes, wishlist, Pomodoro, statistics, and an AI productivity assistant — all in one app.'
+        ),
+        path: '/features',
+      });
     });
   }
 }

@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SITE } from '../../../core/config/site.config';
+import { I18nService } from '../../../core/services/i18n.service';
 
 interface FooterSocial {
   label: string;
@@ -18,7 +19,7 @@ interface FooterSocial {
         <div class="grid grid-cols-1 gap-10 md:grid-cols-12">
           <!-- Brand -->
           <div class="md:col-span-5">
-            <a routerLink="/" class="flex items-center gap-2.5" aria-label="LifeHub — home">
+            <a routerLink="/" class="flex items-center gap-2.5" [attr.aria-label]="t('LifeHub — home')">
               <span
                 class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-primary shadow-sm ring-1 ring-ink/10"
               >
@@ -27,17 +28,18 @@ interface FooterSocial {
               <span class="text-xl font-bold tracking-tight text-ink">LifeHub</span>
             </a>
             <p class="mt-3 text-xs font-semibold uppercase tracking-widest text-neutral-500">
-              {{ SITE.tagline }}
+              {{ t('Personal Life Management Platform') }}
             </p>
             <p class="mt-4 max-w-sm text-sm font-medium leading-relaxed text-neutral-600">
-              Your personal space to manage productivity, finances, habits, goals, and notes — with
-              weekly &amp; monthly reviews and an AI assistant that understands your life data.
+              {{ t('Your personal space to manage productivity, finances, habits, goals, and notes — with weekly & monthly reviews and an AI assistant that understands your life data.') }}
             </p>
           </div>
 
           <!-- Product -->
           <nav class="md:col-span-2" aria-label="Product">
-            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Product</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">
+              {{ t('Product') }}
+            </p>
             <ul class="mt-3 space-y-2">
               @for (item of productLinks; track item.label) {
                 <li>
@@ -45,7 +47,7 @@ interface FooterSocial {
                     [routerLink]="item.route"
                     class="inline-block rounded-md text-sm font-medium text-neutral-600 transition-colors hover:text-ink"
                   >
-                    {{ item.label }}
+                    {{ t(item.label) }}
                   </a>
                 </li>
               }
@@ -53,15 +55,17 @@ interface FooterSocial {
           </nav>
 
           <!-- Get started -->
-          <nav class="md:col-span-2" aria-label="Get started">
-            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Get started</p>
+          <nav class="md:col-span-2" [attr.aria-label]="t('Get started')">
+            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">
+              {{ t('Get started') }}
+            </p>
             <ul class="mt-3 space-y-2">
               <li>
                 <a
                   routerLink="/login"
                   class="inline-block rounded-md text-sm font-medium text-neutral-600 transition-colors hover:text-ink"
                 >
-                  Log in
+                  {{ t('Log in') }}
                 </a>
               </li>
               <li>
@@ -69,7 +73,7 @@ interface FooterSocial {
                   routerLink="/register"
                   class="inline-block rounded-md text-sm font-medium text-neutral-600 transition-colors hover:text-ink"
                 >
-                  Create account
+                  {{ t('Create account') }}
                 </a>
               </li>
             </ul>
@@ -77,7 +81,9 @@ interface FooterSocial {
 
           <!-- Connect -->
           <div class="md:col-span-3">
-            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">Connect</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-neutral-500">
+              {{ t('Connect') }}
+            </p>
             @if (socialLinks.length > 0) {
               <ul class="mt-3 flex flex-wrap gap-2">
                 @for (social of socialLinks; track social.label) {
@@ -86,8 +92,8 @@ interface FooterSocial {
                       [href]="social.url"
                       target="_blank"
                       rel="noopener noreferrer"
-                      [attr.aria-label]="'LifeHub on ' + social.label"
-                      title="{{ social.label }}"
+                      [attr.aria-label]="t('LifeHub on {label}', { label: social.label })"
+                      [title]="social.label"
                       class="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 bg-white p-1.5 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow"
                     >
                       <img
@@ -101,12 +107,12 @@ interface FooterSocial {
               </ul>
             } @else {
               <p class="mt-3 text-sm font-medium text-neutral-600">
-                Follow the project on
+                {{ t('Follow the project on') }}
                 <a
                   routerLink="/contact"
                   class="font-semibold text-ink underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary"
                 >
-                  the contact page
+                  {{ t('the contact page') }}
                 </a>
                 .
               </p>
@@ -117,9 +123,9 @@ interface FooterSocial {
         <div
           class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-neutral-200 pt-6 sm:flex-row"
         >
-          <p class="text-xs font-medium text-neutral-500">© {{ year }} LifeHub</p>
+          <p class="text-xs font-medium text-neutral-500">{{ t('© {year} LifeHub', { year }) }}</p>
           <p class="text-xs font-medium text-neutral-500">
-            Built with Angular · Express · MongoDB — by {{ SITE.developer.name }}
+            {{ t('Built with Angular · Express · MongoDB — by {name}', { name: SITE.developer.name }) }}
           </p>
         </div>
       </div>
@@ -127,6 +133,9 @@ interface FooterSocial {
   `,
 })
 export class PublicFooterComponent {
+  private i18n = inject(I18nService);
+
+  protected readonly t = this.i18n.t.bind(this.i18n);
   protected readonly SITE = SITE;
   protected readonly year = new Date().getFullYear();
 
