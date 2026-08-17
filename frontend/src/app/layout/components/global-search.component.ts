@@ -104,6 +104,14 @@ function highlightSegments(text: string, query: string): { text: string; hit: bo
                 <app-icon name="x" [size]="14" [strokeWidth]="3" />
               </button>
             } @else {
+              <button
+                (click)="close()"
+                class="flex shrink-0 items-center gap-1 rounded-md border-2 border-ink bg-surface-2 px-2 py-1 text-[10px] font-bold text-ink-soft transition-all hover:bg-danger hover:text-white sm:hidden"
+                [attr.aria-label]="t('Close')"
+              >
+                <app-icon name="x" [size]="12" />
+                {{ t('Close') }}
+              </button>
               <kbd
                 class="hidden shrink-0 rounded-md border-2 border-ink bg-surface-2 px-1.5 py-0.5 font-display text-[10px] text-ink-soft sm:block"
                 >ESC</kbd
