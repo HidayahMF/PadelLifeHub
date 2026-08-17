@@ -1,8 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../../layout/components/icon.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { SeoService } from '../../../core/services/seo.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { PublicNavbarComponent } from '../shared/public-navbar.component';
 import { PublicFooterComponent } from '../shared/public-footer.component';
 
@@ -76,16 +77,17 @@ const USE_CASES: AiUseCase[] = [
               <p
                 class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-ink shadow-soft"
               >
-                <img src="assets/LifeHubAI.png" alt="LifeHub AI logo" class="h-5 w-5 shrink-0 object-contain" />
+                <img src="assets/LifeHubAI.png" alt="" class="h-5 w-5 shrink-0 object-contain" />
                 LifeHub AI
               </p>
               <h1 class="mt-6 font-display text-5xl text-ink sm:text-6xl">
-                Your data. <span class="box-decoration-clone bg-primary px-2 shadow-[5px_5px_0_0_var(--color-ink)]">Your assistant.</span>
+                {{ t('Your data.') }}
+                <span class="box-decoration-clone bg-primary px-2 shadow-[5px_5px_0_0_var(--color-ink)]">
+                  {{ t('Your assistant.') }}
+                </span>
               </h1>
               <p class="mx-auto mt-6 max-w-2xl text-base font-medium text-ink-soft sm:text-lg">
-                LifeHub AI is a personal productivity and finance assistant built into LifeHub. It
-                reads your own data — tasks, transactions, budgets, accounts, habits, goals, and
-                investments — so its advice is about your life, not a generic chatbot.
+                {{ t('LifeHub AI is a personal productivity and finance assistant built into LifeHub. It reads your own data — tasks, transactions, budgets, accounts, habits, goals, and investments — so its advice is about your life, not a generic chatbot.') }}
               </p>
               <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <a
@@ -99,7 +101,7 @@ const USE_CASES: AiUseCase[] = [
                   routerLink="/register"
                   class="inline-flex items-center gap-2 rounded-button border-2 border-ink bg-surface px-6 py-3.5 text-base font-bold text-ink shadow-soft transition-all duration-150 hover:-translate-y-[2px] hover:bg-surface-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                 >
-                  Create a free account
+                  {{ t('Create a free account') }}
                 </a>
               </div>
             </div>
@@ -114,7 +116,7 @@ const USE_CASES: AiUseCase[] = [
               <div class="flex justify-end">
                 <div class="max-w-[85%] rounded-card border-2 border-ink bg-primary px-4 py-3 shadow-soft">
                   <p class="text-sm font-semibold text-ink">
-                    “Kenapa pengeluaran saya bulan ini naik?”
+                    {{ t('“Why did my spending go up this month?”') }}
                   </p>
                 </div>
               </div>
@@ -128,20 +130,17 @@ const USE_CASES: AiUseCase[] = [
                 <div class="max-w-[85%] rounded-card border-2 border-ink bg-surface px-4 py-3 shadow-soft">
                   <p class="text-sm font-semibold text-ink">LifeHub AI</p>
                   <p class="mt-1.5 text-sm font-medium leading-relaxed text-ink-soft">
-                    Pengeluaran bulan ini naik sekitar <strong>18%</strong> dibanding bulan lalu,
-                    terutama dari kategori <strong>Food &amp; dining</strong> (+Rp 320.000) dan
-                    <strong>Entertainment</strong> (+Rp 210.000). Budget Food kamu sudah terpakai
-                    78%. Coba turunkan frekuensi makan di luar minggu ini untuk kembali ke jalur.
+                    {{ t('My spending this month is up about 18% compared to last month, mostly from Food & dining (+Rp 320.000) and Entertainment (+Rp 210.000). Your Food budget is 78% used. Try cutting down on eating out this week to get back on track.') }}
                   </p>
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     <span class="rounded-md border-2 border-ink bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-ink">
-                      +18% expense
+                      {{ t('+18% expense') }}
                     </span>
                     <span class="rounded-md border-2 border-ink bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-ink">
-                      Food budget 78%
+                      {{ t('Food budget 78%') }}
                     </span>
                     <span class="rounded-md border-2 border-ink bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-ink">
-                      Actionable tip
+                      {{ t('Actionable tip') }}
                     </span>
                   </div>
                 </div>
@@ -154,9 +153,11 @@ const USE_CASES: AiUseCase[] = [
         <section class="border-b-2 border-ink bg-bg">
           <div class="mx-auto max-w-6xl px-4 py-14 lg:px-6 lg:py-16">
             <div class="mx-auto max-w-2xl text-center">
-              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">What it can do</p>
+              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">
+                {{ t('What it can do') }}
+              </p>
               <h2 class="mt-3 font-display text-3xl text-ink sm:text-4xl">
-                Built for your everyday questions.
+                {{ t('Built for your everyday questions.') }}
               </h2>
             </div>
             <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -169,9 +170,9 @@ const USE_CASES: AiUseCase[] = [
                   >
                     <app-icon [name]="useCase.icon" [size]="19" />
                   </span>
-                  <h3 class="mt-4 font-display text-base text-ink">{{ useCase.title }}</h3>
+                  <h3 class="mt-4 font-display text-base text-ink">{{ t(useCase.title) }}</h3>
                   <p class="mt-2 text-sm font-medium leading-relaxed text-ink-soft">
-                    {{ useCase.description }}
+                    {{ t(useCase.description) }}
                   </p>
                 </article>
               }
@@ -183,9 +184,11 @@ const USE_CASES: AiUseCase[] = [
         <section class="border-b-2 border-ink bg-surface">
           <div class="mx-auto max-w-6xl px-4 py-14 lg:px-6 lg:py-16">
             <div class="mx-auto max-w-2xl text-center">
-              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">Private by design</p>
+              <p class="text-xs font-bold uppercase tracking-widest text-primary-strong">
+                {{ t('Private by design') }}
+              </p>
               <h2 class="mt-3 font-display text-3xl text-ink sm:text-4xl">
-                Your data stays yours.
+                {{ t('Your data stays yours.') }}
               </h2>
             </div>
             <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -196,8 +199,8 @@ const USE_CASES: AiUseCase[] = [
                   >
                     {{ step.step }}
                   </span>
-                  <h3 class="mt-3 font-display text-base text-ink">{{ step.title }}</h3>
-                  <p class="mt-1.5 text-sm font-medium text-ink-soft">{{ step.text }}</p>
+                  <h3 class="mt-3 font-display text-base text-ink">{{ t(step.title) }}</h3>
+                  <p class="mt-1.5 text-sm font-medium text-ink-soft">{{ t(step.text) }}</p>
                 </div>
               }
             </div>
@@ -208,11 +211,10 @@ const USE_CASES: AiUseCase[] = [
         <section class="bg-accent">
           <div class="mx-auto max-w-3xl px-4 py-14 text-center lg:px-6">
             <h2 class="font-display text-3xl text-primary sm:text-4xl">
-              Ask your LifeHub about your life.
+              {{ t('Ask your LifeHub about your life.') }}
             </h2>
             <p class="mx-auto mt-3 max-w-lg text-base font-medium text-primary/80">
-              Sign in and open LifeHub AI from the sidebar — quick actions for finances, daily
-              planning, habits, and goals are one click away.
+              {{ t('Sign in and open LifeHub AI from the sidebar — quick actions for finances, daily planning, habits, and goals are one click away.') }}
             </p>
             <a
               [routerLink]="ctaRoute()"
@@ -229,10 +231,12 @@ const USE_CASES: AiUseCase[] = [
     </div>
   `,
 })
-export class AiLandingComponent implements OnInit {
+export class AiLandingComponent {
   private seo = inject(SeoService);
   private auth = inject(AuthService);
+  private i18n = inject(I18nService);
 
+  protected readonly t = this.i18n.t.bind(this.i18n);
   protected readonly USE_CASES = USE_CASES;
 
   protected readonly privacySteps = [
@@ -253,12 +257,16 @@ export class AiLandingComponent implements OnInit {
     },
   ];
 
-  ngOnInit(): void {
-    this.seo.setPage({
-      title: 'LifeHub AI — Personal Productivity & Finance Assistant',
-      description:
-        'LifeHub AI is a personal productivity and finance assistant inside LifeHub. It analyzes your tasks, finances, habits, and goals to give practical, personalized advice.',
-      path: '/ai',
+  constructor() {
+    effect(() => {
+      this.i18n.lang();
+      this.seo.setPage({
+        title: this.i18n.t('LifeHub AI — Personal Productivity & Finance Assistant'),
+        description: this.i18n.t(
+          'LifeHub AI is a personal productivity and finance assistant inside LifeHub. It analyzes your tasks, finances, habits, and goals to give practical, personalized advice.'
+        ),
+        path: '/ai',
+      });
     });
   }
 
@@ -267,6 +275,6 @@ export class AiLandingComponent implements OnInit {
   }
 
   protected ctaLabel(): string {
-    return this.auth.isAuthenticated() ? 'Open LifeHub AI' : 'Try LifeHub AI';
+    return this.auth.isAuthenticated() ? this.t('Open LifeHub AI') : this.t('Try LifeHub AI');
   }
 }

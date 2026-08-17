@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { I18nService } from './i18n.service';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -11,19 +12,22 @@ export interface Toast {
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
+  private i18n = inject(I18nService);
+  private t = this.i18n.t.bind(this.i18n);
+
   readonly toasts = signal<Toast[]>([]);
   private counter = 0;
 
-  success(message: string, title = 'Done') {
-    this.show(message, title, 'success');
+  success(message: string, title?: string) {
+    this.show(message, title ?? this.t('Done'), 'success');
   }
 
-  error(message: string, title = 'Something went wrong') {
-    this.show(message, title, 'error');
+  error(message: string, title?: string) {
+    this.show(message, title ?? this.t('Something went wrong'), 'error');
   }
 
-  info(message: string, title = 'Heads up') {
-    this.show(message, title, 'info');
+  info(message: string, title?: string) {
+    this.show(message, title ?? this.t('Heads up'), 'info');
   }
 
   dismiss(id: number) {
