@@ -10,25 +10,29 @@ export type StatTone = 'default' | 'success' | 'danger' | 'warning' | 'primary';
   selector: 'app-stat-card',
   standalone: true,
   imports: [NgClass, IconComponent],
-  host: { class: 'block' },
+  host: { class: 'block min-w-0' },
   template: `
     <div
-      class="rounded-card border-2 border-ink bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-1"
+      class="min-w-0 overflow-hidden rounded-card border-2 border-ink bg-surface p-4 shadow-card transition-all duration-200 hover:-translate-y-1 sm:p-5"
     >
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <p class="truncate text-xs font-bold uppercase tracking-wider text-ink-soft">{{ label() }}</p>
-          <p class="mt-1.5 break-words text-2xl font-bold leading-tight tracking-tight text-ink">{{ value() }}</p>
-        </div>
+      <div class="flex items-start justify-between gap-2 sm:gap-3">
+        <p
+          class="min-w-0 break-words text-[11px] leading-snug font-bold uppercase tracking-wider text-ink-soft sm:truncate sm:text-xs"
+          >{{ label() }}</p
+        >
         @if (icon()) {
           <span
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border-2 border-ink shadow-[2px_2px_0_0_var(--color-ink)]"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-ink shadow-[2px_2px_0_0_var(--color-ink)] sm:h-10 sm:w-10 sm:rounded-[10px]"
             [ngClass]="toneClass()"
           >
             <app-icon [name]="icon() ?? ''" [size]="20" [strokeWidth]="2.4" />
           </span>
         }
       </div>
+      <p
+        class="mt-2 text-lg leading-tight font-bold tracking-tight whitespace-nowrap text-ink tabular-nums sm:mt-1.5 sm:text-xl xl:text-2xl"
+        >{{ value() }}</p
+      >
       @if (delta() !== null && delta() !== undefined) {
         <div class="mt-3 flex items-center gap-1.5 text-xs font-bold">
           <span
