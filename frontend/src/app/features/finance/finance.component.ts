@@ -85,7 +85,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
         (click)="toggleHideBalance()"
       ></app-button>
     </div>
-    <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+    <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
       <app-stat-card [label]="t('Net worth')" [value]="displayBalance(balance())" icon="piggy-bank" tone="primary" />
       <app-stat-card [label]="t('Liquid assets')" [value]="displayAmount(netWorth().liquid)" icon="droplets" />
       <app-stat-card [label]="t('Investments')" [value]="displayAmount(netWorth().investment)" icon="trending-up" />
