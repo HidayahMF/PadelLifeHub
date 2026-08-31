@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core';
 import { NgClass, NgIf } from '@angular/common';
 import { IconComponent } from './icon.component';
 import { SpinnerComponent } from './spinner.component';
@@ -10,12 +10,13 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
   selector: 'app-button',
   standalone: true,
   imports: [NgClass, NgIf, IconComponent, SpinnerComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button
       [type]="type()"
       [disabled]="disabled() || loading()"
-      [attr.aria-label]="hostAriaLabel"
-      [attr.title]="hostTitle"
+      [attr.aria-label]="effectiveAriaLabel()"
+      [attr.title]="effectiveTitle()"
       class="inline-flex select-none items-center justify-center gap-2 rounded-button font-bold transition-all duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
       [ngClass]="classes()"
     >
@@ -37,16 +38,16 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 export class ButtonComponent {
   private host = inject(ElementRef);
 
-  // Forward aria-label / title set on <app-button> to the real <button> so
-  // icon buttons stay accessible (screen readers + tooltips). Without this,
-  // the attributes sat uselessly on the custom element host.
-  protected get hostAriaLabel(): string | null {
-    return this.host.nativeElement.getAttribute('aria-label');
-  }
+  readonly ariaLabel = input<string | null>(null, { alias: 'aria-label' });
+  readonly titleAttr = input<string | null>(null, { alias: 'title' });
 
-  protected get hostTitle(): string | null {
-    return this.host.nativeElement.getAttribute('title');
-  }
+  protected readonly effectiveAriaLabel = computed(
+    () => this.ariaLabel() ?? this.host.nativeElement.getAttribute('aria-label')
+  );
+
+  protected readonly effectiveTitle = computed(
+    () => this.titleAttr() ?? this.host.nativeElement.getAttribute('title')
+  );
 
   readonly variant = input<ButtonVariant>('primary');
   readonly size = input<ButtonSize>('md');

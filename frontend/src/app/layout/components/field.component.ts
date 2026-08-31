@@ -1,4 +1,4 @@
-import { Component, computed, forwardRef, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, forwardRef, input } from '@angular/core';
 import {
   ControlValueAccessor,
   FormsModule,
@@ -11,6 +11,7 @@ import { IconComponent } from './icon.component';
   selector: 'app-field',
   standalone: true,
   imports: [FormsModule, NgClass, NgIf, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

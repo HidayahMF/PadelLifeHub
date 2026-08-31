@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { NgClass } from '@angular/common';
 
 export type CardPadding = 'sm' | 'md' | 'none';
@@ -7,6 +7,7 @@ export type CardPadding = 'sm' | 'md' | 'none';
   selector: 'app-card',
   standalone: true,
   imports: [NgClass],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
     <!--

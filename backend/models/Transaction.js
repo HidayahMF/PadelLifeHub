@@ -69,6 +69,20 @@ const transactionSchema = new mongoose.Schema(
       ref: 'Transaction',
       default: null,
     },
+    // Legacy investment migration traceability. When a legacy expense that was
+    // really investment capital is migrated into the dedicated investment
+    // system, the ORIGINAL transaction is NOT deleted — it is flagged here so
+    // every expense aggregation excludes it (no double counting) while the
+    // record stays recoverable and links to the new InvestmentTransaction.
+    migratedToInvestment: {
+      type: Boolean,
+      default: false,
+    },
+    investmentTransactionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'InvestmentTransaction',
+      default: null,
+    },
   },
   { timestamps: true }
 );

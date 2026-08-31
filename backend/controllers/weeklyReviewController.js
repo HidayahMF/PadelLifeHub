@@ -9,6 +9,7 @@ const WeeklyReview = require('../models/WeeklyReview');
 const Category = require('../models/Category');
 const { focusTotals } = require('./focusSessionController');
 const { startOfLocalDay, addLocalDays, formatLocalDate } = require('../utils/date');
+const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 
 /** Monday (local WIB) of the week containing `date`. */
 function weekStartOf(date = new Date()) {
@@ -23,6 +24,9 @@ const getWeeklyReview = async (req, res, next) => {
     const now = new Date();
     const weekStart = weekStartOf(now);
     const weekEnd = addLocalDays(weekStart, 7);
+
+    const invCatIds = await getInvestmentCategoryIds(userId);
+    const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
 
     const [saved, productivity, habits, finance, goals, focus, categories] = await Promise.all([
       WeeklyReview.findOne({ user: userId, weekStart }),
@@ -85,13 +89,18 @@ const getWeeklyReview = async (req, res, next) => {
         const [income, expense] = await Promise.all([
           Transaction.aggregate([
             {
-              $match: { user: userId, type: 'income', date: { $gte: weekStart, $lt: weekEnd } },
+              $match: { user: userId, type: 'income', ...invCatFilter, date: { $gte: weekStart, $lt: weekEnd } },
             },
             { $group: { _id: null, total: { $sum: '$amount' } } },
           ]),
           Transaction.aggregate([
             {
-              $match: { user: userId, type: 'expense', date: { $gte: weekStart, $lt: weekEnd } },
+              $match: {
+                user: userId,
+                type: 'expense',
+                migratedToInvestment: { $ne: true },
+                date: { $gte: weekStart, $lt: weekEnd },
+              },
             },
             { $group: { _id: null, total: { $sum: '$amount' } } },
           ]),
@@ -121,6 +130,7 @@ const getWeeklyReview = async (req, res, next) => {
     const weekTransactions = await Transaction.find({
       user: userId,
       type: 'expense',
+      migratedToInvestment: { $ne: true },
       date: { $gte: weekStart, $lt: weekEnd },
     });
     const byCategory = new Map();

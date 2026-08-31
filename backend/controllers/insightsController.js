@@ -7,6 +7,7 @@ const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Account = require('../models/Account');
 const { startOfLocalDay, addLocalDays } = require('../utils/date');
+const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 
 function monthKeyOf(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -145,18 +146,21 @@ const getInsights = async (req, res, next) => {
     const windowStart = addLocalDays(today, -29);
     const windowEnd = addLocalDays(today, 1);
 
+    const invCatIds = await getInvestmentCategoryIds(userId);
+    const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+
     const [thisMonth, lastMonth, cashFlow, recent, budgets, categories, accountBalance] =
       await Promise.all([
         Transaction.aggregate([
-          { $match: { user: userId, date: { $gte: thisMonthStart, $lt: thisMonthEnd } } },
+          { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter, date: { $gte: thisMonthStart, $lt: thisMonthEnd } } },
           { $group: { _id: '$type', total: { $sum: '$amount' } } },
         ]),
         Transaction.aggregate([
-          { $match: { user: userId, date: { $gte: lastMonthStart, $lt: lastMonthEnd } } },
+          { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter, date: { $gte: lastMonthStart, $lt: lastMonthEnd } } },
           { $group: { _id: '$type', total: { $sum: '$amount' } } },
         ]),
         Transaction.aggregate([
-          { $match: { user: userId } },
+          { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter } },
           {
             $group: {
               _id: { $dateToString: { format: '%Y-%m', date: '$date', timezone: 'Asia/Jakarta' } },
@@ -168,6 +172,8 @@ const getInsights = async (req, res, next) => {
         ]),
         Transaction.find({
           user: userId,
+          migratedToInvestment: { $ne: true },
+          ...invCatFilter,
           date: { $gte: windowStart, $lt: windowEnd },
         }).populate('category', 'name color icon'),
         Budget.find({ user: userId, month: monthKeyOf(now) }).populate('category', 'name color icon'),

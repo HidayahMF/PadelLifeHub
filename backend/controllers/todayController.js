@@ -8,6 +8,7 @@ const Habit = require('../models/Habit');
 const Goal = require('../models/Goal');
 const Reminder = require('../models/Reminder');
 const { startOfLocalDay, addLocalDays, getTodayLocalDate } = require('../utils/date');
+const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 
 const getToday = async (req, res, next) => {
   try {
@@ -70,11 +71,17 @@ const getToday = async (req, res, next) => {
       Transaction.find({ user: userId, date: { $gte: today, $lt: tomorrow } }),
     ]);
 
+    const invCatIds = await getInvestmentCategoryIds(userId);
+    const invCatSet = new Set(invCatIds.map((id) => String(id)));
+
     let income = 0;
     let expense = 0;
     for (const txn of todayTransactions) {
+      // Legacy investment transactions (income or expense) are NOT normal
+      // cash flow — exclude them from income and expense here.
+      if (txn.category && invCatSet.has(String(txn.category))) continue;
       if (txn.type === 'income') income += txn.amount;
-      else if (txn.type === 'expense') expense += txn.amount;
+      else if (txn.type === 'expense' && !txn.migratedToInvestment) expense += txn.amount;
       // transfers are intentionally excluded from cash flow
     }
 

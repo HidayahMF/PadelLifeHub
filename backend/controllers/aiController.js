@@ -156,6 +156,21 @@ const financialInsight = async (req, res) => {
           )
           .join('\n')
       : '- none';
+    const inv = snapshot.investment;
+    const invDays = snapshot.investmentDays;
+    const invLines = inv && inv.hasInvestment
+      ? `Investment overview (separate from normal income/expense, backend-calculated):
+- Current value: ${formatNumber(inv.currentValue)}
+- Total invested (deposits): ${formatNumber(inv.totalInvested)}
+- Net capital invested (deposits - withdrawals): ${formatNumber(inv.netCapitalInvested)}
+- Profit / loss: ${formatNumber(inv.profitLoss)}
+- Return: ${inv.returnPct}%
+- Change today: ${formatNumber(inv.todayChange)}
+- Change this week: ${formatNumber(inv.weekChange)}
+- Change this month: ${formatNumber(inv.monthChange)}
+- Positive value days (last 30): ${invDays ? invDays.positiveDays : 0}
+- Negative value days (last 30): ${invDays ? invDays.negativeDays : 0}`
+      : 'Investment: none tracked';
     const authoritative = `Current month income: ${formatNumber(snapshot.currentMonthIncome)}
 Current month expense: ${formatNumber(snapshot.currentMonthExpense)}
 Previous month income: ${formatNumber(snapshot.previousMonthIncome)}
@@ -175,17 +190,20 @@ ${categoryLines}
 Spending by account (this month, expense only, backend-calculated):
 ${accountSpendingLines}
 Recent transactions (latest first, from the database):
-${txLines}`;
+${txLines}
+${invLines}`;
 
     const prompt = `Here is the user's financial data:\n${context}\n\nSYSTEM-CALCULATED FIGURES (the ONLY source of truth — restate these exact numbers, never compute your own):\n${authoritative}\n\nAnalyze this person's finances and write a concise Markdown report with EXACTLY three sections, in this order:
 
 **FACTS**
 - This month vs previous month: income, expense, net cash flow — using the exact system-calculated figures.
-- Largest spending categories this month.
+- Largest spending categories this month (investment is NOT a spending category — never present it as one).
 - Current account balance, liquid assets, and investment assets.
+- If the user has investments, restate the exact investment figures (current value, invested, profit/loss, return %, today's/week's/month's change, positive/negative days) from the data above.
 
 **INSIGHTS**
 - What the numbers suggest (e.g. spending growth, savings progress, where money tends to go).
+- If the user has investments, add investment-specific observations driven by the data: monthly/weekly change, whether the portfolio is above or below net capital invested, and the balance of positive vs negative days. Only state these if a portfolio is actually tracked.
 - Potential problems — only if the data actually shows one (overspending against a budget, spending growth, low savings progress). If nothing is wrong, say so.
 
 **RECOMMENDATIONS**
@@ -198,6 +216,8 @@ Important rules:
 - If an individual transaction has no recorded account, say "account information is not recorded for this transaction" for that transaction only — do not claim the whole dataset lacks account info, and never invent an account name.
 - Net cash flow (this month's income minus expense) is NOT the same as the total account balance. They can differ because money can come from previous periods. A month with zero income and positive spending is NOT necessarily a deficit — the account balance may still be positive.
 - Transfers between the user's own accounts are NOT income and NOT expense, and must never appear in the cash-flow math.
+- Investment deposits, withdrawals, gains and losses are tracked SEPARATELY and are NOT normal income or normal expense. Never count investment gains as income, never count investment deposits/losses as expenses, and never include investment moves in the normal cash-flow (income - expense) figures.
+- Never call investment a spending category and never report it as "largest expense".
 - Never state the balance is Rp0 or negative when the system-calculated total balance is positive.
 - Never invent numbers; base everything strictly on the data above. If the data is insufficient (for example no transactions yet), say that clearly in the relevant section and give general guidance instead.
 - Never present this as professional financial advice.

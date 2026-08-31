@@ -93,6 +93,13 @@ export const routes: Routes = [
           import('./features/finance/finance.component').then((m) => m.FinanceComponent),
       },
       {
+        path: 'investments',
+        loadComponent: () =>
+          import('./features/investments/investments.component').then(
+            (m) => m.InvestmentsComponent
+          ),
+      },
+      {
         path: 'wishlist',
         loadComponent: () =>
           import('./features/wishlist/wishlist.component').then((m) => m.WishlistComponent),

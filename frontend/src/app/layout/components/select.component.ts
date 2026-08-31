@@ -1,10 +1,9 @@
-import { Component, forwardRef, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, forwardRef, input } from '@angular/core';
 import {
   ControlValueAccessor,
   FormsModule,
   NG_VALUE_ACCESSOR,
 } from '@angular/forms';
-import { NgClass, NgIf } from '@angular/common';
 import { IconComponent } from './icon.component';
 
 export interface SelectOption {
@@ -16,6 +15,7 @@ export interface SelectOption {
   selector: 'app-select',
   standalone: true,
   imports: [FormsModule, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

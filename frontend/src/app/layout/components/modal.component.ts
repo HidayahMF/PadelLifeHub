@@ -1,18 +1,18 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   HostListener,
   computed,
   input,
   output,
 } from '@angular/core';
-import { NgClass } from '@angular/common';
-import { IconComponent } from './icon.component';
 import { ButtonComponent } from './button.component';
 
 @Component({
   selector: 'app-modal',
   standalone: true,
   imports: [ButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (open()) {
       <div
@@ -22,28 +22,28 @@ import { ButtonComponent } from './button.component';
         [attr.aria-label]="title()"
       >
         <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-[2px] animate-fade-in"
+          class="absolute inset-0 bg-black/60 animate-fade-in"
           (click)="close()"
         ></div>
         <div
-          class="relative z-10 flex max-h-[92vh] w-full flex-col rounded-dialog border-2 border-ink bg-surface shadow-pop animate-slide-up sm:w-auto"
+          class="relative z-10 flex max-h-[92vh] w-full flex-col rounded-b-none rounded-t-dialog border-2 border-ink bg-surface shadow-pop animate-slide-up sm:rounded-dialog sm:w-auto transform-gpu will-change-transform"
           [style.max-width.px]="widthPx()"
         >
           @if (title()) {
             <div
-              class="flex items-center justify-between gap-4 border-b-2 border-ink px-6 py-4"
+              class="flex items-center justify-between gap-4 border-b-2 border-ink px-5 py-4 sm:px-6"
             >
               <h2 class="font-display text-lg text-ink">{{ title() }}</h2>
               <app-button
                 size="icon"
                 variant="ghost"
                 icon="x"
-                [attr.aria-label]="'Close dialog'"
+                aria-label="Close dialog"
                 (click)="close()"
               ></app-button>
             </div>
           }
-          <div class="overflow-y-auto px-6 py-5">
+          <div class="overflow-y-auto px-5 py-5 sm:px-6">
             <ng-content></ng-content>
           </div>
         </div>

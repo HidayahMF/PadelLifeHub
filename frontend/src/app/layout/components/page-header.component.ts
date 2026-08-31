@@ -1,10 +1,11 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { ButtonComponent } from './button.component';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
   imports: [ButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -22,7 +23,7 @@ import { ButtonComponent } from './button.component';
       <div class="flex items-center gap-2">
         <ng-content></ng-content>
         @if (actionLabel()) {
-          <app-button [icon]="actionIcon()" (click)="action()()"> {{ actionLabel() }} </app-button>
+          <app-button [icon]="actionIcon()" (click)="onActionClick()"> {{ actionLabel() }} </app-button>
         }
       </div>
     </div>
@@ -33,5 +34,12 @@ export class PageHeaderComponent {
   readonly subtitle = input('');
   readonly actionLabel = input('');
   readonly actionIcon = input('plus');
-  readonly action = input.required<() => void>();
+  readonly action = input<(() => void) | undefined>();
+
+  protected onActionClick(): void {
+    const act = this.action();
+    if (typeof act === 'function') {
+      act();
+    }
+  }
 }

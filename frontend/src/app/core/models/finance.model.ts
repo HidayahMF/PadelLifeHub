@@ -32,6 +32,8 @@ export interface Transaction {
   nextRunAt?: string | null;
   lastRunAt?: string | null;
   parentRecurringId?: string | null;
+  migratedToInvestment?: boolean;
+  investmentTransactionId?: string | null;
   createdAt: string;
 }
 
@@ -71,4 +73,52 @@ export interface FinanceSummary {
   totalIncome: number;
   totalExpense: number;
   balance: number;
+}
+
+export type InvestmentTransactionType = 'deposit' | 'withdrawal' | 'gain' | 'loss';
+
+export interface Investment {
+  _id: string;
+  user: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  // derived (server-calculated)
+  currentValue?: number;
+  totalInvested?: number;
+  netCapitalInvested?: number;
+  profitLoss?: number;
+  returnPct?: number;
+  totalDeposits?: number;
+  totalWithdrawals?: number;
+}
+
+export interface InvestmentTransaction {
+  _id: string;
+  user: string;
+  investment: string;
+  type: InvestmentTransactionType;
+  amount: number;
+  transaction_date: string;
+  note?: string;
+  createdAt?: string;
+}
+
+export interface InvestmentDetail extends Investment {
+  todayChange: number;
+  monthChange: number;
+  history: { date: string; value: number }[];
+  transactions: InvestmentTransaction[];
+}
+
+export interface InvestmentOverview {
+  currentValue: number;
+  totalInvested: number;
+  netCapitalInvested: number;
+  profitLoss: number;
+  returnPct: number;
+  todayChange: number;
+  monthChange: number;
+  portfolios: Investment[];
+  count: number;
 }

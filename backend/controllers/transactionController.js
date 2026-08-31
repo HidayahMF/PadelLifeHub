@@ -1,4 +1,5 @@
 const Transaction = require('../models/Transaction');
+const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 const {
   createTransactionForUser,
   normalizeTransactionDate,
@@ -180,13 +181,16 @@ const getSummary = async (req, res, next) => {
       if (endDate) filter.date.$lte = normalizeTransactionDate(endDate);
     }
 
+    const invCatIds = await getInvestmentCategoryIds(req.user._id);
+    const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+
     const [totalIncome, totalExpense] = await Promise.all([
       Transaction.aggregate([
-        { $match: { ...filter, type: 'income' } },
+        { $match: { ...filter, type: 'income', ...invCatFilter } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Transaction.aggregate([
-        { $match: { ...filter, type: 'expense' } },
+        { $match: { ...filter, type: 'expense', migratedToInvestment: { $ne: true } } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
     ]);
