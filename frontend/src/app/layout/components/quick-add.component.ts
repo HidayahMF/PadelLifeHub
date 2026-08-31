@@ -9,6 +9,7 @@ import {
   AccountService,
   TransactionService,
 } from '../../core/services/finance.service';
+import { InvestmentService } from '../../core/services/investment.service';
 import {
   GoalService,
   NeedService,
@@ -23,7 +24,7 @@ import { ButtonComponent } from './button.component';
 import { FieldComponent } from './field.component';
 import { SelectComponent, type SelectOption } from './select.component';
 import { IconComponent } from './icon.component';
-import type { Account, Category } from '../../core/models/finance.model';
+import type { Account, Category, Investment, InvestmentTransactionType } from '../../core/models/finance.model';
 import { getTodayLocalDate, wibDateTimeToUtcISO } from '../../core/utils/date';
 
 type EntityKey = 'task' | 'transaction' | 'note' | 'goal' | 'reminder' | 'wishlist' | 'need';
@@ -173,22 +174,44 @@ const REMINDER_TYPE_OPTIONS: SelectOption[] = [
                 [(ngModel)]="txnForm.description"
                 name="qa-txn-desc"
               />
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              @if (txnForm.type === 'investment') {
                 <app-select
-                  [label]="t('Category')"
-                  [placeholder]="t('None')"
-                  [options]="txnCategories()"
-                  [(ngModel)]="txnForm.category"
-                  name="qa-txn-category"
+                  [label]="t('Action')"
+                  [options]="investmentActionOptions()"
+                  [(ngModel)]="txnForm.investmentAction"
+                  name="qa-txn-inv-action"
                 />
                 <app-select
-                  [label]="t('Account')"
-                  [placeholder]="t('None')"
-                  [options]="accountOptions()"
-                  [(ngModel)]="txnForm.account"
-                  name="qa-txn-account"
+                  [label]="t('Portfolio')"
+                  [placeholder]="t('Select…')"
+                  [options]="investmentOptions()"
+                  [(ngModel)]="txnForm.investment"
+                  name="qa-txn-inv-portfolio"
                 />
-              </div>
+                <app-field
+                  [label]="t('Note')"
+                  [placeholder]="t('Optional note')"
+                  [(ngModel)]="txnForm.note"
+                  name="qa-txn-note"
+                />
+              } @else {
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <app-select
+                    [label]="t('Category')"
+                    [placeholder]="t('None')"
+                    [options]="txnCategories()"
+                    [(ngModel)]="txnForm.category"
+                    name="qa-txn-category"
+                  />
+                  <app-select
+                    [label]="t('Account')"
+                    [placeholder]="t('None')"
+                    [options]="accountOptions()"
+                    [(ngModel)]="txnForm.account"
+                    name="qa-txn-account"
+                  />
+                </div>
+              }
               <app-field
                 [label]="t('Date')"
                 type="date"
@@ -354,6 +377,7 @@ export class QuickAddComponent implements OnInit, OnDestroy {
   private needService = inject(NeedService);
   private categoryService = inject(CategoryService);
   private accountService = inject(AccountService);
+  private investmentService = inject(InvestmentService);
   private i18n = inject(I18nService);
 
   protected readonly t = this.i18n.t.bind(this.i18n);
@@ -372,7 +396,21 @@ export class QuickAddComponent implements OnInit, OnDestroy {
     return [
       { value: 'income', label: this.t('Income') },
       { value: 'expense', label: this.t('Expense') },
+      { value: 'investment', label: this.t('Investment') },
     ];
+  }
+
+  protected investmentActionOptions(): SelectOption[] {
+    const actions: Record<InvestmentTransactionType, string> = {
+      deposit: 'Deposit',
+      withdrawal: 'Withdrawal',
+      gain: 'Gain',
+      loss: 'Loss',
+    };
+    return (Object.keys(actions) as InvestmentTransactionType[]).map((a) => ({
+      value: a,
+      label: this.t(actions[a]),
+    }));
   }
 
   protected readonly open = this.command.quickAddOpen;
@@ -381,6 +419,7 @@ export class QuickAddComponent implements OnInit, OnDestroy {
   protected readonly taskCategories = signal<SelectOption[]>([]);
   protected readonly txnCategories = signal<SelectOption[]>([]);
   protected readonly accountOptions = signal<SelectOption[]>([]);
+  protected readonly investmentOptions = signal<SelectOption[]>([]);
 
   protected taskForm: any = {};
   protected txnForm: any = {};
@@ -423,6 +462,11 @@ export class QuickAddComponent implements OnInit, OnDestroy {
         this.accountOptions.set(accs.map((a) => ({ value: a._id, label: a.name })));
       });
     }
+    if (this.investmentOptions().length === 0) {
+      this.investmentService.getAll().subscribe((inv: Investment[]) => {
+        this.investmentOptions.set(inv.map((i) => ({ value: i._id, label: i.name })));
+      });
+    }
   }
 
   private resetForms(): void {
@@ -434,6 +478,9 @@ export class QuickAddComponent implements OnInit, OnDestroy {
       category: '',
       account: '',
       date: getTodayLocalDate(),
+      investmentAction: 'deposit' as InvestmentTransactionType,
+      investment: '',
+      note: '',
     };
     this.noteForm = { title: '', content: '' };
     this.goalForm = { title: '', target: null, unit: '', deadline: '' };
@@ -501,6 +548,23 @@ export class QuickAddComponent implements OnInit, OnDestroy {
           this.saving.set(false);
           this.toast.error(this.t('Amount must be greater than zero.'));
           return;
+        }
+        if (this.txnForm.type === 'investment') {
+          if (!this.txnForm.investment) {
+            this.saving.set(false);
+            this.toast.error(this.t('Select a portfolio.'));
+            return;
+          }
+          this.investmentService
+            .createTransaction({
+              investment: this.txnForm.investment,
+              type: this.txnForm.investmentAction || 'deposit',
+              amount,
+              transaction_date: this.txnForm.date || getTodayLocalDate(),
+              note: this.txnForm.note || this.txnForm.description || '',
+            })
+            .subscribe(finish(this.t('Investment added')));
+          break;
         }
         this.transactionService
           .create({

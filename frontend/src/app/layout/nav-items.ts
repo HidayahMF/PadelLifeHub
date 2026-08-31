@@ -18,6 +18,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: 'Tasks', route: '/app/tasks', icon: 'list-todo' },
       { label: 'Finance', route: '/app/finance', icon: 'wallet' },
+      { label: 'Investments', route: '/app/investments', icon: 'trending-up' },
       { label: 'Wishlist', route: '/app/wishlist', icon: 'gift' },
       { label: 'Needs', route: '/app/needs', icon: 'shopping-basket' },
       { label: 'Calendar', route: '/app/calendar', icon: 'calendar-days' },

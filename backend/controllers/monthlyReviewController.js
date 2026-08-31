@@ -7,6 +7,7 @@
 //
 // Transfers (type 'transfer') are never counted as income or expense here.
 
+const mongoose = require('mongoose');
 const Task = require('../models/Task');
 const Transaction = require('../models/Transaction');
 const Habit = require('../models/Habit');
@@ -14,6 +15,7 @@ const Goal = require('../models/Goal');
 const Account = require('../models/Account');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
+const InvestmentTransaction = require('../models/InvestmentTransaction');
 const { focusTotals } = require('./focusSessionController');
 const { generate, isConfigured } = require('../services/geminiService');
 const { getUserLanguage } = require('../services/aiContext');
@@ -37,6 +39,19 @@ function weekStartOf(date = new Date()) {
   const d = startOfLocalDay(date);
   while (d.getDay() !== 1) d.setDate(d.getDate() - 1);
   return d;
+}
+
+/** True when a category name is an investment alias (legacy, non-destructive). */
+function isInvestmentCategoryName(name) {
+  if (!name) return false;
+  const n = String(name).trim().toLowerCase();
+  return ['investment', 'investasi', 'invest'].includes(n);
+}
+
+/** ObjectIds of categories whose name indicates an investment (never deleted). */
+async function getInvestmentCategoryIds(userId) {
+  const cats = await Category.find({ user: userId, type: 'transaction' }).select('name');
+  return cats.filter((c) => isInvestmentCategoryName(c.name)).map((c) => c._id);
 }
 
 const getMonthlyReview = async (req, res, next) => {
@@ -112,17 +127,39 @@ const getMonthlyReview = async (req, res, next) => {
           };
         })(),
         (async () => {
-          const [income, expense, prevIncome, prevExpense] = await Promise.all([
+          // Legacy "Investment"-category expenses are capital, not spending.
+          // Exclude them from normal expense totals (records are never deleted).
+          const invCatIds = await getInvestmentCategoryIds(userId);
+          const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+          const expenseMatch = {
+            user: userId,
+            type: 'expense',
+            migratedToInvestment: { $ne: true },
+            date: { $gte: monthStart, $lt: monthEnd },
+            ...invCatFilter,
+          };
+          const prevExpenseMatch = {
+            user: userId,
+            type: 'expense',
+            migratedToInvestment: { $ne: true },
+            date: { $gte: prevMonthStart, $lt: prevMonthEnd },
+            ...invCatFilter,
+          };
+
+          const [income, expense, prevIncome, prevExpense, invActivity] = await Promise.all([
             Transaction.aggregate([
               {
-                $match: { user: userId, type: 'income', date: { $gte: monthStart, $lt: monthEnd } },
+                $match: {
+                  user: userId,
+                  type: 'income',
+                  ...invCatFilter,
+                  date: { $gte: monthStart, $lt: monthEnd },
+                },
               },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
-              {
-                $match: { user: userId, type: 'expense', date: { $gte: monthStart, $lt: monthEnd } },
-              },
+              { $match: expenseMatch },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
@@ -130,32 +167,50 @@ const getMonthlyReview = async (req, res, next) => {
                 $match: {
                   user: userId,
                   type: 'income',
+                  ...invCatFilter,
                   date: { $gte: prevMonthStart, $lt: prevMonthEnd },
                 },
               },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
-              {
-                $match: {
-                  user: userId,
-                  type: 'expense',
-                  date: { $gte: prevMonthStart, $lt: prevMonthEnd },
-                },
-              },
+              { $match: prevExpenseMatch },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
+            mongoose.connection.readyState === 1
+              ? InvestmentTransaction.aggregate([
+                  {
+                    $match: { user: userId, transaction_date: { $gte: monthStart, $lt: monthEnd } },
+                  },
+                  { $group: { _id: '$type', total: { $sum: '$amount' } } },
+                ])
+              : Promise.resolve([]),
           ]);
+
           const totalIncome = income[0]?.total ?? 0;
           const totalExpense = expense[0]?.total ?? 0;
           const prevTotalIncome = prevIncome[0]?.total ?? 0;
           const prevTotalExpense = prevExpense[0]?.total ?? 0;
           const net = totalIncome - totalExpense;
           const prevNet = prevTotalIncome - prevTotalExpense;
+
+          const invTotals = { deposit: 0, withdrawal: 0, gain: 0, loss: 0 };
+          for (const row of invActivity) {
+            if (row._id in invTotals) invTotals[row._id] = row.total;
+          }
+          const investment = {
+            deposits: invTotals.deposit,
+            withdrawals: invTotals.withdrawal,
+            gains: invTotals.gain,
+            losses: invTotals.loss,
+            profitLoss: invTotals.gain - invTotals.loss,
+          };
+
           return {
             income: totalIncome,
             expense: totalExpense,
             saved: net,
+            investment,
             previous: {
               income: prevTotalIncome,
               expense: prevTotalExpense,
@@ -187,7 +242,12 @@ const getMonthlyReview = async (req, res, next) => {
         (async () => {
           const rows = await Transaction.aggregate([
             {
-              $match: { user: userId, type: 'expense', date: { $gte: monthStart, $lt: monthEnd } },
+              $match: {
+                user: userId,
+                type: 'expense',
+                migratedToInvestment: { $ne: true },
+                date: { $gte: monthStart, $lt: monthEnd },
+              },
             },
             {
               $group: { _id: '$category', total: { $sum: '$amount' } },
@@ -218,19 +278,23 @@ const getMonthlyReview = async (req, res, next) => {
         })(),
       ]);
 
-    const topCategoriesResolved = topCategories.map((row) => {
-      const cat = categories.find((c) => String(c._id) === String(row._id));
-      return {
-        name: cat?.name ?? 'Uncategorized',
-        color: cat?.color ?? 'var(--color-ink-faint)',
-        total: row.total,
-      };
-    });
+    const topCategoriesResolved = topCategories
+      .map((row) => {
+        const cat = categories.find((c) => String(c._id) === String(row._id));
+        return {
+          name: cat?.name ?? 'Uncategorized',
+          color: cat?.color ?? 'var(--color-ink-faint)',
+          total: row.total,
+        };
+      })
+      // Never report an investment alias as a normal spending category.
+      .filter((c) => !isInvestmentCategoryName(c.name));
 
     // Budget performance for the reviewed month (spent recomputed from transactions).
     const monthTransactions = await Transaction.find({
       user: userId,
       type: 'expense',
+      migratedToInvestment: { $ne: true },
       date: { $gte: monthStart, $lt: monthEnd },
     });
     const spentByCategory = new Map();
@@ -322,7 +386,7 @@ const aiSummary = async (req, res) => {
       ? data.topCategories.map((c) => `- ${c.name}: ${fmt(c.total)}`).join('\n')
       : '- none';
 
-    const prompt = `Here is the user's LifeHub data for ${data.monthLabel} (all figures were calculated by the system from the user's records — restate them exactly, never compute your own):\n\nPRODUCTIVITY\n- Tasks completed: ${data.productivity.completed}\n- Tasks created: ${data.productivity.created}\n- Task completion rate: ${data.productivity.completionRate}%\n- Overdue tasks now: ${data.productivity.overdue}\n\nFOCUS TIME\n- Focus sessions: ${data.focus.count}\n- Total focus time: ${Math.round(data.focus.duration / 60)} minutes\n\nFINANCE\n- Income: ${fmt(data.finance.income)} (previous month: ${fmt(data.finance.previous.income)})\n- Expense: ${fmt(data.finance.expense)} (previous month: ${fmt(data.finance.previous.expense)})\n- Net cash flow: ${fmt(data.finance.saved)}\n- Total balance across accounts: ${fmt(data.netWorth.total)}\n- Liquid assets (cash + bank + e-wallet): ${fmt(data.netWorth.liquid)}\n- Investment assets: ${fmt(data.netWorth.investment)}\n- Top spending categories:\n${categoryLines}\n- Budgets:\n${budgetLines}\n\nHABITS\n- Habits tracked: ${data.habits.tracked}\n- Average completion: ${data.habits.averageCompletion}%\n- Best streak: ${data.habits.bestStreak} day(s)\n\nGOALS\n- Goals progressed this month: ${data.goals.progressed}\n- Goals completed this month: ${data.goals.completed}\n\nWrite a concise Markdown monthly review with exactly four sections:\n1. **What went well**\n2. **What needs attention**\n3. **Biggest change**\n4. **Next month's priorities**\n\nBase everything strictly on the data above. If a section has no data (e.g. no habits tracked), say so instead of inventing numbers. Never present this as professional financial advice. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
+    const prompt = `Here is the user's LifeHub data for ${data.monthLabel} (all figures were calculated by the system from the user's records — restate them exactly, never compute your own):\n\nPRODUCTIVITY\n- Tasks completed: ${data.productivity.completed}\n- Tasks created: ${data.productivity.created}\n- Task completion rate: ${data.productivity.completionRate}%\n- Overdue tasks now: ${data.productivity.overdue}\n\nFOCUS TIME\n- Focus sessions: ${data.focus.count}\n- Total focus time: ${Math.round(data.focus.duration / 60)} minutes\n\nFINANCE\n- Income: ${fmt(data.finance.income)} (previous month: ${fmt(data.finance.previous.income)})\n- Expense (normal spending, investments excluded): ${fmt(data.finance.expense)} (previous month: ${fmt(data.finance.previous.expense)})\n- Net cash flow: ${fmt(data.finance.saved)}\n- Total balance across accounts: ${fmt(data.netWorth.total)}\n- Liquid assets (cash + bank + e-wallet): ${fmt(data.netWorth.liquid)}\n- Investment assets: ${fmt(data.netWorth.investment)}\n- Investment activity this month: deposits ${fmt(data.finance.investment.deposits)}, withdrawals ${fmt(data.finance.investment.withdrawals)}, profit/loss ${fmt(data.finance.investment.profitLoss)}\n- Top spending categories:\n${categoryLines}\n- Budgets:\n${budgetLines}\n\nInvestment deposits, withdrawals, gains and losses are tracked SEPARATELY — they are NOT normal income or normal expense, and must never be added to income, expenses, or net cash flow.\n\nHABITS\n- Habits tracked: ${data.habits.tracked}\n- Average completion: ${data.habits.averageCompletion}%\n- Best streak: ${data.habits.bestStreak} day(s)\n\nGOALS\n- Goals progressed this month: ${data.goals.progressed}\n- Goals completed this month: ${data.goals.completed}\n\nWrite a concise Markdown monthly review with exactly four sections:\n1. **What went well**\n2. **What needs attention**\n3. **Biggest change**\n4. **Next month's priorities**\n\nBase everything strictly on the data above. If a section has no data (e.g. no habits tracked), say so instead of inventing numbers. Never present this as professional financial advice. Respond in ${lang === 'id' ? 'Bahasa Indonesia' : 'English'}.`;
 
     const reply = await generate(prompt, { maxOutputTokens: 2048 });
     res.json({ success: true, month: monthKey, reply });

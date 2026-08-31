@@ -1,6 +1,7 @@
 const Task = require('../models/Task');
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
+const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 const Goal = require('../models/Goal');
 const { weekStartOf, focusTotals } = require('./focusSessionController');
 const { startOfLocalDay, addLocalDays } = require('../utils/date');
@@ -45,6 +46,9 @@ const getDashboardSummary = async (req, res, next) => {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
+    const invCatIds = await getInvestmentCategoryIds(userId);
+    const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+
     const [
       totalTasks,
       completedTasks,
@@ -78,19 +82,26 @@ const getDashboardSummary = async (req, res, next) => {
         .sort({ dueDate: 1 })
         .limit(5),
       Transaction.aggregate([
-        { $match: { user: userId, type: 'income' } },
+        { $match: { user: userId, type: 'income', ...invCatFilter } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Transaction.aggregate([
-        { $match: { user: userId, type: 'expense' } },
+        { $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true } } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Transaction.aggregate([
-        { $match: { user: userId, type: 'income', date: { $gte: monthStart, $lt: nextMonth } } },
+        { $match: { user: userId, type: 'income', date: { $gte: monthStart, $lt: nextMonth }, ...invCatFilter } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Transaction.aggregate([
-        { $match: { user: userId, type: 'expense', date: { $gte: monthStart, $lt: nextMonth } } },
+        {
+          $match: {
+            user: userId,
+            type: 'expense',
+            migratedToInvestment: { $ne: true },
+            date: { $gte: monthStart, $lt: nextMonth },
+          },
+        },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Account.aggregate([
@@ -161,6 +172,9 @@ const getStatistics = async (req, res, next) => {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
+    const invCatIds = await getInvestmentCategoryIds(userId);
+    const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+
     const [productivity, finance, focus] = await Promise.all([
       (async () => {
         const [totalTasks, completedTasks, weeklyCompleted, monthlyCompleted, weeklyActive] =
@@ -215,16 +229,16 @@ const getStatistics = async (req, res, next) => {
         const [totalIncome, totalExpense, categorySpending, cashFlow] =
           await Promise.all([
             Transaction.aggregate([
-              { $match: { user: userId, type: 'income', ...dateFilter } },
+              { $match: { user: userId, type: 'income', ...invCatFilter, ...dateFilter } },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
-              { $match: { user: userId, type: 'expense', ...dateFilter } },
+              { $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true }, ...dateFilter } },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
               {
-                $match: { user: userId, type: 'expense', ...dateFilter },
+                $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true }, ...dateFilter },
               },
               {
                 $group: {
@@ -235,7 +249,7 @@ const getStatistics = async (req, res, next) => {
               { $sort: { total: -1 } },
             ]),
             Transaction.aggregate([
-              { $match: { user: userId, ...dateFilter } },
+              { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter, ...dateFilter } },
               {
                 $group: {
                   // Group in the application timezone so WIB-midnight-stored

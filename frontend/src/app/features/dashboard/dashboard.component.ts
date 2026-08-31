@@ -9,10 +9,12 @@ import { ProgressComponent } from '../../layout/components/progress.component';
 import { SkeletonComponent } from '../../layout/components/skeleton.component';
 import { ModalComponent } from '../../layout/components/modal.component';
 import { BarChartComponent } from './components/bar-chart.component';
-import type { ChartPoint } from '../../core/models/chart.model';
+import { buildCashFlowMonths, type CashFlowMonth } from '../../core/utils/cashFlow';
 import { DashboardService, SettingService } from '../../core/services/data.service';
 import { HabitService, WishlistService } from '../../core/services/lifestyle.service';
 import { BudgetService, TransactionService } from '../../core/services/finance.service';
+import { InvestmentService } from '../../core/services/investment.service';
+import type { InvestmentOverview } from '../../core/models/finance.model';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { getLocale } from '../../core/utils/locale';
@@ -51,6 +53,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { key: 'habits', label: 'Habits', icon: 'flame', span: 'lg:col-span-1' },
   { key: 'focus', label: 'Focus time', icon: 'timer', span: 'lg:col-span-1' },
   { key: 'chart', label: 'Income vs expense', icon: 'bar-chart-3', span: 'lg:col-span-2' },
+  { key: 'investment', label: 'Investment portfolio', icon: 'trending-up', span: 'lg:col-span-1' },
   { key: 'budget', label: 'Monthly budget', icon: 'piggy-bank', span: 'lg:col-span-1' },
   { key: 'goals', label: 'Goals', icon: 'target', span: 'lg:col-span-1' },
   { key: 'wishlist', label: 'Wishlist', icon: 'gift', span: 'lg:col-span-1' },
@@ -77,8 +80,8 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
     <div class="space-y-6">
       <!-- Welcome -->
       <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 class="font-display text-3xl leading-tight text-ink">
+        <div class="min-w-0">
+          <h1 class="font-display text-2xl leading-tight text-ink sm:text-3xl">
             {{ greeting() }},
             <span class="relative inline-block">
               <span
@@ -99,7 +102,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
 
       <!-- LifeHub AI teaser -->
       <div
-        class="flex flex-wrap items-center justify-between gap-4 rounded-card border-2 border-ink bg-surface p-4 shadow-soft"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-card border-2 border-ink bg-surface p-3 shadow-soft sm:gap-4 sm:p-4"
       >
         <div class="flex min-w-0 items-center gap-3">
           <img
@@ -133,7 +136,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
           @for (key of widgets(); track key) {
             @switch (key) {
               @case ('stats') {
-                <div class="grid grid-cols-2 gap-4 lg:col-span-3 xl:grid-cols-4">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:col-span-3 xl:grid-cols-4">
                   <app-stat-card [label]="t('Pending tasks')" [value]="taskSummary().pending" icon="list-todo" />
                   <app-stat-card
                     [label]="t('Completed today')"
@@ -167,7 +170,7 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
                       {{ hideBalance() ? t('Show') : t('Hide') }}
                     </button>
                   </div>
-                  <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
                     <app-stat-card
                       [label]="t('Net worth')"
                       [value]="money(summary()!.financeSummary.balance)"
@@ -194,13 +197,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('today') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t("Today's tasks") }}</h2>
                     <button (click)="go('/app/tasks')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
-                  <div class="p-4">
+                  <div class="p-3 sm:p-4">
                     @if (todayTasks().length === 0) {
                       <p class="px-2 py-6 text-center text-sm text-ink-soft">
                         {{ t('Nothing due today. Enjoy the calm!') }}
@@ -235,13 +238,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('upcoming') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Upcoming deadlines') }}</h2>
                     <button (click)="go('/app/calendar')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Calendar') }}
                     </button>
                   </div>
-                  <div class="p-4">
+                  <div class="p-3 sm:p-4">
                     @if (upcomingTasks().length === 0) {
                       <p class="px-2 py-6 text-center text-sm text-ink-soft">{{ t('No upcoming deadlines.') }}</p>
                     }
@@ -273,13 +276,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('habits') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Habits') }}</h2>
                     <button (click)="go('/app/habits')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
-                  <div class="p-4">
+                  <div class="p-3 sm:p-4">
                     @if (habits().length === 0) {
                       <p class="px-2 py-6 text-center text-sm text-ink-soft">{{ t('No habits yet.') }}</p>
                     }
@@ -304,13 +307,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('focus') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Focus time') }}</h2>
                     <button (click)="go('/app/pomodoro')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Pomodoro') }}
                     </button>
                   </div>
-                  <div class="space-y-3 p-5">
+                  <div class="space-y-3 p-4 sm:p-5">
                     <div class="flex items-center justify-between rounded-button bg-surface-2 px-4 py-3">
                       <span class="text-sm text-ink-soft">{{ t('Today') }}</span>
                       <span class="text-sm font-semibold text-ink">{{ formatDuration(summary()!.focus.today.duration) }}</span>
@@ -328,24 +331,82 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('chart') {
                 <app-card class="lg:col-span-2" [padding]="'none'">
-                  <div class="px-5 pt-5">
+                  <div class="px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Income vs expense') }}</h2>
                     <p class="text-xs text-ink-soft">{{ t('Last 6 months') }}</p>
                   </div>
-                  <div class="p-4">
-                    <app-bar-chart [data]="cashFlowData()" [attr.aria-label]="t('Income and expenses over time')" />
+                  <div class="mt-4 grid grid-cols-3 gap-2 border-y border-line px-3 py-3 sm:gap-3 sm:px-5">
+                    <div class="min-w-0">
+                      <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('Income') }}</p>
+                      <p class="mt-0.5 truncate text-xs font-bold text-success sm:text-sm">{{ money(cashFlowSummary().income) }}</p>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('Expense') }}</p>
+                      <p class="mt-0.5 truncate text-xs font-bold text-danger sm:text-sm">{{ money(cashFlowSummary().expense) }}</p>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('Net') }}</p>
+                      <p class="mt-0.5 truncate text-xs font-bold text-ink sm:text-sm">{{ money(cashFlowSummary().net) }}</p>
+                    </div>
                   </div>
+                  <div class="p-3 sm:p-4">
+                    <app-bar-chart
+                      [grouped]="cashFlowMonths()"
+                      [legend]="{ income: t('Income'), expense: t('Expense') }"
+                      [attr.aria-label]="t('Income and expenses over time')"
+                    />
+                  </div>
+                </app-card>
+              }
+              @case ('investment') {
+                <app-card class="lg:col-span-1" [padding]="'none'">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
+                    <h2 class="text-base font-semibold text-ink">{{ t('Investment portfolio') }}</h2>
+                    <button (click)="go('/app/investments')" class="text-xs font-medium text-primary-strong hover:underline">
+                      {{ t('Manage') }}
+                    </button>
+                  </div>
+                  @if (!investmentOverview()) {
+                    <p class="py-6 text-center text-sm text-ink-soft">{{ t('No portfolios yet.') }}</p>
+                  } @else {
+                    <div class="space-y-3 px-4 py-3 sm:px-5 sm:py-4">
+                      <div class="rounded-button border-2 border-ink bg-surface-2/60 px-3 py-2.5 sm:px-4 sm:py-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('Current value') }}</p>
+                        <p class="mt-0.5 truncate text-base font-bold text-ink sm:text-lg">{{ money(investmentOverview()!.currentValue) }}</p>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                        <div class="min-w-0">
+                          <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('Invested') }}</p>
+                          <p class="mt-0.5 truncate text-xs font-semibold text-ink sm:text-sm">{{ money(investmentOverview()!.totalInvested) }}</p>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('Profit / Loss') }}</p>
+                          <p class="mt-0.5 truncate text-xs font-semibold" [ngClass]="invProfitClass()">{{ invProfitLabel() }}</p>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 pt-1 sm:gap-3">
+                        <div class="min-w-0">
+                          <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t("Today") }}</p>
+                          <p class="mt-0.5 truncate text-xs font-semibold" [ngClass]="invTodayClass()">{{ invTodayLabel() }}</p>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="truncate text-[10px] font-medium uppercase tracking-wide text-ink-soft sm:text-[11px]">{{ t('This month') }}</p>
+                          <p class="mt-0.5 truncate text-xs font-semibold" [ngClass]="invMonthClass()">{{ invMonthLabel() }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  }
                 </app-card>
               }
               @case ('budget') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Monthly budget') }}</h2>
                     <button (click)="go('/app/finance')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Finance') }}
                     </button>
                   </div>
-                  <div class="space-y-4 p-5">
+                  <div class="space-y-4 p-4 sm:p-5">
                     @if (budgets().length === 0) {
                       <p class="py-4 text-center text-sm text-ink-soft">{{ t('No budgets set this month.') }}</p>
                     }
@@ -365,13 +426,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('goals') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Goals') }}</h2>
                     <button (click)="go('/app/goals')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
-                  <div class="space-y-4 p-5">
+                  <div class="space-y-4 p-4 sm:p-5">
                     @if (summary()!.activeGoals.length === 0) {
                       <p class="py-4 text-center text-sm text-ink-soft">{{ t('No active goals.') }}</p>
                     }
@@ -389,13 +450,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('wishlist') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Wishlist') }}</h2>
                     <button (click)="go('/app/wishlist')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('View all') }}
                     </button>
                   </div>
-                  <div class="space-y-4 p-5">
+                  <div class="space-y-4 p-4 sm:p-5">
                     @if (wishlist().length === 0) {
                       <p class="py-4 text-center text-sm text-ink-soft">{{ t('No saved wishes yet.') }}</p>
                     }
@@ -415,13 +476,13 @@ const DEFAULT_WIDGETS = WIDGET_DEFS.map((w) => w.key);
               }
               @case ('recent') {
                 <app-card class="lg:col-span-1" [padding]="'none'">
-                  <div class="flex items-center justify-between px-5 pt-5">
+                  <div class="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                     <h2 class="text-base font-semibold text-ink">{{ t('Recent transactions') }}</h2>
                     <button (click)="go('/app/finance')" class="text-xs font-medium text-primary-strong hover:underline">
                       {{ t('Finance') }}
                     </button>
                   </div>
-                  <div class="p-4">
+                  <div class="p-3 sm:p-4">
                     @if (summary()!.recentTransactions.length === 0) {
                       <p class="px-2 py-6 text-center text-sm text-ink-soft">{{ t('No transactions yet.') }}</p>
                     }
@@ -537,6 +598,31 @@ export class DashboardComponent implements OnInit {
   protected readonly hideBalance = signal(false);
   protected readonly customizeOpen = signal(false);
   protected readonly savingWidgets = signal(false);
+  protected readonly investmentOverview = signal<InvestmentOverview | null>(null);
+
+  private readonly fmtSigned = (n: number) =>
+    `${n < 0 ? '−' : '+'}${formatCurrency(Math.abs(n || 0))}`;
+
+  protected readonly invProfitLabel = computed(() => {
+    const ov = this.investmentOverview();
+    if (!ov) return '';
+    return `${this.fmtSigned(ov.profitLoss)} (${ov.returnPct}%)`;
+  });
+  protected readonly invProfitClass = computed(() =>
+    (this.investmentOverview()?.profitLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'
+  );
+  protected readonly invTodayLabel = computed(() =>
+    this.fmtSigned(this.investmentOverview()?.todayChange ?? 0)
+  );
+  protected readonly invTodayClass = computed(() =>
+    (this.investmentOverview()?.todayChange ?? 0) >= 0 ? 'text-success' : 'text-danger'
+  );
+  protected readonly invMonthLabel = computed(() =>
+    this.fmtSigned(this.investmentOverview()?.monthChange ?? 0)
+  );
+  protected readonly invMonthClass = computed(() =>
+    (this.investmentOverview()?.monthChange ?? 0) >= 0 ? 'text-success' : 'text-danger'
+  );
   protected dragIndex: number | null = null;
 
   protected readonly editList = computed<WidgetListItem[]>(() => {
@@ -550,6 +636,7 @@ export class DashboardComponent implements OnInit {
   });
 
   private transactionService = inject(TransactionService);
+  private investments = inject(InvestmentService);
   private wishlistService = inject(WishlistService);
 
   protected readonly name = computed(() => this.auth.user()?.name?.split(' ')[0] ?? this.t('there'));
@@ -583,18 +670,15 @@ export class DashboardComponent implements OnInit {
       (this.summary()?.financeSummary.monthExpense ?? 0)
   );
 
-  protected readonly cashFlowData = computed<ChartPoint[]>(() => {
-    const list: ChartPoint[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const key = monthKey(d);
-      const label = new Intl.DateTimeFormat(getLocale(), { month: 'short' }).format(d);
-      const income = this.cashFlow()[key]?.income ?? 0;
-      const expense = this.cashFlow()[key]?.expense ?? 0;
-      list.push({ label, value: income - expense });
-    }
-    return list;
+  protected readonly cashFlowMonths = computed<CashFlowMonth[]>(() =>
+    buildCashFlowMonths(6, this.cashFlow())
+  );
+
+  protected readonly cashFlowSummary = computed(() => {
+    const months = this.cashFlowMonths();
+    const income = months.reduce((sum, m) => sum + m.income, 0);
+    const expense = months.reduce((sum, m) => sum + m.expense, 0);
+    return { income, expense, net: income - expense };
   });
 
   private readonly cashFlow = signal<Record<string, { income: number; expense: number }>>({});
@@ -631,16 +715,33 @@ export class DashboardComponent implements OnInit {
     });
     this.habitService.getAll().subscribe((h) => this.habits.set(h));
     this.budgetService.getAll({ month: monthKey() }).subscribe((b) => this.budgets.set(b));
-    this.wishlistService.getAll({ status: 'saved' }).subscribe((w) => this.wishlist.set(w));
-    this.transactionService.getAll().subscribe((txns) => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setDate(1);
+    const startDate = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-01`;
+    this.transactionService.getAll({ startDate }).subscribe((txns) => {
       const map: Record<string, { income: number; expense: number }> = {};
       for (const t of txns) {
+        // Investment capital/gains/losses are NOT normal income or expense —
+        // exclude migrated records AND anything tagged with an investment
+        // category from the Income vs Expense chart.
+        if (t.migratedToInvestment) continue;
+        const catName =
+          t.category && typeof t.category === 'object'
+            ? (t.category as { name?: string }).name
+            : undefined;
+        const norm = (catName ?? '').trim().toLowerCase();
+        if (norm === 'investment' || norm === 'investasi' || norm === 'invest') continue;
         const key = monthKey(toDate(t.date));
         map[key] ??= { income: 0, expense: 0 };
         if (t.type === 'income') map[key].income += t.amount;
         else if (t.type === 'expense') map[key].expense += t.amount;
       }
       this.cashFlow.set(map);
+    });
+    this.investments.overview().subscribe({
+      next: (ov) => this.investmentOverview.set(ov),
+      error: () => undefined,
     });
   }
 

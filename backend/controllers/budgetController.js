@@ -25,6 +25,7 @@ const getBudgets = async (req, res, next) => {
           $match: {
             user: req.user._id,
             type: 'expense',
+            migratedToInvestment: { $ne: true },
             date: { $gte: monthStart, $lt: nextMonth },
           },
         },

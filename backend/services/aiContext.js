@@ -19,7 +19,10 @@ const Budget = require('../models/Budget');
 const Reminder = require('../models/Reminder');
 const Setting = require('../models/Setting');
 const FocusSession = require('../models/FocusSession');
+const InvestmentTransaction = require('../models/InvestmentTransaction');
 const { startOfLocalDay, addLocalDays, getTodayLocalDate } = require('../utils/date');
+const { loadInvestmentOverview, dayDirectionStats } = require('./investmentInsightService');
+const { getInvestmentCategoryIds } = require('./investmentCategoryService');
 
 // ── In-memory user-scoped cache ────────────────────────────────────────────
 // Lightweight TTL cache to avoid redundant DB-heavy context builds within
@@ -92,6 +95,18 @@ function fmtDate(d) {
 }
 
 /**
+ * True when a category name is an investment alias. Used to separate legacy
+ * "Investment" expense transactions from normal expenses at READ time — we
+ * never rewrite or delete old records, we just stop counting them as spending
+ * and stop reporting them as the largest expense category.
+ */
+function isInvestmentCategoryName(name) {
+  if (!name) return false;
+  const n = String(name).trim().toLowerCase();
+  return ['investment', 'investasi', 'invest'].includes(n);
+}
+
+/**
  * Authoritative net-worth breakdown computed from the stored Account
  * documents. Account.type is the SOURCE OF TRUTH — never inferred from the
  * account name.
@@ -134,6 +149,15 @@ async function loadFinancialData(userId) {
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
+  // Exclude legacy investment-named categories from normal income/expense.
+  let invCatIds = [];
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) invCatIds = await getInvestmentCategoryIds(userId);
+  } catch {
+    // ignore — AI context still builds without category filtering
+  }
+
   const [
     monthIncome,
     monthExpense,
@@ -145,16 +169,18 @@ async function loadFinancialData(userId) {
     savingsGoals,
     accounts,
     recent,
+    investmentStats,
   ] = await Promise.all([
-    sumTx(userId, 'income', monthStart, nextMonth),
-    sumTx(userId, 'expense', monthStart, nextMonth),
-    sumTx(userId, 'income', prevMonthStart, monthStart),
-    sumTx(userId, 'expense', prevMonthStart, monthStart),
+    sumTx(userId, 'income', monthStart, nextMonth, invCatIds),
+    sumTx(userId, 'expense', monthStart, nextMonth, invCatIds),
+    sumTx(userId, 'income', prevMonthStart, monthStart, invCatIds),
+    sumTx(userId, 'expense', prevMonthStart, monthStart, invCatIds),
     Transaction.aggregate([
       {
         $match: {
           user: userId,
           type: 'expense',
+          migratedToInvestment: { $ne: true },
           date: { $gte: monthStart, $lt: nextMonth },
           category: { $ne: null },
         },
@@ -172,6 +198,7 @@ async function loadFinancialData(userId) {
         $match: {
           user: userId,
           type: 'expense',
+          migratedToInvestment: { $ne: true },
           date: { $gte: monthStart, $lt: nextMonth },
           account: { $ne: null },
         },
@@ -192,10 +219,18 @@ async function loadFinancialData(userId) {
       .limit(10)
       .populate('category', 'name')
       .populate('account', 'name'),
+    // Investment overview + recent value-change records for AI insights.
+    loadInvestmentOverview(userId),
   ]);
 
   const totalBalance = accounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
   const netWorth = computeNetWorth(accounts);
+
+  // Legacy "Investment"-category expenses are NOT normal spending. Exclude them
+  // from category rankings so the AI never reports them as a "largest expense".
+  const filteredCategorySpending = categorySpending.filter(
+    (c) => !isInvestmentCategoryName(c.name)
+  );
 
   return {
     monthIncome,
@@ -205,12 +240,13 @@ async function loadFinancialData(userId) {
     netCashFlow: monthIncome - monthExpense,
     totalBalance,
     netWorth,
-    categorySpending,
+    categorySpending: filteredCategorySpending,
     accountSpending,
     budgets,
     savingsGoals,
     accounts,
     recent,
+    investment: investmentStats,
   };
 }
 
@@ -240,6 +276,7 @@ async function buildFinancialContext(userId) {
     savingsGoals,
     accounts,
     recent,
+    investment,
   } = await loadFinancialData(userId);
 
   const lines = [];
@@ -268,6 +305,18 @@ async function buildFinancialContext(userId) {
       for (const t of netWorth.byType) {
         lines.push(`  - ${t.type}: ${fmt(t.balance)}`);
       }
+    }
+  }
+
+  if (investment && investment.hasInvestment) {
+    lines.push('Investment overview (portfolio value, backend-calculated):');
+    lines.push(`- Current value: ${fmt(investment.currentValue)}`);
+    lines.push(`- Total invested (deposits): ${fmt(investment.totalInvested)}`);
+    lines.push(`- Net capital invested (deposits - withdrawals): ${fmt(investment.netCapitalInvested)}`);
+    lines.push(`- Profit / loss: ${fmt(investment.profitLoss)}`);
+    lines.push(`- Return: ${investment.returnPct}%`);
+    if (investment.monthChange !== 0) {
+      lines.push(`- Portfolio change this month: ${fmt(investment.monthChange)}`);
     }
   }
 
@@ -562,9 +611,19 @@ async function getUserLanguage(userId) {
   }
 }
 
-async function sumTx(userId, type, start, end) {
+async function sumTx(userId, type, start, end, excludeCategories = []) {
+  const catFilter = excludeCategories.length ? { category: { $nin: excludeCategories } } : {};
   const [res] = await Transaction.aggregate([
-    { $match: { user: userId, type, date: { $gte: start, $lt: end } } },
+    {
+      $match: {
+        user: userId,
+        type,
+        // Migrated legacy investment expenses must never count as expense.
+        migratedToInvestment: { $ne: true },
+        date: { $gte: start, $lt: end },
+        ...catFilter,
+      },
+    },
     { $group: { _id: null, total: { $sum: '$amount' } } },
   ]);
   return res?.total || 0;
@@ -606,7 +665,21 @@ async function getFinancialSnapshot(userId) {
   }
   console.log('[AI] cache miss — financial snapshot');
   const data = await loadFinancialData(userId);
+
+  let invDays = { positiveDays: 0, negativeDays: 0, activeDays: 0 };
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      const invRecords = await InvestmentTransaction.find({ user: userId });
+      invDays = dayDirectionStats(invRecords, 30);
+    }
+  } catch {
+    // ignore — snapshot still works without investment data
+  }
+
   const snapshot = {
+    investment: data.investment,
+    investmentDays: invDays,
     currentMonthIncome: data.monthIncome,
     currentMonthExpense: data.monthExpense,
     previousMonthIncome: data.prevIncome,

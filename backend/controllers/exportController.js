@@ -10,6 +10,7 @@
 const Task = require('../models/Task');
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
+const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Goal = require('../models/Goal');
@@ -160,13 +161,15 @@ const exportTasksExcel = async (req, res, next) => {
 
 /** Aggregate all-time income / expense for the Dashboard sheet. */
 async function incomeExpenseTotals(userId) {
+  const invCatIds = await getInvestmentCategoryIds(userId);
+  const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
   const [income, expense] = await Promise.all([
     Transaction.aggregate([
-      { $match: { user: userId, type: 'income' } },
+      { $match: { user: userId, type: 'income', ...invCatFilter } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
     Transaction.aggregate([
-      { $match: { user: userId, type: 'expense' } },
+      { $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true } } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
   ]);
@@ -192,7 +195,7 @@ async function accountTypeTotals(userId) {
 /** Top expense categories (all time) for the Spending by Category chart. */
 async function categorySpending(userId, categories) {
   const rows = await Transaction.aggregate([
-    { $match: { user: userId, type: 'expense' } },
+    { $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true } } },
     { $group: { _id: '$category', total: { $sum: '$amount' } } },
     { $sort: { total: -1 } },
     { $limit: 5 },
