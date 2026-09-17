@@ -1,109 +1,147 @@
 # PadelLifeHub — Development Pipeline
 
-Angular personal productivity and finance application with an Express/Mongoose backend, authenticated records, reports, and optional integrations.
+> Code-grounded architecture and delivery guide for the current repository snapshot. Reviewed from `master` at `c6cbe598b281` on 2026-09-17.
 
-> Source review: **2026-09-17**, branch `master`, commit [`c6cbe598b281`](https://github.com/HidayahMF/PadelLifeHub/commit/c6cbe598b2812e768977ee0d75f01197734e2a29). This is a code-grounded implementation overview and development guide, not a reconstructed historical timeline or a claim that runtime tests passed.
+PadelLifeHub is an Angular productivity and personal-finance application backed by Express, JWT authentication, Mongoose, and MongoDB. The pipeline below separates what is implemented today from what still needs validation before release.
 
-## At a glance
+## 1. System pipeline
 
-| Area | Finding |
-| --- | --- |
-| Review scope | Repository tree, dependency manifests, and selected entry points/domain implementations linked below |
-| Automated CI | No files under `.github/workflows/` in this source snapshot |
-| Validation performed | Static source and documentation review; application builds, tests, databases, and external services were not executed |
+```mermaid
+flowchart LR
+    U[User] --> F[Angular App]
+    F --> G{Authenticated route?}
+    G -->|No| P[Public pages]
+    G -->|Yes| A[Auth Guard]
+    A --> API[Express API]
+    API --> JWT[JWT + User Lookup]
+    JWT --> C[Domain Controllers]
+    C --> DB[(MongoDB)]
+    C --> EXT[Optional Integrations]
+    DB --> API
+    API --> F
+```
 
-## Implemented flow
+## 2. Main application flows
 
-1. Angular lazily loads public pages and guards the /app workspace.
+### Authentication flow
 
-2. Express verifies bearer tokens, loads the user, and routes requests to task, transaction, account, habit, goal, and related controllers.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Angular
+    participant A as Express API
+    participant D as MongoDB
 
-3. Transaction updates validate ownership and amounts, reverse previous balance effects, apply new effects, save the record, and invalidate related cache.
+    U->>F: Open protected workspace
+    F->>A: Request with bearer token
+    A->>A: Verify JWT
+    A->>D: Load current user
+    D-->>A: User record
+    A-->>F: Authorized response
+```
 
-### Runtime map
+### Finance transaction flow
 
 ```mermaid
 flowchart TD
- U["Angular workspace"] --> A["Express API"]
- A --> H["JWT user lookup"]
- H --> C["Domain controllers"]
- C --> D[("MongoDB")]
- C --> I["Optional integrations"]
+    R[Create / Edit Transaction] --> V[Validate ownership + amount]
+    V --> O[Reverse previous balance effect]
+    O --> N[Apply new balance effect]
+    N --> S[Save transaction]
+    S --> I[Invalidate related cache]
+    I --> X[Return updated state]
 ```
 
-## Source map
+This path performs multiple writes. Treat failure recovery and balance reconciliation as a release-critical test area rather than assuming the operation is atomic.
 
-Principal source files used for this overview, pinned to the reviewed commit:
+## 3. Runtime ownership
 
-- [backend/app.js](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/app.js)
-- [backend/controllers/transactionController.js](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/controllers/transactionController.js)
-- [backend/middleware/auth.js](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/middleware/auth.js)
+| Layer | Responsibility | Key source |
+| --- | --- | --- |
+| Angular | Routing, guarded workspace, UI state | `frontend/src/app/app.routes.ts` |
+| Express | API entry point and middleware | `backend/app.js` |
+| Auth | Bearer-token validation and user lookup | `backend/middleware/auth.js` |
+| Finance | Transaction and balance behavior | `backend/controllers/transactionController.js` |
+| Persistence | User/domain records | MongoDB via Mongoose |
+| Integrations | AI, email, media, scheduled jobs | Optional external services |
 
-- [frontend/src/app/app.routes.ts](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/frontend/src/app/app.routes.ts)
+## 4. Technology snapshot
 
-## Technology and commands
-
-Version ranges below are declarations in source manifests, not independently verified installed versions.
-
-| Manifest | Relevant declarations |
+| Area | Declared stack |
 | --- | --- |
-| [backend/package.json](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/package.json) | `express ^4.21.2`, `mongoose ^8.9.5` |
-| [frontend/package.json](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/frontend/package.json) | `@angular/core ^21.2.0`, `typescript ~5.9.2` |
+| Frontend | Angular `^21.2.0`, TypeScript `~5.9.2` |
+| Backend | Express `^4.21.2` |
+| Database | MongoDB + Mongoose `^8.9.5` |
+| Auth | JWT bearer-token flow |
+| Tests | Node test runner + Angular test command |
 
-Run each command from the indicated directory after installing the corresponding dependencies and configuring an isolated development environment. Commands are listed as declared; this review does not certify they succeed.
+## 5. Local development pipeline
 
-| Directory | Command | Implementation |
+```mermaid
+flowchart LR
+    C[Clone / Pull] --> E[Configure environment]
+    E --> BI[Install backend deps]
+    E --> FI[Install frontend deps]
+    BI --> B[Run Express]
+    FI --> F[Run Angular]
+    B --> T[Run backend tests]
+    F --> BT[Run frontend build/tests]
+    T --> R[Review]
+    BT --> R
+```
+
+| Directory | Command | Purpose |
 | --- | --- | --- |
-| `backend` | `npm run start` | Declared: `node server.js` |
-| `backend` | `npm run dev` | Declared: `nodemon server.js` |
-| `backend` | `npm run test` | Declared: `node --test test/*.test.cjs` |
-| `frontend` | `npm run start` | Declared: `ng serve` |
-| `frontend` | `npm run build` | Declared: `ng build` |
-| `frontend` | `npm run test` | Declared: `ng test` |
+| `backend` | `npm run dev` | Start Express with nodemon |
+| `backend` | `npm run start` | Start backend normally |
+| `backend` | `npm run test` | Run backend tests |
+| `frontend` | `npm run start` | Run Angular dev server |
+| `frontend` | `npm run build` | Production frontend build |
+| `frontend` | `npm run test` | Angular tests |
 
-## Development sequence
+## 6. Verification gates
 
-| Stage | Work | Completion evidence |
-| --- | --- | --- |
-| 1. Establish scope | Read the source map and limitations; choose one concrete behavior to change. | Expected input, output, and failure behavior. |
-| 2. Prepare environment | Use the manifests and configuration references. | Required local services reachable with synthetic data. |
-| 3. Implement | Follow the implemented flow and update the layer that owns the behavior. | Focused diff with matching caller/callee contracts. |
-| 4. Validate | Run applicable declared checks and the scenarios below. | Recorded commands, results, and untested dependencies. |
-| 5. Review and release | Review the diff and update documentation; release after environment checks. | Reviewed change and target-environment smoke check. |
+Before a change is considered ready, verify the behavior relevant to the diff:
 
-These stages are a recommended maintenance sequence, not a historical timeline.
+- Protected-route reload and expired/invalid authentication.
+- Cross-user access attempts against tasks, accounts, transactions, goals, and habits.
+- Transaction create/edit/delete balance reconciliation.
+- Failure between balance writes and transaction persistence.
+- Transfer-account validation and invalid account references.
+- Recurring dates and edge dates.
+- Integration-disabled behavior when AI/email/media services are unavailable.
 
-## Configuration and runtime prerequisites
+The repository contains backend tests for AI, finance insights, focus sessions, investments, notifications, exports, and related services. Their presence is not equivalent to a passing release; run the applicable suite.
 
-- [backend/.env.example](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/.env.example)
+## 7. Release pipeline
 
-Configuration-file presence does not prove deployment success. Keep credentials outside version control and use synthetic records during setup.
+```mermaid
+flowchart LR
+    DEV[Feature change] --> L[Lint / static review]
+    L --> TEST[Relevant tests]
+    TEST --> BUILD[Frontend build]
+    BUILD --> SMOKE[API + UI smoke test]
+    SMOKE --> PR[Pull Request]
+    PR --> REVIEW[Code review]
+    REVIEW --> DEPLOY[Target environment]
+    DEPLOY --> CHECK[Post-deploy smoke check]
+```
 
-## Verification plan
+No GitHub Actions workflow was present in the reviewed snapshot, so these gates are currently procedural unless CI is added later.
 
-Test cross-user access, transfer account validation, edit/delete balance reconciliation, failed writes, recurring dates, and authenticated route reloads.
+## 8. Known gaps / next hardening work
 
-Test-related files found in the repository tree (13; inventory only, not a passing-test count):
+1. **Finance atomicity:** transaction balance updates span multiple writes; validate rollback/recovery behavior.
+2. **External integrations:** email, AI, media, and scheduled jobs require separately configured services.
+3. **CI:** no `.github/workflows/` pipeline is present in this snapshot.
+4. **Release evidence:** do not claim a build/test passed unless the command was actually executed against the target change.
 
-- [backend/test/aiApi.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/aiApi.test.cjs)
-- [backend/test/aiContext.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/aiContext.test.cjs)
-- [backend/test/deterministicParser.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/deterministicParser.test.cjs)
-- [backend/test/exportExcel.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/exportExcel.test.cjs)
-- [backend/test/financeInsights.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/financeInsights.test.cjs)
-- [backend/test/focusSession.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/focusSession.test.cjs)
-- [backend/test/geminiService.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/geminiService.test.cjs)
-- [backend/test/investmentMigration.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/investmentMigration.test.cjs)
-- [backend/test/investmentService.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/investmentService.test.cjs)
-- [backend/test/notificationController.test.cjs](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/test/notificationController.test.cjs)
+## 9. Source map
 
-Additional test files remain in the repository; inspect runner configuration for the complete suite.
+- [`backend/app.js`](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/app.js)
+- [`backend/controllers/transactionController.js`](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/controllers/transactionController.js)
+- [`backend/middleware/auth.js`](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/middleware/auth.js)
+- [`frontend/src/app/app.routes.ts`](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/frontend/src/app/app.routes.ts)
+- [`backend/.env.example`](https://github.com/HidayahMF/PadelLifeHub/blob/c6cbe598b2812e768977ee0d75f01197734e2a29/backend/.env.example)
 
-## Known limitations and next work
-
-The inspected balance update path contains multiple writes; test failure recovery rather than assuming atomic accounting. Email, AI, media, and scheduled-job integrations need separately configured services.
-
-Prioritize the acceptance checks above before expanding the feature set. A declared test command or example test does not establish production readiness.
-
-## Keeping this document accurate
-
-Update the source snapshot and affected flow when entry points, persistence, authentication, or integration contracts change. Keep planned capabilities separate from implemented behavior, and record actual build/test results only after running them.
+Keep this document synchronized when entry points, authentication, persistence, finance rules, or integration contracts change.
