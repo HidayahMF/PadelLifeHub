@@ -126,7 +126,7 @@ const getDashboardSummary = async (req, res, next) => {
       focusTotals(userId, monthStart, nextMonth),
     ]);
 
-    const typeTotals = { bank: 0, ewallet: 0, cash: 0, investment: 0 };
+    const typeTotals = { bank: 0, ewallet: 0, cash: 0, investment: 0, store: 0 };
     for (const row of accountBalanceByType) {
       if (row._id in typeTotals) typeTotals[row._id] = row.total;
     }

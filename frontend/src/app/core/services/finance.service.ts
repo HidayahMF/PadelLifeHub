@@ -1,5 +1,14 @@
 import { inject, Injectable, signal } from '@angular/core';
-import type { Account, Budget, FinanceSummary, Transaction, TransactionPayload } from '../models/finance.model';
+import type {
+  Account,
+  AccountBalanceAdjustment,
+  AdjustmentHistoryPage,
+  AdjustmentPayload,
+  Budget,
+  FinanceSummary,
+  Transaction,
+  TransactionPayload,
+} from '../models/finance.model';
 import type { QueryParams } from './api.service';
 import { ApiService } from './api.service';
 
@@ -74,6 +83,18 @@ export class AccountService {
 
   remove(id: string) {
     return this.api.delete<{ message: string }>(`/accounts/${id}`);
+  }
+
+  /** Manual balance correction — recorded with an append-only history entry. */
+  adjustBalance(id: string, payload: AdjustmentPayload) {
+    return this.api.post<{ account: Account; adjustment: AccountBalanceAdjustment }>(
+      `/accounts/${id}/adjustments`,
+      payload
+    );
+  }
+
+  getAdjustments(id: string, params?: QueryParams) {
+    return this.api.get<AdjustmentHistoryPage>(`/accounts/${id}/adjustments`, params);
   }
 }
 

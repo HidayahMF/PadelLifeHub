@@ -424,6 +424,7 @@ function buildDashboardSheet(wb, data) {
     ['Total Balance / Net Worth', data.netWorth],
     ['Liquid Assets (cash + bank + e-wallet)', data.liquidAssets],
     ['Investment Assets', data.investmentAssets],
+    ['Store Balance (Toko)', data.storeAssets ?? 0],
     ['Total Income', data.totalIncome],
     ['Total Expense', data.totalExpense],
     ['Net Cash Flow', data.netCashFlow],
@@ -563,10 +564,13 @@ function buildAccountsSheet(wb, { accounts }) {
   const totals = {
     'Total Balance': accounts.reduce((s, a) => s + Number(a.balance || 0), 0),
     'Liquid Assets (cash + bank + e-wallet)': accounts
-      .filter((a) => a.type !== 'investment')
+      .filter((a) => ['cash', 'bank', 'ewallet'].includes(a.type))
       .reduce((s, a) => s + Number(a.balance || 0), 0),
     'Investment Assets': accounts
       .filter((a) => a.type === 'investment')
+      .reduce((s, a) => s + Number(a.balance || 0), 0),
+    'Store Balance (Toko)': accounts
+      .filter((a) => a.type === 'store')
       .reduce((s, a) => s + Number(a.balance || 0), 0),
     'Net Worth': accounts.reduce((s, a) => s + Number(a.balance || 0), 0),
   };

@@ -112,8 +112,10 @@ function isInvestmentCategoryName(name) {
  * account name.
  *
  *   total      = sum of all stored balances
- *   liquid     = total minus investment accounts (cash + bank + e-wallet)
+ *   liquid     = cash + bank + e-wallet balances
  *   investment = sum of investment accounts
+ *   store      = sum of store/marketplace accounts (counted in total, but not
+ *                liquid — marketplace balances are not auto-withdrawable cash)
  *   byType     = balance grouped by the stored Account.type value
  */
 function computeNetWorth(accounts) {
@@ -128,8 +130,12 @@ function computeNetWorth(accounts) {
   const rows = [...byType.entries()]
     .map(([type, balance]) => ({ type, balance }))
     .sort((x, y) => y.balance - x.balance);
+  const liquid = rows
+    .filter((r) => ['cash', 'bank', 'ewallet'].includes(r.type))
+    .reduce((s, r) => s + r.balance, 0);
   const investment = rows.find((r) => r.type === 'investment')?.balance || 0;
-  return { total, liquid: total - investment, investment, byType: rows };
+  const store = rows.find((r) => r.type === 'store')?.balance || 0;
+  return { total, liquid, investment, store, byType: rows };
 }
 
 /**

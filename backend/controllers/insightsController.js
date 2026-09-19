@@ -256,11 +256,14 @@ const getInsights = async (req, res, next) => {
 
     // Net worth — authoritative account balances grouped by account type.
     // Liquid = cash + bank + e-wallet; investment is tracked separately.
+    // Store/marketplace balances are counted in the total but not in liquid,
+    // mirroring the app's liquidity rule (not auto-withdrawable cash).
     const typeTotals = {
       bank: 0,
       ewallet: 0,
       cash: 0,
       investment: 0,
+      store: 0,
     };
     for (const row of accountBalance) {
       if (row._id in typeTotals) typeTotals[row._id] = row.total;

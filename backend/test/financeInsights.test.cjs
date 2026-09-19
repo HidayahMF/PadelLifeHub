@@ -56,6 +56,7 @@ const behavior = {
     { _id: 'ewallet', total: 300000 },
     { _id: 'cash', total: 150000 },
     { _id: 'investment', total: 30000000 },
+    { _id: 'store', total: 400000 },
   ],
   taskCount: 0,
   taskFind: [],
@@ -100,6 +101,7 @@ function reset() {
     { _id: 'ewallet', total: 300000 },
     { _id: 'cash', total: 150000 },
     { _id: 'investment', total: 30000000 },
+    { _id: 'store', total: 400000 },
   ];
   behavior.taskCount = 0;
   behavior.taskFind = [];
@@ -269,12 +271,16 @@ test('insights: net worth splits liquid vs investment by account type', async ()
   const res = await get('/api/insights');
   assert.strictEqual(res.status, 200);
   const json = await res.json();
-  assert.strictEqual(json.netWorth.total, 35450000); // 5jt + 300rb + 150rb + 30jt
-  assert.strictEqual(json.netWorth.liquid, 5450000); // bank + ewallet + cash
+  assert.strictEqual(json.netWorth.total, 35850000); // 5jt + 300rb + 150rb + 30jt + 400rb
+  assert.strictEqual(json.netWorth.liquid, 5450000); // bank + ewallet + cash (store excluded)
   assert.strictEqual(json.netWorth.investment, 30000000);
-  assert.strictEqual(json.netWorth.byType.length, 4);
+  assert.strictEqual(json.netWorth.byType.length, 5);
   const investment = json.netWorth.byType.find((t) => t.type === 'investment');
-  assert.ok(Math.abs(investment.pct - 84.6) < 0.2);
+  assert.ok(Math.abs(investment.pct - 83.7) < 0.2);
+  // Store/marketplace balances count in the total but never as liquid.
+  const store = json.netWorth.byType.find((t) => t.type === 'store');
+  assert.strictEqual(store.balance, 400000);
+  assert.ok(Math.abs(store.pct - 1.1) < 0.2); // 400rb / 35.85jt ≈ 1.1%
   // Transfers are irrelevant to balance math but never income/expense:
   assert.ok(json.income.thisMonth >= json.expense.thisMonth);
 });
@@ -333,8 +339,10 @@ test('monthly review: deterministic stats for the current month', async () => {
   assert.strictEqual(json.finance.income, 10000000);
   assert.strictEqual(json.finance.expense, 4500000);
   assert.strictEqual(json.finance.saved, 5500000);
-  assert.strictEqual(json.netWorth.total, 35450000);
+  assert.strictEqual(json.netWorth.total, 35850000);
   assert.strictEqual(json.netWorth.liquid, 5450000);
+  assert.strictEqual(json.netWorth.investment, 30000000);
+  assert.strictEqual(json.netWorth.byType.find((t) => t.type === 'store').balance, 400000);
   assert.ok(Array.isArray(json.budgetPerformance));
   assert.ok(Array.isArray(json.topCategories));
 });
@@ -355,7 +363,7 @@ test('monthly review AI summary embeds backend figures, never raw docs', async (
   assert.strictEqual(json.success, true);
   assert.strictEqual(json.reply, 'Mocked monthly review');
   assert.ok(gemini.lastPrompt.includes('10.000.000')); // income figure verbatim
-  assert.ok(gemini.lastPrompt.includes('35.450.000')); // total balance verbatim
+  assert.ok(gemini.lastPrompt.includes('35.850.000')); // total balance verbatim (incl. store)
   assert.ok(gemini.lastPrompt.includes('What went well'));
   assert.ok(!gemini.lastPrompt.includes('password'));
 });
