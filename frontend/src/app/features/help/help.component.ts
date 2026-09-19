@@ -73,7 +73,7 @@ const SECTIONS: HelpSection[] = [
       {
         title: 'Finance',
         lines: [
-          'One page for accounts, transactions, budgets, and charts. Add accounts as Cash, Bank, or E-wallet — bank/e-wallet logos are detected automatically from the name (BCA, Mandiri, DANA, GoPay, SeaBank, and more).',
+          'One page for accounts, transactions, budgets, and charts. Add accounts as Cash, Bank, E-wallet, Investment, or Toko (store) — bank/e-wallet/marketplace logos are detected automatically from the name (BCA, Mandiri, DANA, GoPay, SeaBank, Itemku, ZeusX, and more).',
           'Add income, expense, or transfer transactions. Transfers move money between two different accounts; expenses need a category and affect your budget progress.',
           'Budgets are set per category (or Overall) per month with a spending limit — use the ‹ › arrows to switch months. The donut chart shows spending by category for the current month.',
         ],

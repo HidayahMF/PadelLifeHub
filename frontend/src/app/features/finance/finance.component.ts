@@ -26,6 +26,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { AiService, QuickAddDraft } from '../../core/services/ai.service';
 import type {
   Account,
+  AccountBalanceAdjustment,
   Budget,
   RecurringFrequency,
   Transaction,
@@ -37,6 +38,7 @@ import type { FinancialHealth, InsightsData, NetWorthBreakdown } from '../../cor
 import {
   formatCurrency,
   formatDate,
+  formatDateTime,
   monthKey,
   monthLabel,
   percent,
@@ -201,33 +203,48 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
       @for (account of accounts(); track account._id) {
         @let logo = accountLogo(account.name);
         <app-card class="h-full">
-          <div class="flex h-full items-center gap-3">
-            @if (logo && !failedLogos().includes(account._id)) {
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-line">
-                <img
-                  [src]="logo"
-                  [alt]="account.name"
-                  loading="lazy"
-                  class="h-full w-full object-contain"
-                  (error)="onLogoError(account)"
-                />
-              </span>
-            } @else {
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
-                <app-icon [name]="accountIcon(account.type)" [size]="20" />
-              </span>
-            }
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
-              <p class="truncate text-sm text-ink-soft">{{ displayBalance(account.balance) }}</p>
+          <div class="flex h-full flex-col">
+            <div class="flex items-center gap-3">
+              @if (logo && !failedLogos().includes(account._id)) {
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-line">
+                  <img
+                    [src]="logo"
+                    [alt]="account.name"
+                    loading="lazy"
+                    class="h-full w-full object-contain"
+                    (error)="onLogoError(account)"
+                  />
+                </span>
+              } @else {
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+                  <app-icon [name]="accountIcon(account.type)" [size]="20" />
+                </span>
+              }
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
+                <p class="truncate text-sm text-ink-soft">{{ displayBalance(account.balance) }}</p>
+              </div>
+              <div class="flex shrink-0 items-center gap-0.5">
+                <app-button size="icon" variant="ghost" icon="pencil"
+                  [attr.aria-label]="t('Edit {name}', { name: account.name })"
+                  [attr.title]="t('Edit account')"
+                  (click)="openEditAccount(account)"></app-button>
+                <app-button size="icon" variant="ghost" icon="trash-2"
+                  [attr.aria-label]="t('Delete {name}', { name: account.name })"
+                  (click)="removeAccount(account)"></app-button>
+              </div>
             </div>
-            <div class="flex shrink-0 items-center gap-0.5">
-              <app-button size="icon" variant="ghost" icon="pencil"
-                [attr.aria-label]="t('Edit {name}', { name: account.name })"
-                (click)="openEditAccount(account)"></app-button>
-              <app-button size="icon" variant="ghost" icon="trash-2"
-                [attr.aria-label]="t('Delete {name}', { name: account.name })"
-                (click)="removeAccount(account)"></app-button>
+            <div class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-2.5">
+              <app-button size="sm" variant="ghost" icon="sliders-horizontal"
+                [attr.aria-label]="t('Adjust balance')"
+                (click)="openAdjustment(account)">
+                {{ t('Adjust balance') }}
+              </app-button>
+              <app-button size="sm" variant="ghost" icon="history"
+                [attr.aria-label]="t('Balance history')"
+                (click)="openHistory(account)">
+                {{ t('Balance history') }}
+              </app-button>
             </div>
           </div>
         </app-card>
@@ -566,13 +583,129 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
           [(ngModel)]="accountForm.name" name="name" />
         <app-select [label]="t('Type')" [options]="accountTypeOptions()"
           [(ngModel)]="accountForm.type" name="type" />
-        <app-field [label]="t('Balance')" type="number" placeholder="0"
-          [(ngModel)]="accountForm.balance" name="balance" />
+        @if (!editingAccount()) {
+          <app-field [label]="t('Opening balance')" type="number" placeholder="0"
+            [hint]="t('Starting balance for this account.')"
+            [(ngModel)]="accountForm.balance" name="balance" />
+        } @else {
+          <p class="rounded-field border border-line bg-surface-2/60 px-3 py-2.5 text-xs text-ink-soft">
+            {{ t('Change this balance through {action}.', { action: t('Adjust balance') }) }}
+          </p>
+        }
         <div class="flex justify-end gap-2 pt-2">
           <app-button type="button" variant="secondary" (click)="accountModalOpen.set(false)">{{ t('Cancel') }}</app-button>
           <app-button type="submit" [loading]="savingAccount()">{{ t('Save') }}</app-button>
         </div>
       </form>
+    </app-modal>
+
+    <!-- Balance adjustment modal -->
+    <app-modal
+      [open]="adjustmentModalOpen()"
+      [title]="t('Adjust balance')"
+      (closed)="closeAdjustment()"
+    >
+      @if (adjustmentAccount()) {
+        <div class="space-y-4">
+          <div class="flex items-center gap-3 rounded-field border border-line bg-surface-2/60 p-3">
+            @let adjLogo = accountLogo(adjustmentAccount()!.name);
+            @if (adjLogo && !failedLogos().includes(adjustmentAccount()!._id)) {
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-line">
+                <img [src]="adjLogo" [alt]="adjustmentAccount()!.name" class="h-full w-full object-contain" />
+              </span>
+            } @else {
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink">
+                <app-icon [name]="accountIcon(adjustmentAccount()!.type)" [size]="20" />
+              </span>
+            }
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold text-ink">{{ adjustmentAccount()!.name }}</p>
+              <p class="truncate text-sm text-ink-soft">
+                {{ t('Current balance') }}: {{ displayAmount(adjustmentAccount()!.balance) }}
+              </p>
+            </div>
+          </div>
+          <app-field [label]="t('New balance')" type="number" placeholder="0" [required]="true"
+            [(ngModel)]="adjustmentForm.newBalance" name="newBalance" />
+          <app-field [label]="t('Reason for adjustment')" [placeholder]="t('e.g. Koreksi sesuai aplikasi')"
+            [required]="true" [(ngModel)]="adjustmentForm.reason" name="reason" />
+          @if (adjustmentSummary()) {
+            <div class="space-y-1.5 rounded-field border border-line bg-surface-2/60 p-3 text-sm">
+              <p class="flex justify-between gap-3">
+                <span class="text-ink-soft">{{ t('Previous balance') }}</span>
+                <span class="font-semibold text-ink">{{ displayAmount(adjustmentSummary()!.previous) }}</span>
+              </p>
+              <p class="flex justify-between gap-3">
+                <span class="text-ink-soft">{{ t('Difference') }}</span>
+                <span class="font-semibold" [class.text-success]="adjustmentSummary()!.difference > 0" [class.text-danger]="adjustmentSummary()!.difference < 0">
+                  {{ displaySigned(adjustmentSummary()!.difference) }}
+                </span>
+              </p>
+              <p class="flex justify-between gap-3">
+                <span class="text-ink-soft">{{ t('After adjustment') }}</span>
+                <span class="font-semibold text-ink">{{ displayAmount(adjustmentSummary()!.next) }}</span>
+              </p>
+            </div>
+          }
+          <div class="flex justify-end gap-2 pt-2">
+            <app-button type="button" variant="secondary" [disabled]="savingAdjustment()" (click)="closeAdjustment()">{{ t('Cancel') }}</app-button>
+            <app-button type="button" [loading]="savingAdjustment()" (click)="saveAdjustment()">{{ t('Save adjustment') }}</app-button>
+          </div>
+        </div>
+      }
+    </app-modal>
+
+    <!-- Balance history modal -->
+    <app-modal
+      [open]="historyModalOpen()"
+      [title]="historyAccount() ? t('Balance history — {name}', { name: historyAccount()!.name }) : t('Balance history')"
+      [width]="600"
+      (closed)="historyModalOpen.set(false)"
+    >
+      <div class="space-y-3">
+        @if (historyLoading()) {
+          <div class="space-y-3">@for (_ of [1, 2, 3]; track $index) { <app-skeleton size="field" /> }</div>
+        } @else if (history().length === 0) {
+          <div class="px-4 py-10 text-center">
+            <app-icon name="history" [size]="32" [strokeWidth]="1.5" class="mx-auto text-ink-faint" />
+            <p class="mt-3 text-sm font-semibold text-ink">{{ t('No balance adjustments yet.') }}</p>
+            <p class="mt-1 text-sm text-ink-soft">{{ t('Use "Adjust balance" to log a manual correction.') }}</p>
+          </div>
+        } @else {
+          <ul class="max-h-[50vh] divide-y divide-line overflow-y-auto">
+            @for (item of history(); track item._id) {
+              <li class="py-3">
+                <div class="flex flex-wrap items-center justify-between gap-1.5">
+                  <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">{{ formatDateTime(item.adjustmentDate) }}</p>
+                  <span class="text-xs text-ink-faint">{{ displayAmount(item.previousBalance) }} → {{ displayAmount(item.newBalance) }}</span>
+                </div>
+                <div class="mt-1.5 space-y-0.5 text-sm">
+                  <p class="flex justify-between gap-3">
+                    <span class="text-ink-soft">{{ t('Previous balance') }}</span>
+                    <span class="font-semibold text-ink">{{ displayAmount(item.previousBalance) }}</span>
+                  </p>
+                  <p class="flex justify-between gap-3">
+                    <span class="text-ink-soft">{{ t('After adjustment') }}</span>
+                    <span class="font-semibold text-ink">{{ displayAmount(item.newBalance) }}</span>
+                  </p>
+                  <p class="flex justify-between gap-3">
+                    <span class="text-ink-soft">{{ t('Difference') }}</span>
+                    <span class="font-semibold" [class.text-success]="item.difference > 0" [class.text-danger]="item.difference < 0">
+                      {{ displaySigned(item.difference) }}
+                    </span>
+                  </p>
+                </div>
+                <p class="mt-1.5 break-words text-xs text-ink-soft">{{ t('Reason') }}: {{ item.reason }}</p>
+              </li>
+            }
+          </ul>
+          @if (historyMore()) {
+            <div class="flex justify-center pt-1">
+              <app-button size="sm" variant="secondary" [loading]="historyLoading()" (click)="loadMoreHistory()">{{ t('Show more') }}</app-button>
+            </div>
+          }
+        }
+      </div>
     </app-modal>
 
     <!-- Budget modal -->
@@ -627,12 +760,26 @@ export class FinanceComponent implements OnInit {
   protected readonly txnModalOpen = signal(false);
   protected readonly accountModalOpen = signal(false);
   protected readonly budgetModalOpen = signal(false);
+  protected readonly adjustmentModalOpen = signal(false);
+  protected readonly historyModalOpen = signal(false);
   protected readonly editingTxn = signal<Transaction | null>(null);
   protected readonly editingAccount = signal<Account | null>(null);
   protected readonly editingBudget = signal<Budget | null>(null);
   protected readonly savingTxn = signal(false);
   protected readonly savingAccount = signal(false);
   protected readonly savingBudget = signal(false);
+  protected readonly savingAdjustment = signal(false);
+  protected readonly adjustmentAccount = signal<Account | null>(null);
+  protected readonly historyAccount = signal<Account | null>(null);
+  protected readonly history = signal<AccountBalanceAdjustment[]>([]);
+  protected readonly historyLoading = signal(false);
+  protected readonly historyMore = signal(false);
+  protected historyPage = 1;
+
+  protected adjustmentForm: { newBalance: number | undefined; reason: string } = {
+    newBalance: undefined,
+    reason: '',
+  };
 
   protected readonly budgetMonth = signal(monthKey());
   protected txnForm: TransactionPayload = {};
@@ -669,6 +816,7 @@ export class FinanceComponent implements OnInit {
     { value: 'bank', label: this.t('Bank') },
     { value: 'ewallet', label: this.t('E-wallet') },
     { value: 'investment', label: this.t('Investment') },
+    { value: 'store', label: this.t('Store') },
   ]);
 
   protected readonly recurringOptions = computed(() => [
@@ -712,6 +860,21 @@ export class FinanceComponent implements OnInit {
     return this.hideBalance() ? this.maskedAmount() : formatCurrency(value);
   }
 
+  /** Signed money for the adjustment diff (e.g. +Rp50.000 / −Rp20.000). */
+  protected displaySigned(value: number): string {
+    if (this.hideBalance()) return this.maskedAmount();
+    const sign = value > 0 ? '+' : '−';
+    return `${value > 0 ? '+' : '−'}${formatCurrency(Math.abs(value))}`;
+  }
+
+  protected readonly adjustmentSummary = computed<{ previous: number; difference: number; next: number } | null>(() => {
+    const account = this.adjustmentAccount();
+    const next = Number(this.adjustmentForm.newBalance);
+    if (!account || !Number.isFinite(next)) return null;
+    const previous = Number(account.balance) || 0;
+    return { previous, difference: next - previous, next };
+  });
+
   private maskedAmount(): string {
     const symbol = formatCurrency(0).replace(/[\d.,\s]/g, '').trim() || 'Rp';
     return `${symbol} ••••••`;
@@ -732,7 +895,7 @@ export class FinanceComponent implements OnInit {
       .filter((a) => a.type === 'investment')
       .reduce((s, a) => s + (Number(a.balance) || 0), 0);
     const total = liquid + investment;
-    const byType = ['bank', 'ewallet', 'cash', 'investment'].map((type) => ({
+    const byType = ['bank', 'ewallet', 'cash', 'investment', 'store'].map((type) => ({
       type,
       balance: this.accounts()
         .filter((a) => a.type === type)
@@ -754,6 +917,7 @@ export class FinanceComponent implements OnInit {
       ewallet: 'var(--color-success)',
       cash: 'var(--color-warning)',
       investment: 'var(--color-danger)',
+      store: 'var(--color-ink)',
     };
     return this.netWorth().byType
       .filter((row) => row.balance > 0)
@@ -785,6 +949,8 @@ export class FinanceComponent implements OnInit {
         return this.t('Cash');
       case 'investment':
         return this.t('Investment');
+      case 'store':
+        return this.t('Store');
       default:
         return type;
     }
@@ -1058,30 +1224,126 @@ export class FinanceComponent implements OnInit {
       this.toast.error(this.t('Account name is required.'));
       return;
     }
-    const balance = Number(this.accountForm.balance ?? 0);
-    if (!Number.isFinite(balance)) {
-      this.toast.error(this.t('Please enter a valid balance.'));
-      return;
+    const editing = this.editingAccount();
+    if (!editing) {
+      const balance = Number(this.accountForm.balance ?? 0);
+      if (!Number.isFinite(balance)) {
+        this.toast.error(this.t('Please enter a valid balance.'));
+        return;
+      }
     }
     this.savingAccount.set(true);
+    // Balance is only settable on creation (opening balance). Editing an
+    // existing account goes through the balance-adjustment endpoint instead.
     const payload = {
       name: this.accountForm.name.trim(),
       type: this.accountForm.type ?? 'bank',
-      balance,
+      ...(editing ? {} : { balance: Number(this.accountForm.balance ?? 0) }),
     };
-    const obs = this.editingAccount()
-      ? this.accountService.update(this.editingAccount()!._id, payload)
+    const obs = editing
+      ? this.accountService.update(editing._id, payload)
       : this.accountService.create(payload);
     obs.subscribe({
       next: () => {
         this.savingAccount.set(false);
-        this.toast.success(this.editingAccount() ? this.t('Account updated') : this.t('Account added'));
+        this.toast.success(editing ? this.t('Account updated') : this.t('Account added'));
         this.editingAccount.set(null);
         this.accountModalOpen.set(false);
         this.accountService.load();
+        this.loadInsights();
       },
       error: (err: Error) => {
         this.savingAccount.set(false);
+        this.toast.error(err.message);
+      },
+    });
+  }
+
+  protected openAdjustment(account: Account): void {
+    this.adjustmentAccount.set(account);
+    this.adjustmentForm = { newBalance: account.balance, reason: '' };
+    this.adjustmentModalOpen.set(true);
+  }
+
+  protected closeAdjustment(): void {
+    if (this.savingAdjustment()) return;
+    this.adjustmentModalOpen.set(false);
+    this.adjustmentAccount.set(null);
+    this.adjustmentForm = { newBalance: undefined, reason: '' };
+  }
+
+  protected saveAdjustment(): void {
+    const account = this.adjustmentAccount();
+    if (!account || this.savingAdjustment()) return;
+    const newBalance = Number(this.adjustmentForm.newBalance);
+    if (!Number.isFinite(newBalance)) {
+      this.toast.error(this.t('Please enter a valid balance.'));
+      return;
+    }
+    if (newBalance < 0) {
+      this.toast.error(this.t('New balance cannot be negative.'));
+      return;
+    }
+    if (!this.adjustmentForm.reason.trim()) {
+      this.toast.error(this.t('Reason is required.'));
+      return;
+    }
+    if (newBalance === Number(account.balance || 0)) {
+      this.toast.error(this.t('Balance is already the requested value.'));
+      return;
+    }
+    this.savingAdjustment.set(true);
+    this.accountService
+      .adjustBalance(account._id, {
+        newBalance,
+        reason: this.adjustmentForm.reason.trim(),
+      })
+      .subscribe({
+        next: ({ account: updated }) => {
+          this.savingAdjustment.set(false);
+          this.toast.success(this.t('Balance adjusted'));
+          this.adjustmentModalOpen.set(false);
+          this.adjustmentAccount.set(null);
+          this.adjustmentForm = { newBalance: undefined, reason: '' };
+          // Refresh the account list, net worth and any cached AI context.
+          this.accountService.load();
+          this.loadInsights();
+          // Refresh history if it happens to be open-in-background for it.
+          if (this.historyAccount()?._id === updated._id) this.loadHistory(true);
+        },
+        error: (err: Error) => {
+          this.savingAdjustment.set(false);
+          this.toast.error(err.message);
+        },
+      });
+  }
+
+  protected openHistory(account: Account): void {
+    this.historyAccount.set(account);
+    this.history.set([]);
+    this.historyPage = 1;
+    this.loadHistory(true);
+    this.historyModalOpen.set(true);
+  }
+
+  protected loadMoreHistory(): void {
+    this.historyPage += 1;
+    this.loadHistory(false);
+  }
+
+  private loadHistory(reset: boolean): void {
+    const account = this.historyAccount();
+    if (!account) return;
+    this.historyLoading.set(true);
+    const page = reset ? 1 : this.historyPage;
+    this.accountService.getAdjustments(account._id, { page, limit: 10 }).subscribe({
+      next: (res) => {
+        this.historyLoading.set(false);
+        this.history.set(reset ? res.adjustments : [...this.history(), ...res.adjustments]);
+        this.historyMore.set(res.hasMore);
+      },
+      error: (err: Error) => {
+        this.historyLoading.set(false);
         this.toast.error(err.message);
       },
     });
@@ -1176,6 +1438,7 @@ export class FinanceComponent implements OnInit {
     if (type === 'cash') return 'banknote';
     if (type === 'ewallet') return 'smartphone';
     if (type === 'investment') return 'trending-up';
+    if (type === 'store') return 'store';
     return 'credit-card';
   }
 
@@ -1188,6 +1451,8 @@ export class FinanceComponent implements OnInit {
     if (/gopay|go[\s-]*pay/.test(n)) return 'assets/gopay.png';
     if (n.includes('sea')) return 'assets/seabank.png';
     if (n.includes('ajaib')) return 'assets/ajaib.jpg';
+    if (n.includes('itemku')) return 'assets/itemku.png';
+    if (n.includes('zeusx')) return 'assets/Zeusx.webp';
     return null;
   }
 
@@ -1227,6 +1492,7 @@ export class FinanceComponent implements OnInit {
 
   protected readonly formatCurrency = formatCurrency;
   protected readonly formatDate = formatDate;
+  protected readonly formatDateTime = formatDateTime;
   protected readonly percent = percent;
   protected readonly monthLabel = monthLabel;
 }

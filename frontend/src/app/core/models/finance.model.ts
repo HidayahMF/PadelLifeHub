@@ -1,5 +1,5 @@
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type AccountType = 'cash' | 'bank' | 'ewallet' | 'investment';
+export type AccountType = 'cash' | 'bank' | 'ewallet' | 'investment' | 'store';
 export type RecurringFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export interface Recurring {
@@ -57,6 +57,37 @@ export interface Account {
   balance: number;
   currency: string;
   createdAt?: string;
+}
+
+/**
+ * Append-only record of a manual balance adjustment. Never an income/expense/
+ * transfer — it only corrects the stored account balance to match reality.
+ */
+export interface AccountBalanceAdjustment {
+  _id: string;
+  user: string;
+  account: string;
+  previousBalance: number;
+  newBalance: number;
+  difference: number;
+  reason: string;
+  currency: string;
+  adjustmentDate: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AdjustmentPayload {
+  newBalance: number;
+  reason: string;
+}
+
+export interface AdjustmentHistoryPage {
+  adjustments: AccountBalanceAdjustment[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 export interface Budget {

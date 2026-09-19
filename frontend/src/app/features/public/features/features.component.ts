@@ -27,7 +27,7 @@ const GROUPS: FeatureGroup[] = [
         icon: 'wallet',
         title: 'Accounts',
         description:
-          'Cash, bank, e-wallet, and investment accounts — with balances, account types, and per-account transaction history.',
+          'Cash, bank, e-wallet, investment, and Toko (store) accounts — with balances, account types, and per-account transaction history.',
       },
       {
         icon: 'receipt',

@@ -432,6 +432,7 @@ export const ID: Record<string, string> = {
   'Bank': 'Bank',
   'E-wallet': 'E-wallet',
   'Investment': 'Investasi',
+  'Store': 'Toko',
   'Account name is required.': 'Nama rekening wajib diisi.',
   'Please enter a valid balance.': 'Masukkan saldo yang valid.',
   'Account updated': 'Rekening diperbarui',
@@ -452,6 +453,27 @@ export const ID: Record<string, string> = {
   'Other': 'Lainnya',
   'Income': 'Pemasukan',
   'Expense': 'Pengeluaran',
+  'Adjust balance': 'Sesuaikan Saldo',
+  'Balance history': 'Riwayat Saldo',
+  'Opening balance': 'Saldo awal',
+  'Starting balance for this account.': 'Saldo awal untuk rekening ini.',
+  'Change this balance through {action}.': 'Ubah saldo ini melalui {action}.',
+  'New balance': 'Saldo baru',
+  'Reason for adjustment': 'Alasan penyesuaian',
+  'e.g. Koreksi sesuai aplikasi': 'mis. Koreksi sesuai aplikasi',
+  'Previous balance': 'Saldo sebelumnya',
+  'Difference': 'Selisih',
+  'After adjustment': 'Saldo setelah penyesuaian',
+  'Current balance': 'Saldo saat ini',
+  'Save adjustment': 'Simpan Penyesuaian',
+  'Balance adjusted': 'Saldo disesuaikan',
+  'No balance adjustments yet.': 'Belum ada penyesuaian saldo.',
+  'Use "Adjust balance" to log a manual correction.': 'Gunakan "Sesuaikan Saldo" untuk mencatat koreksi manual.',
+  'Balance history — {name}': 'Riwayat Saldo — {name}',
+  'New balance cannot be negative.': 'Saldo baru tidak boleh negatif.',
+  'Balance is already the requested value.': 'Saldo sudah bernilai yang diminta.',
+  'Show more': 'Tampilkan lebih banyak',
+  'Reason': 'Alasan',
 
   // ---------- Wishlist ----------
   'Dream it, save for it, buy it.': 'Impikan, tabung, lalu beli.',
@@ -918,8 +940,8 @@ export const ID: Record<string, string> = {
     'Filter berdasarkan status (Semua / Belum dikerjakan / Selesai), siklus (Aktif / Diarsipkan / Sampah), kategori, tag, atau pencarian teks. Sematkan tugas penting di atas; arsipkan untuk menyembunyikan, masukkan ke sampah untuk dihapus nanti (penghapusan permanen butuh konfirmasi).',
   'The circle on the left marks a task done. Overdue tasks show red with an "overdue" label.':
     'Lingkaran di kiri menandai tugas selesai. Tugas terlambat tampil merah dengan label "terlambat".',
-  'One page for accounts, transactions, budgets, and charts. Add accounts as Cash, Bank, or E-wallet — bank/e-wallet logos are detected automatically from the name (BCA, Mandiri, DANA, GoPay, SeaBank, and more).':
-    'Satu halaman untuk rekening, transaksi, anggaran, dan grafik. Tambah rekening sebagai Tunai, Bank, atau E-wallet — logo bank/e-wallet terdeteksi otomatis dari nama (BCA, Mandiri, DANA, GoPay, SeaBank, dan lainnya).',
+  'One page for accounts, transactions, budgets, and charts. Add accounts as Cash, Bank, E-wallet, Investment, or Toko (store) — bank/e-wallet/marketplace logos are detected automatically from the name (BCA, Mandiri, DANA, GoPay, SeaBank, Itemku, ZeusX, and more).':
+    'Satu halaman untuk rekening, transaksi, anggaran, dan grafik. Tambah rekening sebagai Tunai, Bank, E-wallet, Investasi, atau Toko (toko) — logo bank/e-wallet/marketplace terdeteksi otomatis dari nama (BCA, Mandiri, DANA, GoPay, SeaBank, Itemku, ZeusX, dan lainnya).',
   'Add income, expense, or transfer transactions. Transfers move money between two different accounts; expenses need a category and affect your budget progress.':
     'Tambahkan transaksi pemasukan, pengeluaran, atau transfer. Transfer memindahkan uang antara dua rekening berbeda; pengeluaran membutuhkan kategori dan memengaruhi progres anggaranmu.',
   'Budgets are set per category (or Overall) per month with a spending limit — use the ‹ › arrows to switch months. The donut chart shows spending by category for the current month.':
@@ -1257,7 +1279,7 @@ export const ID: Record<string, string> = {
   'One app for your productivity, personal finance, habits, goals, notes, planning, and weekly & monthly reviews — plus an AI assistant that understands it all.': 'Satu aplikasi untuk produktivitas, keuangan pribadi, kebiasaan, tujuan, catatan, perencanaan, serta tinjauan mingguan & bulanan — plus asisten AI yang memahami semuanya.',
   'Meet LifeHub AI': 'Kenali LifeHub AI',
   'The full picture of your money — accounts, net worth, budgets, and financial health.': 'Gambaran lengkap uangmu — akun, kekayaan bersih, anggaran, dan kesehatan finansial.',
-  'Cash, bank, e-wallet, and investment accounts — with balances, account types, and per-account transaction history.': 'Akun kas, bank, e-wallet, dan investasi — dengan saldo, jenis akun, dan riwayat transaksi per akun.',
+  'Cash, bank, e-wallet, investment, and Toko (store) accounts — with balances, account types, and per-account transaction history.': 'Akun kas, bank, e-wallet, investasi, dan Toko (toko) — dengan saldo, jenis akun, dan riwayat transaksi per akun.',
   'Income & Expenses': 'Pemasukan & Pengeluaran',
   'Record income and expenses with categories, notes, and recurring schedules.': 'Catat pemasukan dan pengeluaran dengan kategori, catatan, dan jadwal berulang.',
   'Transfers': 'Transfer',

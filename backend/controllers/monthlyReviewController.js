@@ -264,7 +264,7 @@ const getMonthlyReview = async (req, res, next) => {
             { $match: { user: userId } },
             { $group: { _id: '$type', total: { $sum: '$balance' } } },
           ]);
-          const typeTotals = { bank: 0, ewallet: 0, cash: 0, investment: 0 };
+          const typeTotals = { bank: 0, ewallet: 0, cash: 0, investment: 0, store: 0 };
           for (const row of rows) {
             if (row._id in typeTotals) typeTotals[row._id] = row.total;
           }
