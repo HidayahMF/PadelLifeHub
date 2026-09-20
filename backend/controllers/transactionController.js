@@ -42,9 +42,9 @@ const getTransactions = async (req, res, next) => {
     const transactions = await Transaction.find(filter)
       .sort({ date: -1 })
       .populate('category', 'name color icon')
-      .populate('account', 'name type')
-      .populate('fromAccount', 'name type')
-      .populate('toAccount', 'name type');
+      .populate('account', 'name type currency')
+      .populate('fromAccount', 'name type currency')
+      .populate('toAccount', 'name type currency');
 
     res.json(transactions);
   } catch (err) {
@@ -59,9 +59,9 @@ const getTransactionById = async (req, res, next) => {
       user: req.user._id,
     })
       .populate('category', 'name color icon')
-      .populate('account', 'name type')
-      .populate('fromAccount', 'name type')
-      .populate('toAccount', 'name type');
+      .populate('account', 'name type currency')
+      .populate('fromAccount', 'name type currency')
+      .populate('toAccount', 'name type currency');
 
     if (!transaction) {
       res.status(404);

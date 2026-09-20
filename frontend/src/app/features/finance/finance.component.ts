@@ -156,7 +156,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
                 [class.text-danger]="quickDraft()!.type === 'expense'"
                 [class.text-ink]="quickDraft()!.type === 'transfer'"
               >
-                {{ quickDraft()!.type === 'transfer' ? '' : quickDraft()!.type === 'income' ? '+' : '−' }}{{ formatCurrency(quickDraft()!.amount) }}
+                 {{ displayTransactionAmount(quickDraft()!.type, quickDraft()!.amount) }}
               </p>
               <p
                 class="mt-0.5 text-xs font-bold uppercase tracking-wide"
@@ -222,7 +222,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
               }
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-semibold text-ink">{{ account.name }}</p>
-                <p class="truncate text-sm text-ink-soft">{{ displayBalance(account.balance) }}</p>
+                <p class="truncate text-sm text-ink-soft">{{ displayBalance(account.balance, account.currency) }}</p>
               </div>
               <div class="flex shrink-0 items-center gap-0.5">
                 <app-button size="icon" variant="ghost" icon="pencil"
@@ -336,7 +336,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
                     [class.text-success]="txn.type === 'income'"
                     [class.text-ink]="txn.type === 'expense' || txn.type === 'transfer'"
                   >
-                    {{ txn.type === 'transfer' ? '' : txn.type === 'income' ? '+' : '−' }}{{ formatCurrency(txn.amount) }}
+                    {{ displayTransactionAmount(txn.type, txn.amount, transactionCurrency(txn)) }}
                   </span>
                   <div class="flex shrink-0 items-center gap-0.5">
                     <app-button size="icon" variant="ghost" icon="pencil"
@@ -369,6 +369,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
                 [segments]="netWorthSegments()"
                 [totalLabel]="t('net worth')"
                 [ariaLabel]="t('Net worth allocation by account type')"
+                [masked]="hideBalance()"
               />
               <ul class="mt-4 space-y-2">
                 @for (row of netWorth().byType; track row.type) {
@@ -454,7 +455,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
                   <div>
                     <div class="mb-1.5 flex items-center gap-2 text-sm">
                       <span class="min-w-0 flex-1 truncate font-medium text-ink">{{ categoryName(budget.category) || t('Overall') }}</span>
-                      <span class="shrink-0 text-xs text-ink-soft">{{ formatCurrency(budget.spent) }} / {{ formatCurrency(budget.amount) }}</span>
+                 <span class="shrink-0 text-xs text-ink-soft">{{ displayAmount(budget.spent) }} / {{ displayAmount(budget.amount) }}</span>
                       <app-button size="icon" variant="ghost" icon="pencil"
                         [attr.aria-label]="t('Edit budget')"
                         (click)="openEditBudget(budget)"></app-button>
@@ -476,7 +477,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             <p class="text-xs text-ink-soft">{{ t('This month') }}</p>
           </div>
           <div class="p-5">
-            <app-donut-chart [segments]="spendingSegments()" [totalLabel]="t('spent')" />
+             <app-donut-chart [segments]="spendingSegments()" [totalLabel]="t('spent')" [masked]="hideBalance()" />
           </div>
         </app-card>
       </div>
@@ -621,7 +622,7 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             <div class="min-w-0">
               <p class="truncate text-sm font-semibold text-ink">{{ adjustmentAccount()!.name }}</p>
               <p class="truncate text-sm text-ink-soft">
-                {{ t('Current balance') }}: {{ displayAmount(adjustmentAccount()!.balance) }}
+                {{ t('Current balance') }}: {{ displayAmount(adjustmentAccount()!.balance, adjustmentAccount()!.currency) }}
               </p>
             </div>
           </div>
@@ -633,17 +634,17 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             <div class="space-y-1.5 rounded-field border border-line bg-surface-2/60 p-3 text-sm">
               <p class="flex justify-between gap-3">
                 <span class="text-ink-soft">{{ t('Previous balance') }}</span>
-                <span class="font-semibold text-ink">{{ displayAmount(adjustmentSummary()!.previous) }}</span>
+                <span class="font-semibold text-ink">{{ displayAmount(adjustmentSummary()!.previous, adjustmentAccount()!.currency) }}</span>
               </p>
               <p class="flex justify-between gap-3">
                 <span class="text-ink-soft">{{ t('Difference') }}</span>
                 <span class="font-semibold" [class.text-success]="adjustmentSummary()!.difference > 0" [class.text-danger]="adjustmentSummary()!.difference < 0">
-                  {{ displaySigned(adjustmentSummary()!.difference) }}
+                  {{ displaySigned(adjustmentSummary()!.difference, adjustmentAccount()!.currency) }}
                 </span>
               </p>
               <p class="flex justify-between gap-3">
                 <span class="text-ink-soft">{{ t('After adjustment') }}</span>
-                <span class="font-semibold text-ink">{{ displayAmount(adjustmentSummary()!.next) }}</span>
+                <span class="font-semibold text-ink">{{ displayAmount(adjustmentSummary()!.next, adjustmentAccount()!.currency) }}</span>
               </p>
             </div>
           }
@@ -677,21 +678,21 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
               <li class="py-3">
                 <div class="flex flex-wrap items-center justify-between gap-1.5">
                   <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">{{ formatDateTime(item.adjustmentDate) }}</p>
-                  <span class="text-xs text-ink-faint">{{ displayAmount(item.previousBalance) }} → {{ displayAmount(item.newBalance) }}</span>
+                  <span class="text-xs text-ink-faint">{{ displayAmount(item.previousBalance, item.currency) }} → {{ displayAmount(item.newBalance, item.currency) }}</span>
                 </div>
                 <div class="mt-1.5 space-y-0.5 text-sm">
                   <p class="flex justify-between gap-3">
                     <span class="text-ink-soft">{{ t('Previous balance') }}</span>
-                    <span class="font-semibold text-ink">{{ displayAmount(item.previousBalance) }}</span>
+                    <span class="font-semibold text-ink">{{ displayAmount(item.previousBalance, item.currency) }}</span>
                   </p>
                   <p class="flex justify-between gap-3">
                     <span class="text-ink-soft">{{ t('After adjustment') }}</span>
-                    <span class="font-semibold text-ink">{{ displayAmount(item.newBalance) }}</span>
+                    <span class="font-semibold text-ink">{{ displayAmount(item.newBalance, item.currency) }}</span>
                   </p>
                   <p class="flex justify-between gap-3">
                     <span class="text-ink-soft">{{ t('Difference') }}</span>
                     <span class="font-semibold" [class.text-success]="item.difference > 0" [class.text-danger]="item.difference < 0">
-                      {{ displaySigned(item.difference) }}
+                      {{ displaySigned(item.difference, item.currency) }}
                     </span>
                   </p>
                 </div>
@@ -852,19 +853,18 @@ export class FinanceComponent implements OnInit {
     });
   }
 
-  protected displayBalance(value: number): string {
-    return this.hideBalance() ? this.maskedAmount() : formatCurrency(value);
+  protected displayBalance(value: number, currency = 'IDR'): string {
+    return this.hideBalance() ? this.maskedAmount(currency) : formatCurrency(value, currency);
   }
 
-  protected displayAmount(value: number): string {
-    return this.hideBalance() ? this.maskedAmount() : formatCurrency(value);
+  protected displayAmount(value: number, currency = 'IDR'): string {
+    return this.hideBalance() ? this.maskedAmount(currency) : formatCurrency(value, currency);
   }
 
   /** Signed money for the adjustment diff (e.g. +Rp50.000 / −Rp20.000). */
-  protected displaySigned(value: number): string {
-    if (this.hideBalance()) return this.maskedAmount();
-    const sign = value > 0 ? '+' : '−';
-    return `${value > 0 ? '+' : '−'}${formatCurrency(Math.abs(value))}`;
+  protected displaySigned(value: number, currency = 'IDR'): string {
+    if (this.hideBalance()) return this.maskedAmount(currency);
+    return `${value > 0 ? '+' : '−'}${formatCurrency(Math.abs(value), currency)}`;
   }
 
   protected readonly adjustmentSummary = computed<{ previous: number; difference: number; next: number } | null>(() => {
@@ -875,8 +875,8 @@ export class FinanceComponent implements OnInit {
     return { previous, difference: next - previous, next };
   });
 
-  private maskedAmount(): string {
-    const symbol = formatCurrency(0).replace(/[\d.,\s]/g, '').trim() || 'Rp';
+  private maskedAmount(currency = 'IDR'): string {
+    const symbol = formatCurrency(0, currency).replace(/[\d.,\s]/g, '').trim() || currency;
     return `${symbol} ••••••`;
   }
 
@@ -1467,6 +1467,25 @@ export class FinanceComponent implements OnInit {
       return (value as { name: string }).name;
     }
     return '';
+  }
+
+  protected displayTransactionAmount(type: TransactionType, value: number, currency = 'IDR'): string {
+    if (this.hideBalance()) return this.maskedAmount(currency);
+    const sign = type === 'income' ? '+' : type === 'expense' ? '−' : '';
+    return `${sign}${formatCurrency(value, currency)}`;
+  }
+
+  protected currencyOf(value: unknown): string {
+    if (value && typeof value === 'object' && 'currency' in (value as object)) {
+      return String((value as { currency?: string }).currency || 'IDR').toUpperCase();
+    }
+    return 'IDR';
+  }
+
+  protected transactionCurrency(txn: Transaction): string {
+    if (txn.account && typeof txn.account === 'object') return this.currencyOf(txn.account);
+    if (txn.fromAccount && typeof txn.fromAccount === 'object') return this.currencyOf(txn.fromAccount);
+    return 'IDR';
   }
 
   protected idOf(value: unknown): string {

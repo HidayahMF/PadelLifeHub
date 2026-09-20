@@ -1,11 +1,13 @@
 // Feature-local copy (duplicated per feature by design — no global shared/components).
 
 import { Component, computed, input } from '@angular/core';
+import { formatCurrency } from '../../../core/utils/format';
 
 export interface DonutSegment {
   label: string;
   value: number;
   color: string;
+  currency?: string;
 }
 
 @Component({
@@ -29,7 +31,7 @@ export interface DonutSegment {
               [attr.stroke-dashoffset]="arc.offset"
               transform="rotate(-90 60 60)"
             >
-              <title>{{ arc.label }}: {{ arc.value }}</title>
+              <title>{{ arc.label }}: {{ masked() ? '••••••' : formatCurrency(arc.value, arc.currency || currency()) }}</title>
             </circle>
           }
           <text
@@ -37,9 +39,9 @@ export interface DonutSegment {
             y="56"
             text-anchor="middle"
             class="fill-ink"
-            style="font-size:18px;font-weight:700"
+            style="font-size:11px;font-weight:700"
           >
-            {{ total() }}
+            {{ displayValue(total()) }}
           </text>
           <text x="60" y="74" text-anchor="middle" class="fill-ink-soft" style="font-size:9px">
             {{ totalLabel() }}
@@ -47,12 +49,12 @@ export interface DonutSegment {
         </svg>
       </div>
       @if (showLegend()) {
-        <ul class="space-y-2">
+        <ul class="min-w-0 max-w-full space-y-2">
           @for (seg of segments(); track seg.label) {
             <li class="flex min-w-0 items-center gap-2 text-sm text-ink">
               <span class="h-2.5 w-2.5 shrink-0 rounded-full" [style.background]="seg.color"></span>
               <span class="min-w-0 break-words">{{ seg.label }}</span>
-              <span class="ml-1 shrink-0 font-medium text-ink-soft">{{ seg.value }}</span>
+              <span class="ml-1 shrink-0 font-medium text-ink-soft">{{ masked() ? '••••••' : formatCurrency(seg.value, seg.currency || currency()) }}</span>
             </li>
           }
         </ul>
@@ -63,12 +65,20 @@ export interface DonutSegment {
 export class DonutChartComponent {
   readonly segments = input.required<DonutSegment[]>();
   readonly totalLabel = input('');
+  readonly currency = input('IDR');
+  readonly masked = input(false);
   readonly showLegend = input(true);
   readonly ariaLabel = input('Donut chart');
 
   protected readonly total = computed(() =>
     this.segments().reduce((sum, s) => sum + s.value, 0)
   );
+
+  protected readonly formatCurrency = formatCurrency;
+
+  protected displayValue(value: number, currency = this.currency()): string {
+    return this.masked() ? '••••••' : formatCurrency(value, currency);
+  }
 
   protected readonly arcs = computed(() => {
     const segs = this.segments();
