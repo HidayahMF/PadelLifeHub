@@ -28,8 +28,9 @@ import type { ProfileJourney } from '../../core/models/user.model';
     <app-page-header [title]="t('Profile')" [subtitle]="t('Manage your personal information.')"
       actionLabel="" [action]="noop"></app-page-header>
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <app-card class="self-start lg:col-span-1" [padding]="'none'">
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <div class="contents w-full lg:col-span-1 lg:flex lg:w-full lg:flex-col lg:gap-6">
+      <app-card class="order-1 w-full self-start lg:order-none" [padding]="'none'">
         <div class="flex flex-col items-center p-6 text-center">
           <div class="relative">
             <app-avatar [name]="user()?.name ?? t('User')" [src]="user()?.avatar ?? ''" [size]="96" />
@@ -100,8 +101,44 @@ import type { ProfileJourney } from '../../core/models/user.model';
         </div>
       </app-card>
 
-      <div class="space-y-6 lg:col-span-2">
-        <app-card>
+      <app-card class="order-4 w-full lg:order-none">
+          <h2 class="text-base font-semibold text-ink">{{ t('Personal information') }}</h2>
+          <form (ngSubmit)="saveProfile()" class="mt-5 space-y-4">
+            <app-field [label]="t('Full name')" [placeholder]="t('Your name')" [required]="true"
+              [(ngModel)]="profileForm.name" name="name" />
+            <app-field [label]="t('Email')" type="email" placeholder="you@example.com"
+              [disabled]="true" [ngModel]="user()?.email" name="email" />
+            <div class="flex justify-end">
+              <app-button type="submit" icon="check" [loading]="savingProfile()">{{ t('Save') }}</app-button>
+            </div>
+          </form>
+        </app-card>
+
+        @if (user()?.hasPassword !== false) {
+          <app-card class="order-5 w-full lg:order-none">
+            <h2 class="text-base font-semibold text-ink">{{ t('Change password') }}</h2>
+            <form (ngSubmit)="changePassword()" class="mt-5 space-y-4">
+              <app-field [label]="t('Current password')" type="password" autocomplete="current-password"
+                [(ngModel)]="passwordForm.current" name="current" />
+              <app-field [label]="t('New password')" type="password" autocomplete="new-password"
+                [(ngModel)]="passwordForm.next" name="next" />
+              <div class="flex justify-end">
+                <app-button type="submit" icon="lock" [loading]="savingPassword()">{{ t('Update password') }}</app-button>
+              </div>
+            </form>
+          </app-card>
+        } @else {
+          <app-card class="order-5 w-full lg:order-none">
+            <h2 class="text-base font-semibold text-ink">{{ t('Sign-in method') }}</h2>
+            <p class="mt-3 text-sm font-medium text-ink-soft">
+              {{ t('This account uses Google sign-in and does not have a password.') }}
+            </p>
+          </app-card>
+        }
+      </div>
+
+      <div class="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-6">
+        <app-card class="order-2 lg:order-none">
           <div class="flex items-start justify-between gap-4">
             <div>
               <h2 class="text-base font-semibold text-ink">{{ t('My Life Journey') }}</h2>
@@ -159,7 +196,7 @@ import type { ProfileJourney } from '../../core/models/user.model';
           }
         </app-card>
 
-        <app-card>
+        <app-card class="order-3 lg:order-none">
           <div class="flex items-start justify-between gap-4">
             <div>
               <h2 class="text-base font-semibold text-ink">{{ t('Your Life in Numbers') }}</h2>
@@ -181,43 +218,6 @@ import type { ProfileJourney } from '../../core/models/user.model';
             <p class="mt-4 text-xs text-ink-faint">{{ t('Active days combine verifiable activity dates across notes, tasks, goals, habits, finance, and focus sessions.') }}</p>
           }
         </app-card>
-      </div>
-
-      <div class="space-y-6 lg:col-span-2">
-        <app-card>
-          <h2 class="text-base font-semibold text-ink">{{ t('Personal information') }}</h2>
-          <form (ngSubmit)="saveProfile()" class="mt-5 space-y-4">
-            <app-field [label]="t('Full name')" [placeholder]="t('Your name')" [required]="true"
-              [(ngModel)]="profileForm.name" name="name" />
-            <app-field [label]="t('Email')" type="email" placeholder="you@example.com"
-              [disabled]="true" [ngModel]="user()?.email" name="email" />
-            <div class="flex justify-end">
-              <app-button type="submit" icon="check" [loading]="savingProfile()">{{ t('Save') }}</app-button>
-            </div>
-          </form>
-        </app-card>
-
-        @if (user()?.hasPassword !== false) {
-          <app-card>
-            <h2 class="text-base font-semibold text-ink">{{ t('Change password') }}</h2>
-            <form (ngSubmit)="changePassword()" class="mt-5 space-y-4">
-              <app-field [label]="t('Current password')" type="password" autocomplete="current-password"
-                [(ngModel)]="passwordForm.current" name="current" />
-              <app-field [label]="t('New password')" type="password" autocomplete="new-password"
-                [(ngModel)]="passwordForm.next" name="next" />
-              <div class="flex justify-end">
-                <app-button type="submit" icon="lock" [loading]="savingPassword()">{{ t('Update password') }}</app-button>
-              </div>
-            </form>
-          </app-card>
-        } @else {
-          <app-card>
-            <h2 class="text-base font-semibold text-ink">{{ t('Sign-in method') }}</h2>
-            <p class="mt-3 text-sm font-medium text-ink-soft">
-              {{ t('This account uses Google sign-in and does not have a password.') }}
-            </p>
-          </app-card>
-        }
       </div>
     </div>
   `,
