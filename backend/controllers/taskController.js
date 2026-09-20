@@ -3,6 +3,7 @@ const Category = require('../models/Category');
 const Notification = require('../models/Notification');
 const { nextOccurrence } = require('../services/taskScheduler');
 const { cleanupTaskReminders } = require('../services/reminderScheduler');
+const { recordFirstActivity } = require('../services/journeyService');
 
 /** Recompute nextOccurrence from a task's due date + recurring config. */
 function computeNextOccurrence(dueDate, recurring) {
@@ -87,6 +88,7 @@ const createTask = async (req, res, next) => {
       user: req.user._id,
       ...body,
     });
+    await recordFirstActivity(req.user._id, task.createdAt);
     res.status(201).json(task);
   } catch (err) {
     next(err);

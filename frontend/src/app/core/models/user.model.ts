@@ -10,6 +10,18 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface ProfileJourney {
+  joinedAt: string;
+  firstActivityAt: string | null;
+  firstActivitySource: 'recorded' | 'reconstructed' | null;
+  statistics: {
+    notesCreated: number;
+    tasksCompleted: number;
+    goalsCompleted: number;
+    activeDays: number;
+  };
+}
+
 export interface AuthResponse {
   _id: string;
   name: string;

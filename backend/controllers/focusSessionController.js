@@ -13,6 +13,7 @@
 // stored as-is).
 
 const FocusSession = require('../models/FocusSession');
+const { recordFirstActivity } = require('../services/journeyService');
 const { startOfLocalDay, addLocalDays } = require('../utils/date');
 
 // Sanity bounds for a single focus run: 1 second .. 8 hours.
@@ -80,6 +81,7 @@ const createSession = async (req, res, next) => {
 
     try {
       const session = await FocusSession.create({ user: userId, ...doc });
+      await recordFirstActivity(userId, session.createdAt);
       return res.status(201).json(session);
     } catch (err) {
       if (err?.code === 11000) {

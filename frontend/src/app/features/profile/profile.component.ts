@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardComponent } from '../../layout/components/card.component';
 import { PageHeaderComponent } from '../../layout/components/page-header.component';
@@ -10,6 +10,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { formatDate } from '../../core/utils/format';
+import type { ProfileJourney } from '../../core/models/user.model';
 
 @Component({
   selector: 'app-profile',
@@ -28,7 +29,7 @@ import { formatDate } from '../../core/utils/format';
       actionLabel="" [action]="noop"></app-page-header>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <app-card class="lg:col-span-1" [padding]="'none'">
+      <app-card class="self-start lg:col-span-1" [padding]="'none'">
         <div class="flex flex-col items-center p-6 text-center">
           <div class="relative">
             <app-avatar [name]="user()?.name ?? t('User')" [src]="user()?.avatar ?? ''" [size]="96" />
@@ -101,6 +102,89 @@ import { formatDate } from '../../core/utils/format';
 
       <div class="space-y-6 lg:col-span-2">
         <app-card>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-base font-semibold text-ink">{{ t('My Life Journey') }}</h2>
+              <p class="mt-1 text-sm text-ink-soft">{{ t('Every journey has a story.') }}</p>
+            </div>
+            <app-icon name="history" [size]="20" class="text-primary" />
+          </div>
+
+          @if (journeyLoading()) {
+            <div class="mt-5 grid gap-3 sm:grid-cols-3">
+              @for (_ of [1, 2, 3]; track $index) {
+                <div class="h-28 animate-pulse rounded-card bg-surface-2"></div>
+              }
+            </div>
+          } @else if (journeyError()) {
+            <p class="mt-5 rounded-card bg-danger/10 px-4 py-3 text-sm text-danger">{{ t('Journey data could not be loaded.') }}</p>
+          } @else if (journey(); as data) {
+            <div class="mt-5 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-card border border-line bg-surface-2 p-4">
+                <app-icon name="calendar-days" [size]="18" class="text-primary" />
+                <p class="mt-3 text-lg font-bold text-ink">{{ formatDate(data.joinedAt, 'long') }}</p>
+                <p class="mt-1 text-sm font-semibold text-ink">{{ t('Joined LifeHub') }}</p>
+                <p class="mt-1 text-xs text-ink-soft">{{ t('The day your LifeHub journey began.') }}</p>
+              </div>
+              <div class="rounded-card border border-line bg-surface-2 p-4">
+                <app-icon name="sticky-note" [size]="18" class="text-success" />
+                @if (data.firstActivityAt) {
+                  <p class="mt-3 text-lg font-bold text-ink">{{ formatDate(data.firstActivityAt, 'long') }}</p>
+                  <p class="mt-1 text-sm font-semibold text-ink">{{ t('First Life Entry') }}</p>
+                  <p class="mt-1 text-xs text-ink-soft">{{ t('The first day you started recording your journey.') }}</p>
+                  @if (data.firstActivitySource === 'reconstructed') {
+                    <p class="mt-2 text-[11px] text-ink-faint">{{ t('Based on the oldest available activity.') }}</p>
+                  }
+                } @else {
+                  <p class="mt-3 text-sm font-semibold text-ink">{{ t('No first entry yet') }}</p>
+                  <p class="mt-1 text-xs text-ink-soft">{{ t('Your journey has no first entry yet. Start with a note, task, or goal.') }}</p>
+                }
+              </div>
+              <div class="rounded-card border border-line bg-surface-2 p-4">
+                <app-icon name="flame" [size]="18" class="text-warning" />
+                @if (journeyDays() === 0) {
+                  <p class="mt-3 text-lg font-bold text-ink">{{ t('First Journey Day') }}</p>
+                  <p class="mt-1 text-sm font-semibold text-ink">{{ t('Journey Duration') }}</p>
+                  <p class="mt-1 text-xs text-ink-soft">{{ t('Today you started your journey.') }}</p>
+                } @else if (journeyDays() !== null) {
+                  <p class="mt-3 text-lg font-bold text-ink">{{ journeyDays() }} {{ t('Days of Journey') }}</p>
+                  <p class="mt-1 text-sm font-semibold text-ink">{{ t('Journey Duration') }}</p>
+                  <p class="mt-1 text-xs text-ink-soft">{{ t('It has been {days} since you started your journey.', { days: journeyDays() ?? 0 }) }}</p>
+                } @else {
+                  <p class="mt-3 text-sm font-semibold text-ink">{{ t('Journey Duration') }}</p>
+                  <p class="mt-1 text-xs text-ink-soft">{{ t('Your journey duration will appear after your first entry.') }}</p>
+                }
+              </div>
+            </div>
+          }
+        </app-card>
+
+        <app-card>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-base font-semibold text-ink">{{ t('Your Life in Numbers') }}</h2>
+              <p class="mt-1 text-sm text-ink-soft">{{ t('A view of your journey while using LifeHub.') }}</p>
+            </div>
+            <app-icon name="bar-chart-3" [size]="20" class="text-primary" />
+          </div>
+          @if (journeyLoading()) {
+            <div class="mt-5 h-24 animate-pulse rounded-card bg-surface-2"></div>
+          } @else if (journeyError()) {
+            <p class="mt-5 text-sm text-danger">{{ t('Statistics could not be loaded.') }}</p>
+          } @else if (journey(); as data) {
+            <div class="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div class="rounded-card bg-surface-2 p-4"><p class="text-2xl font-bold text-ink">{{ data.statistics.notesCreated }}</p><p class="mt-1 text-xs font-medium text-ink-soft">{{ t('Notes Created') }}</p></div>
+              <div class="rounded-card bg-surface-2 p-4"><p class="text-2xl font-bold text-ink">{{ data.statistics.tasksCompleted }}</p><p class="mt-1 text-xs font-medium text-ink-soft">{{ t('Tasks Completed') }}</p></div>
+              <div class="rounded-card bg-surface-2 p-4"><p class="text-2xl font-bold text-ink">{{ data.statistics.goalsCompleted }}</p><p class="mt-1 text-xs font-medium text-ink-soft">{{ t('Goals Achieved') }}</p></div>
+              <div class="rounded-card bg-surface-2 p-4"><p class="text-2xl font-bold text-ink">{{ data.statistics.activeDays }}</p><p class="mt-1 text-xs font-medium text-ink-soft">{{ t('Active Days') }}</p></div>
+            </div>
+            <p class="mt-4 text-xs text-ink-faint">{{ t('Active days combine verifiable activity dates across notes, tasks, goals, habits, finance, and focus sessions.') }}</p>
+          }
+        </app-card>
+      </div>
+
+      <div class="space-y-6 lg:col-span-2">
+        <app-card>
           <h2 class="text-base font-semibold text-ink">{{ t('Personal information') }}</h2>
           <form (ngSubmit)="saveProfile()" class="mt-5 space-y-4">
             <app-field [label]="t('Full name')" [placeholder]="t('Your name')" [required]="true"
@@ -138,7 +222,7 @@ import { formatDate } from '../../core/utils/format';
     </div>
   `,
 })
-export class ProfileComponent {
+export class ProfileComponent implements OnInit {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
   private i18n = inject(I18nService);
@@ -152,6 +236,9 @@ export class ProfileComponent {
   protected readonly savingAvatar = signal(false);
   protected readonly removingAvatar = signal(false);
   protected readonly avatarPreview = signal('');
+  protected readonly journey = signal<ProfileJourney | null>(null);
+  protected readonly journeyLoading = signal(true);
+  protected readonly journeyError = signal(false);
   protected avatarFile: File | null = null;
 
   protected readonly noop = (): void => {};
@@ -159,6 +246,45 @@ export class ProfileComponent {
   protected readonly profileForm = { name: this.auth.user()?.name ?? '' };
 
   protected passwordForm = { current: '', next: '' };
+
+  ngOnInit(): void {
+    this.loadJourney();
+  }
+
+  private loadJourney(): void {
+    this.journeyLoading.set(true);
+    this.journeyError.set(false);
+    this.auth.getJourney().subscribe({
+      next: (data) => {
+        this.journey.set(data);
+        this.journeyLoading.set(false);
+      },
+      error: () => {
+        this.journeyLoading.set(false);
+        this.journeyError.set(true);
+      },
+    });
+  }
+
+  protected journeyDays(): number | null {
+    const first = this.journey()?.firstActivityAt;
+    if (!first) return null;
+    const start = new Date(first);
+    const today = new Date();
+    const calendarDay = (date: Date): number => {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date);
+      const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+      return Date.UTC(Number(values['year']), Number(values['month']) - 1, Number(values['day']));
+    };
+    const startDay = calendarDay(start);
+    const todayDay = calendarDay(today);
+    return Math.max(0, Math.round((todayDay - startDay) / 86_400_000));
+  }
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;

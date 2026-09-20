@@ -40,6 +40,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    // Set once after the first meaningful user-created activity succeeds.
+    firstActivityAt: {
+      type: Date,
+      default: null,
+    },
     resetPasswordToken: {
       type: String,
       select: false,

@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
-import type { AuthResponse, RegisterPayload, User } from '../models/user.model';
+import type { AuthResponse, ProfileJourney, RegisterPayload, User } from '../models/user.model';
 import { ApiService } from './api.service';
 
 const TOKEN_KEY = 'lifehub_token';
@@ -45,6 +45,10 @@ export class AuthService {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
       })
     );
+  }
+
+  getJourney() {
+    return this.api.get<ProfileJourney>('/profile/journey');
   }
 
   updateProfile(payload: { name?: string; avatar?: string }) {
