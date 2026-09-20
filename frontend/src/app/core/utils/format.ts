@@ -1,13 +1,15 @@
 /**
- * Format a number as Indonesian Rupiah (IDR). The app is IDR-only, so the
- * formatter is fixed to the id-ID locale with no decimal places.
+ * Format a monetary value using the account's currency. IDR uses Indonesian
+ * grouping without decimals; USD uses US grouping with two decimals.
  */
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('id-ID', {
+export function formatCurrency(value: number, currency = 'IDR'): string {
+  const normalized = String(currency || 'IDR').toUpperCase();
+  const locale = normalized === 'USD' ? 'en-US' : 'id-ID';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency: normalized,
+    minimumFractionDigits: normalized === 'USD' ? 2 : 0,
+    maximumFractionDigits: normalized === 'USD' ? 2 : 0,
   }).format(value ?? 0);
 }
 
