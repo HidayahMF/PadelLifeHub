@@ -10,6 +10,7 @@ const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
 const Category = require('../models/Category');
 const { nextOccurrence } = require('./recurringScheduler');
+const { recordFirstActivity } = require('./journeyService');
 
 /** Normalize a date payload into a local Date (calendar-date safe for WIB). */
 function normalizeTransactionDate(value) {
@@ -153,7 +154,7 @@ async function createTransactionForUser(userId, body) {
     to.balance += numericAmount;
     await Promise.all([from.save(), to.save()]);
 
-    return Transaction.create({
+    const transfer = await Transaction.create({
       user: userId,
       type: 'transfer',
       amount: numericAmount,
@@ -162,6 +163,8 @@ async function createTransactionForUser(userId, body) {
       toAccount,
       date: normalizedDate,
     });
+    await recordFirstActivity(userId, transfer.createdAt);
+    return transfer;
   }
 
   const nextRunAt = computeNextRunAt(normalizedDate, recurring);
@@ -177,6 +180,7 @@ async function createTransactionForUser(userId, body) {
   });
 
   await adjustAccountBalance(transaction, 1);
+  await recordFirstActivity(userId, transaction.createdAt);
 
   // Invalidate any cached AI context for this user so the next AI call
   // sees the freshly created transaction.

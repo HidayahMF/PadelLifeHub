@@ -247,6 +247,22 @@ const getStatistics = async (req, res, next) => {
                 },
               },
               { $sort: { total: -1 } },
+              { $limit: 50 },
+              {
+                $lookup: {
+                  from: 'categories',
+                  localField: '_id',
+                  foreignField: '_id',
+                  as: 'category',
+                },
+              },
+              {
+                $project: {
+                  // Present the human-readable name so charts never expose raw ObjectIds.
+                  _id: { $ifNull: [{ $arrayElemAt: ['$category.name', 0] }, null] },
+                  total: 1,
+                },
+              },
             ]),
             Transaction.aggregate([
               { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter, ...dateFilter } },

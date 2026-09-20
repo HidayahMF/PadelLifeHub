@@ -1,4 +1,5 @@
 const Note = require('../models/Note');
+const { recordFirstActivity } = require('../services/journeyService');
 
 const getNotes = async (req, res, next) => {
   try {
@@ -45,6 +46,7 @@ const createNote = async (req, res, next) => {
       user: req.user._id,
       ...req.body,
     });
+    await recordFirstActivity(req.user._id, note.createdAt);
     res.status(201).json(note);
   } catch (err) {
     next(err);

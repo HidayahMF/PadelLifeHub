@@ -1,6 +1,7 @@
 const Habit = require('../models/Habit');
 const { getTodayLocalDate, normalizeHabitDate } = require('../utils/date');
 const { calcStreak, calcBestStreak } = require('../utils/streak');
+const { recordFirstActivity } = require('../services/journeyService');
 
 /** Normalize a habit's completion dates + refresh streak fields in place. */
 function refreshStreak(habit) {
@@ -34,6 +35,7 @@ const createHabit = async (req, res, next) => {
     const habit = new Habit({ user: req.user._id, ...req.body });
     refreshStreak(habit);
     await habit.save();
+    await recordFirstActivity(req.user._id, habit.createdAt);
     res.status(201).json(habit);
   } catch (err) {
     next(err);

@@ -1,4 +1,5 @@
 const Goal = require('../models/Goal');
+const { recordFirstActivity } = require('../services/journeyService');
 
 /** Validate a goal's numeric fields before persisting. */
 function validateGoalBody(body) {
@@ -54,6 +55,7 @@ const createGoal = async (req, res, next) => {
       user: req.user._id,
       ...body,
     });
+    await recordFirstActivity(req.user._id, goal.createdAt);
     res.status(201).json(goal);
   } catch (err) {
     next(err);
