@@ -12,6 +12,11 @@ const transactionSchema = new mongoose.Schema(
       enum: ['income', 'expense', 'transfer'],
       required: [true, 'Transaction type is required'],
     },
+    financeScope: {
+      type: String,
+      enum: ['personal', 'business'],
+      default: 'personal',
+    },
     amount: {
       type: Number,
       required: [true, 'Amount is required'],
@@ -25,6 +30,11 @@ const transactionSchema = new mongoose.Schema(
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
+      default: null,
+    },
+    businessProject: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BusinessProject',
       default: null,
     },
     account: {
@@ -89,5 +99,7 @@ const transactionSchema = new mongoose.Schema(
 
 transactionSchema.index({ user: 1, date: -1 });
 transactionSchema.index({ user: 1, type: 1 });
+transactionSchema.index({ user: 1, financeScope: 1, date: -1 });
+transactionSchema.index({ user: 1, businessProject: 1, date: -1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

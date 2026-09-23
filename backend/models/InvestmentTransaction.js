@@ -39,10 +39,16 @@ const investmentTransactionSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    // Present only on transactions created by the Update Value endpoint.
+    syncRequestId: { type: String, trim: true },
   },
   { timestamps: true }
 );
 
 investmentTransactionSchema.index({ user: 1, investment: 1, transaction_date: 1 });
+investmentTransactionSchema.index(
+  { user: 1, investment: 1, syncRequestId: 1 },
+  { unique: true, sparse: true }
+);
 
 module.exports = mongoose.model('InvestmentTransaction', investmentTransactionSchema);

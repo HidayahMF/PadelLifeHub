@@ -8,6 +8,7 @@ import type {
   FinanceSummary,
   Transaction,
   TransactionPayload,
+  BusinessProject,
 } from '../models/finance.model';
 import type { QueryParams } from './api.service';
 import { ApiService } from './api.service';
@@ -49,6 +50,22 @@ export class TransactionService {
   summary(params?: QueryParams) {
     return this.api.get<FinanceSummary>('/transactions/summary', params);
   }
+
+  migrateCategoryToBusiness(categoryId: string) {
+    return this.api.post<{ modifiedCount: number }>('/transactions/migrate-category-to-business', { categoryId });
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class BusinessProjectService {
+  private api = inject(ApiService);
+  readonly projects = signal<BusinessProject[]>([]);
+  load() {
+    return this.api.get<BusinessProject[]>('/business-projects').subscribe({ next: (rows) => this.projects.set(rows) });
+  }
+  create(payload: Partial<BusinessProject>) { return this.api.post<BusinessProject>('/business-projects', payload); }
+  update(id: string, payload: Partial<BusinessProject>) { return this.api.put<BusinessProject>(`/business-projects/${id}`, payload); }
+  remove(id: string) { return this.api.delete<{ message: string }>(`/business-projects/${id}`); }
 }
 
 @Injectable({ providedIn: 'root' })

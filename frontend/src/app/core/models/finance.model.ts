@@ -21,10 +21,12 @@ export interface Transaction {
   _id: string;
   user: string;
   type: TransactionType;
+  financeScope?: 'personal' | 'business';
   amount: number;
   description?: string;
   category?: string | Category | null;
   account?: string | Account | null;
+  businessProject?: string | BusinessProject | null;
   fromAccount?: string | Account | null;
   toAccount?: string | Account | null;
   date: string;
@@ -39,10 +41,12 @@ export interface Transaction {
 
 export interface TransactionPayload {
   type?: TransactionType;
+  financeScope?: 'personal' | 'business';
   amount?: number;
   description?: string;
   category?: string | null;
   account?: string | null;
+  businessProject?: string | null;
   fromAccount?: string | null;
   toAccount?: string | null;
   date?: string;
@@ -140,6 +144,28 @@ export interface InvestmentDetail extends Investment {
   monthChange: number;
   history: { date: string; value: number }[];
   transactions: InvestmentTransaction[];
+}
+
+export interface BusinessProject {
+  _id: string;
+  user: string;
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate?: string | null;
+  status: 'planned' | 'active' | 'completed' | 'cancelled';
+  totalIncome?: number;
+  totalExpense?: number;
+  profitLoss?: number;
+}
+
+export interface InvestmentSyncResult {
+  previousValue: number;
+  currentValue: number;
+  difference: number;
+  changeType: 'gain' | 'loss' | 'none';
+  transaction: InvestmentTransaction | null;
+  portfolio?: Investment;
 }
 
 export interface InvestmentOverview {

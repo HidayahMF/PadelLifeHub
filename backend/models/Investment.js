@@ -21,6 +21,9 @@ const investmentSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    // Short-lived lease used to serialize value-sync calculations per portfolio.
+    syncLockUntil: { type: Date, default: null },
+    lastSyncRequestId: { type: String, trim: true, default: null },
   },
   { timestamps: true }
 );

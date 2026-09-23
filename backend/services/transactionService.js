@@ -9,6 +9,7 @@
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
 const Category = require('../models/Category');
+const BusinessProject = require('../models/BusinessProject');
 const { nextOccurrence } = require('./recurringScheduler');
 const { recordFirstActivity } = require('./journeyService');
 
@@ -26,7 +27,7 @@ function normalizeTransactionDate(value) {
  * Reject references to accounts/categories that do not belong to the user,
  * so user A can never attach user B's account/category to a transaction.
  */
-async function validateOwnership(userId, { account, category, fromAccount, toAccount }) {
+async function validateOwnership(userId, { account, category, fromAccount, toAccount, businessProject, financeScope }) {
   const accountIds = [account, fromAccount, toAccount].filter(Boolean);
   if (accountIds.length) {
     const found = await Account.countDocuments({ _id: { $in: accountIds }, user: userId });
@@ -40,6 +41,19 @@ async function validateOwnership(userId, { account, category, fromAccount, toAcc
     const cat = await Category.findOne({ _id: category, user: userId });
     if (!cat) {
       const err = new Error('Category not found');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+  if (businessProject) {
+    if (financeScope !== 'business') {
+      const err = new Error('A project can only be attached to a business transaction');
+      err.statusCode = 400;
+      throw err;
+    }
+    const project = await BusinessProject.findOne({ _id: businessProject, user: userId });
+    if (!project) {
+      const err = new Error('Business project not found');
       err.statusCode = 400;
       throw err;
     }
@@ -72,6 +86,8 @@ function sanitizeTransactionBody(body = {}) {
   if (cleaned.type === 'transfer') {
     delete cleaned.account;
     delete cleaned.category;
+    delete cleaned.businessProject;
+    cleaned.financeScope = 'personal';
   } else {
     delete cleaned.fromAccount;
     delete cleaned.toAccount;
@@ -129,7 +145,7 @@ function computeNextRunAt(date, recurring) {
  */
 async function createTransactionForUser(userId, body) {
   const cleanBody = sanitizeTransactionBody(body);
-  const { account, category, fromAccount, toAccount, type, recurring, date } = cleanBody;
+  const { account, category, fromAccount, toAccount, businessProject, financeScope, type, recurring, date } = cleanBody;
   const normalizedDate = normalizeTransactionDate(date);
   const numericAmount = assertPositiveAmount(body.amount);
 
@@ -143,7 +159,14 @@ async function createTransactionForUser(userId, body) {
       throw err;
     }
   }
-  await validateOwnership(userId, { account, category, fromAccount, toAccount });
+  const normalizedScope = financeScope === 'business' ? 'business' : 'personal';
+  if (normalizedScope !== 'business') delete cleanBody.businessProject;
+  if (type === 'transfer' && financeScope !== undefined && financeScope !== 'personal') {
+    const err = new Error('Transfers do not have a business or personal expense scope');
+    err.statusCode = 400;
+    throw err;
+  }
+  await validateOwnership(userId, { account, category, fromAccount, toAccount, businessProject, financeScope: normalizedScope });
 
   if (type === 'transfer') {
     const [from, to] = await Promise.all([
@@ -171,7 +194,8 @@ async function createTransactionForUser(userId, body) {
 
   const transaction = await Transaction.create({
     user: userId,
-    ...cleanBody,
+      ...cleanBody,
+      financeScope: normalizedScope,
     amount: numericAmount,
     date: normalizedDate,
     nextRunAt,

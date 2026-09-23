@@ -96,8 +96,18 @@ function valueChangeIn(records, start, end) {
   return roundMoney(change);
 }
 
+function classifyValueChange(previousValue, currentValue) {
+  const difference = roundMoney(Number(currentValue) - Number(previousValue));
+  return {
+    difference,
+    type: difference > 0 ? 'gain' : difference < 0 ? 'loss' : 'none',
+    amount: Math.abs(difference),
+  };
+}
+
 module.exports = {
   computePortfolioTotals,
   summarize,
   valueChangeIn,
+  classifyValueChange,
 };

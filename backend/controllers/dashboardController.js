@@ -48,6 +48,8 @@ const getDashboardSummary = async (req, res, next) => {
 
     const invCatIds = await getInvestmentCategoryIds(userId);
     const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+    const requestedScope = ['personal', 'business'].includes(String(req.query.financeScope)) ? String(req.query.financeScope) : null;
+    const scopeFilter = requestedScope ? { financeScope: requestedScope } : {};
 
     const [
       totalTasks,
@@ -131,6 +133,15 @@ const getDashboardSummary = async (req, res, next) => {
       if (row._id in typeTotals) typeTotals[row._id] = row.total;
     }
     const liquidAssets = typeTotals.bank + typeTotals.ewallet + typeTotals.cash;
+    const scopeRows = await Transaction.aggregate([
+      { $match: { user: userId, migratedToInvestment: { $ne: true }, type: { $in: ['income', 'expense'] } } },
+      { $group: { _id: { scope: { $ifNull: ['$financeScope', 'personal'] }, type: '$type' }, total: { $sum: '$amount' } } },
+    ]);
+    const scopeTotals = { personal: { income: 0, expense: 0 }, business: { income: 0, expense: 0 } };
+    for (const row of scopeRows) {
+      const scope = row._id.scope === 'business' ? 'business' : 'personal';
+      scopeTotals[scope][row._id.type] = row.total;
+    }
 
     res.json({
       taskSummary: {
@@ -148,6 +159,12 @@ const getDashboardSummary = async (req, res, next) => {
         balance: totalBalance[0]?.total || 0,
         liquid: liquidAssets,
         investment: typeTotals.investment,
+        personal: { ...scopeTotals.personal, net: scopeTotals.personal.income - scopeTotals.personal.expense },
+        business: { ...scopeTotals.business, profitLoss: scopeTotals.business.income - scopeTotals.business.expense },
+        overall: {
+          income: scopeTotals.personal.income + scopeTotals.business.income,
+          expense: scopeTotals.personal.expense + scopeTotals.business.expense,
+        },
       },
       recentTransactions,
       activeGoals,
@@ -174,6 +191,8 @@ const getStatistics = async (req, res, next) => {
 
     const invCatIds = await getInvestmentCategoryIds(userId);
     const invCatFilter = invCatIds.length ? { category: { $nin: invCatIds } } : {};
+    const requestedScope = ['personal', 'business'].includes(String(req.query.financeScope)) ? String(req.query.financeScope) : null;
+    const scopeFilter = requestedScope ? { financeScope: requestedScope } : {};
 
     const [productivity, finance, focus] = await Promise.all([
       (async () => {
@@ -229,16 +248,16 @@ const getStatistics = async (req, res, next) => {
         const [totalIncome, totalExpense, categorySpending, cashFlow] =
           await Promise.all([
             Transaction.aggregate([
-              { $match: { user: userId, type: 'income', ...invCatFilter, ...dateFilter } },
+              { $match: { user: userId, type: 'income', ...invCatFilter, ...scopeFilter, ...dateFilter } },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
-              { $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true }, ...dateFilter } },
+              { $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true }, ...scopeFilter, ...dateFilter } },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ]),
             Transaction.aggregate([
               {
-                $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true }, ...dateFilter },
+                $match: { user: userId, type: 'expense', migratedToInvestment: { $ne: true }, ...scopeFilter, ...dateFilter },
               },
               {
                 $group: {
@@ -265,7 +284,7 @@ const getStatistics = async (req, res, next) => {
               },
             ]),
             Transaction.aggregate([
-              { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter, ...dateFilter } },
+              { $match: { user: userId, migratedToInvestment: { $ne: true }, ...invCatFilter, ...scopeFilter, ...dateFilter } },
               {
                 $group: {
                   // Group in the application timezone so WIB-midnight-stored

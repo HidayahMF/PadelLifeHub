@@ -8,6 +8,7 @@ const {
   deletePortfolio,
   getPortfolioDetail,
   getTransactions,
+  syncValue,
   createTransaction,
   updateTransaction,
   deleteTransaction,
@@ -19,6 +20,7 @@ router.use(protect);
 router.get('/overview', getOverview);
 router.get('/transactions', getTransactions);
 router.post('/transactions', createTransaction);
+router.post('/:id/sync-value', syncValue);
 router.get('/', getPortfolios);
 router.post('/', createPortfolio);
 router.get('/:id', getPortfolioDetail);

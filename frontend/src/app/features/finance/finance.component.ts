@@ -17,6 +17,7 @@ import { DonutChartComponent, DonutSegment } from './components/donut-chart.comp
 import {
   AccountService,
   BudgetService,
+  BusinessProjectService,
   TransactionService,
 } from '../../core/services/finance.service';
 import { CategoryService } from '../../core/services/category.service';
@@ -351,6 +352,26 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             </ul>
           }
         </app-card>
+        <app-card class="mt-6" [padding]="'none'">
+          <div class="flex items-center justify-between px-5 pt-5">
+            <div>
+              <h2 class="text-base font-semibold text-ink">{{ t('Business projects') }}</h2>
+              <p class="text-xs text-ink-soft">{{ t('Track business income, costs, and profit by project.') }}</p>
+            </div>
+            <app-button size="sm" icon="plus" (click)="openProject()">{{ t('Add project') }}</app-button>
+          </div>
+          <div class="grid gap-3 p-5 sm:grid-cols-2">
+            @for (project of projects(); track project._id) {
+              <div class="rounded-button border-2 border-line bg-surface-2 p-3">
+                <p class="font-semibold text-ink">{{ project.name }}</p>
+                <p class="mt-1 text-xs text-ink-soft">{{ t('Income') }} {{ displayAmount(project.totalIncome ?? 0) }} · {{ t('Expense') }} {{ displayAmount(project.totalExpense ?? 0) }}</p>
+                <p class="mt-1 text-sm font-bold" [ngClass]="(project.profitLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'">{{ t('Profit / Loss') }}: {{ displayAmount(project.profitLoss ?? 0) }}</p>
+              </div>
+            } @empty {
+              <p class="text-sm text-ink-soft">{{ t('No business projects yet.') }}</p>
+            }
+          </div>
+        </app-card>
       </div>
 
       <!-- Sidebar: budgets + spending -->
@@ -471,10 +492,11 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
           </div>
         </app-card>
 
-        <app-card [padding]="'none'">
-          <div class="px-5 pt-5">
-            <h2 class="text-base font-semibold text-ink">{{ t('Spending by category') }}</h2>
-            <p class="text-xs text-ink-soft">{{ t('This month') }}</p>
+          <app-card [padding]="'none'">
+            <div class="px-5 pt-5">
+              <h2 class="text-base font-semibold text-ink">{{ t('Spending by category') }}</h2>
+              <p class="text-xs text-ink-soft">{{ t('This month') }}</p>
+              <app-select class="mt-3" [options]="spendingScopeOptions()" [ngModel]="spendingScope()" (ngModelChange)="spendingScope.set($event)" />
           </div>
           <div class="p-5">
              <app-donut-chart [segments]="spendingSegments()" [totalLabel]="t('spent')" [masked]="hideBalance()" />
@@ -510,8 +532,8 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
           name="description"
         />
         @if (txnForm.type === 'transfer') {
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <app-select
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+             <app-select
               [label]="t('From account')"
               [placeholder]="t('Select account')"
               [options]="accountOptions()"
@@ -529,6 +551,12 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
             />
           </div>
         } @else {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <app-select [label]="t('Scope')" [options]="financeScopeOptions()" [(ngModel)]="txnForm.financeScope" name="financeScope" />
+            @if (txnForm.financeScope === 'business') {
+              <app-select [label]="t('Project (optional)')" [options]="projectOptions()" [(ngModel)]="txnForm.businessProject" name="businessProject" />
+            }
+          </div>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <app-select
               [label]="t('Category')"
@@ -727,6 +755,18 @@ import { formatDateToLocalYYYYMMDD, getTodayLocalDate } from '../../core/utils/d
         </div>
       </form>
     </app-modal>
+
+    <app-modal [open]="projectModalOpen()" [title]="t('New business project')" (closed)="projectModalOpen.set(false)">
+      <form class="space-y-4" (ngSubmit)="saveProject()">
+        <app-field [label]="t('Project name')" [(ngModel)]="projectForm.name" name="projectName" [required]="true" />
+        <app-field [label]="t('Description')" [(ngModel)]="projectForm.description" name="projectDescription" />
+        <div class="grid gap-3 sm:grid-cols-2">
+          <app-field [label]="t('Start date')" type="date" [(ngModel)]="projectForm.startDate" name="projectStartDate" [required]="true" />
+          <app-select [label]="t('Status')" [options]="projectStatusOptions()" [(ngModel)]="projectForm.status" name="projectStatus" />
+        </div>
+        <div class="flex justify-end gap-2"><app-button type="button" variant="secondary" (click)="projectModalOpen.set(false)">{{ t('Cancel') }}</app-button><app-button type="submit" [loading]="savingProject()">{{ t('Save') }}</app-button></div>
+      </form>
+    </app-modal>
   `,
 })
 export class FinanceComponent implements OnInit {
@@ -734,6 +774,7 @@ export class FinanceComponent implements OnInit {
   private accountService = inject(AccountService);
   private budgetService = inject(BudgetService);
   private categoryService = inject(CategoryService);
+  private projectService = inject(BusinessProjectService);
   private settingService = inject(SettingService);
   private insightsService = inject(InsightsService);
   private aiService = inject(AiService);
@@ -748,6 +789,7 @@ export class FinanceComponent implements OnInit {
   protected readonly budgets = this.budgetService.budgets;
   protected readonly budgetsLoading = this.budgetService.loading;
   protected readonly categories = this.categoryService.categories;
+  protected readonly projects = this.projectService.projects;
   protected readonly failedLogos = signal<string[]>([]);
   protected readonly hideBalance = signal(false);
 
@@ -757,6 +799,10 @@ export class FinanceComponent implements OnInit {
   protected readonly typeFilter = signal<TransactionType | 'all'>('all');
   protected readonly accountFilter = signal('');
   protected readonly categoryFilter = signal('');
+  protected readonly spendingScope = signal<'personal' | 'business' | 'all'>('personal');
+  protected readonly projectModalOpen = signal(false);
+  protected readonly savingProject = signal(false);
+  protected projectForm = { name: '', description: '', startDate: getTodayLocalDate(), status: 'active' as 'planned' | 'active' | 'completed' | 'cancelled' };
 
   protected readonly txnModalOpen = signal(false);
   protected readonly accountModalOpen = signal(false);
@@ -811,6 +857,18 @@ export class FinanceComponent implements OnInit {
       .filter((c) => c.type === 'transaction')
       .map((c) => ({ value: c._id, label: c.name }))
   );
+
+  protected readonly financeScopeOptions = computed(() => [
+    { value: 'personal', label: this.t('Personal') },
+    { value: 'business', label: this.t('Business') },
+  ]);
+  protected readonly spendingScopeOptions = computed(() => [
+    { value: 'personal', label: this.t('Personal') },
+    { value: 'business', label: this.t('Business') },
+    { value: 'all', label: this.t('All') },
+  ]);
+  protected readonly projectOptions = computed(() => this.projects().map((p) => ({ value: p._id, label: p.name })));
+  protected readonly projectStatusOptions = computed(() => ['planned', 'active', 'completed', 'cancelled'].map((value) => ({ value, label: this.t(value[0].toUpperCase() + value.slice(1)) })));
 
   protected readonly accountTypeOptions = computed(() => [
     { value: 'cash', label: this.t('Cash') },
@@ -972,6 +1030,7 @@ export class FinanceComponent implements OnInit {
     const spent = new Map<string, number>();
     for (const t of this.transactions()) {
       if (t.type !== 'expense') continue;
+      if (this.spendingScope() !== 'all' && (t.financeScope ?? 'personal') !== this.spendingScope()) continue;
       if (monthKey(toDate(t.date)) !== this.budgetMonth()) continue;
       const name = this.categoryName(t.category) || this.t('Other');
       spent.set(name, (spent.get(name) ?? 0) + t.amount);
@@ -992,6 +1051,7 @@ export class FinanceComponent implements OnInit {
   ngOnInit(): void {
     this.categoryService.load({ type: 'transaction' });
     this.reload();
+    this.projectService.load();
     this.loadInsights();
     // Read the hide-balance preference from the backend (same source as
     // Dashboard) instead of a stale localStorage copy.
@@ -1093,6 +1153,7 @@ export class FinanceComponent implements OnInit {
     this.editingTxn.set(null);
     this.txnForm = {
       type: 'expense',
+      financeScope: 'personal',
       amount: undefined,
       description: '',
       date: getTodayLocalDate(),
@@ -1116,6 +1177,8 @@ export class FinanceComponent implements OnInit {
       fromAccount: typeof txn.fromAccount === 'string' ? txn.fromAccount : txn.fromAccount?._id ?? '',
       toAccount: typeof txn.toAccount === 'string' ? txn.toAccount : txn.toAccount?._id ?? '',
       date: formatDateToLocalYYYYMMDD(toDate(txn.date)),
+      financeScope: txn.financeScope ?? 'personal',
+      businessProject: typeof txn.businessProject === 'string' ? txn.businessProject : txn.businessProject?._id,
     };
     this.txnRecurring = txn.recurring?.isRecurring
       ? (txn.recurring.frequency ?? 'monthly')
@@ -1173,13 +1236,15 @@ export class FinanceComponent implements OnInit {
       return;
     }
     const isRecurring = this.txnRecurring !== 'none';
-    const payload: TransactionPayload = {
+      const payload: TransactionPayload = {
       type: this.txnForm.type,
       amount,
       description: this.txnForm.description || '',
       category: this.txnForm.category || null,
       account: this.txnForm.account || null,
-      date: this.txnForm.date || getTodayLocalDate(),
+        date: this.txnForm.date || getTodayLocalDate(),
+        financeScope: this.txnForm.financeScope === 'business' ? 'business' : 'personal',
+        businessProject: this.txnForm.financeScope === 'business' ? (this.txnForm.businessProject || null) : null,
       recurring: {
         isRecurring,
         frequency: isRecurring ? this.txnRecurring : 'none',
@@ -1467,6 +1532,20 @@ export class FinanceComponent implements OnInit {
       return (value as { name: string }).name;
     }
     return '';
+  }
+
+  protected openProject(): void {
+    this.projectForm = { name: '', description: '', startDate: getTodayLocalDate(), status: 'active' };
+    this.projectModalOpen.set(true);
+  }
+
+  protected saveProject(): void {
+    if (!this.projectForm.name.trim()) { this.toast.error(this.t('Project name is required')); return; }
+    this.savingProject.set(true);
+    this.projectService.create(this.projectForm).subscribe({
+      next: () => { this.savingProject.set(false); this.projectModalOpen.set(false); this.projectService.load(); this.toast.success(this.t('Project saved')); },
+      error: (err: Error) => { this.savingProject.set(false); this.toast.error(err.message); },
+    });
   }
 
   protected displayTransactionAmount(type: TransactionType, value: number, currency = 'IDR'): string {

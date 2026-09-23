@@ -4,6 +4,7 @@ const Account = require('../models/Account');
 const {
   summarize,
   valueChangeIn,
+  classifyValueChange,
 } = require('../services/investmentService');
 
 function invalidateCache(userId) {
@@ -70,6 +71,26 @@ function assertType(type) {
     throw err;
   }
   return type;
+}
+
+function assertCurrentValue(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || !Number.isSafeInteger(n)) {
+    const err = new Error('Current value must be a valid non-negative whole number');
+    err.statusCode = 400;
+    throw err;
+  }
+  return n;
+}
+
+function assertDate(value) {
+  const date = normalizeTransactionDate(value);
+  if (Number.isNaN(date.getTime())) {
+    const err = new Error('Invalid date');
+    err.statusCode = 400;
+    throw err;
+  }
+  return date;
 }
 
 async function loadTransactionsFor(userId, investmentId) {
@@ -262,6 +283,100 @@ const getTransactions = async (req, res, next) => {
   }
 };
 
+// Update a broker-reported portfolio value without treating capital movements
+// as profit/loss. The lease prevents two workers from calculating from the same
+// derived value; the unique request id makes retries safe.
+const syncValue = async (req, res, next) => {
+  const userId = req.user._id;
+  const investmentId = req.params.id;
+  const requestId = String(req.get('Idempotency-Key') || req.body.idempotencyKey || '').trim();
+  try {
+    if (!requestId || requestId.length > 120) {
+      const err = new Error('Idempotency key is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    const existing = await InvestmentTransaction.findOne({
+      user: userId,
+      investment: investmentId,
+      syncRequestId: requestId,
+    }).lean();
+    const portfolioForRetry = await Investment.findOne({ _id: investmentId, user: userId }).lean();
+    if (portfolioForRetry?.lastSyncRequestId === requestId) {
+      const currentValue = summarize(await loadTransactionsFor(userId, investmentId)).currentValue;
+      return res.json({ previousValue: currentValue, currentValue, difference: 0, changeType: 'none', transaction: null });
+    }
+    if (existing) {
+      const records = await loadTransactionsFor(userId, investmentId);
+      const stats = summarize(records);
+      return res.json({
+        previousValue: stats.currentValue - (existing.type === 'gain' ? existing.amount : existing.type === 'loss' ? -existing.amount : 0),
+        currentValue: stats.currentValue,
+        difference: existing.type === 'gain' ? existing.amount : existing.type === 'loss' ? -existing.amount : 0,
+        changeType: existing.type,
+        transaction: existing,
+      });
+    }
+
+    const value = assertCurrentValue(req.body.currentValue);
+    const date = assertDate(req.body.date || req.body.transaction_date);
+    const lockUntil = new Date(Date.now() + 15_000);
+    const portfolio = await Investment.findOneAndUpdate(
+      {
+        _id: investmentId,
+        user: userId,
+        $or: [{ syncLockUntil: null }, { syncLockUntil: { $exists: false } }, { syncLockUntil: { $lte: new Date() } }],
+      },
+      { $set: { syncLockUntil: lockUntil } },
+      { new: true }
+    );
+    if (!portfolio) {
+      const err = new Error('Portfolio is being updated; please retry');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    try {
+      const records = await loadTransactionsFor(userId, investmentId);
+      const previousValue = summarize(records).currentValue;
+      const { difference, type: changeType, amount } = classifyValueChange(previousValue, value);
+      let transaction = null;
+      if (difference !== 0) {
+        transaction = await InvestmentTransaction.create({
+          user: userId,
+          investment: investmentId,
+          type: changeType,
+          amount,
+          transaction_date: date,
+          note: String(req.body.note || '').trim(),
+          syncRequestId: requestId,
+        });
+      }
+      await Investment.updateOne({ _id: investmentId, user: userId }, { $set: { lastSyncRequestId: requestId } });
+      await syncInvestmentToAccount(userId, investmentId);
+      invalidateCache(userId);
+      return res.status(transaction ? 201 : 200).json({
+        previousValue,
+        currentValue: value,
+        difference,
+        changeType,
+        transaction,
+        portfolio: { ...portfolio.toObject(), currentValue: value },
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        const duplicate = await InvestmentTransaction.findOne({ user: userId, investment: investmentId, syncRequestId: requestId }).lean();
+        if (duplicate) return res.json({ transaction: duplicate, changeType: duplicate.type, difference: duplicate.type === 'gain' ? duplicate.amount : -duplicate.amount });
+      }
+      throw err;
+    } finally {
+      await Investment.updateOne({ _id: investmentId, user: userId }, { $set: { syncLockUntil: null } });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
 const createTransaction = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -422,6 +537,7 @@ module.exports = {
   deletePortfolio,
   getPortfolioDetail,
   getTransactions,
+  syncValue,
   createTransaction,
   updateTransaction,
   deleteTransaction,

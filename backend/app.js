@@ -83,6 +83,7 @@ app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
+app.use('/api/business-projects', require('./routes/businessProjectRoutes'));
 app.use('/api/accounts', require('./routes/accountRoutes'));
 app.use('/api/investments', require('./routes/investmentRoutes'));
 app.use('/api/budgets', require('./routes/budgetRoutes'));

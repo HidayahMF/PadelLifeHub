@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { summarize, computePortfolioTotals, valueChangeIn } = require('../services/investmentService');
+const { summarize, computePortfolioTotals, valueChangeIn, classifyValueChange } = require('../services/investmentService');
 
 function tx(type, amount, date = '2026-01-01') {
   return { type, amount, transaction_date: date };
@@ -81,4 +81,22 @@ test('empty records produce zero-value summary', () => {
   assert.equal(s.netCapitalInvested, 0);
   assert.equal(s.profitLoss, 0);
   assert.equal(s.returnPct, 0);
+});
+
+test('sync value classification derives gain, loss, or no transaction', () => {
+  assert.deepStrictEqual(classifyValueChange(59222000, 59500000), {
+    difference: 278000,
+    type: 'gain',
+    amount: 278000,
+  });
+  assert.deepStrictEqual(classifyValueChange(59500000, 58900000), {
+    difference: -600000,
+    type: 'loss',
+    amount: 600000,
+  });
+  assert.deepStrictEqual(classifyValueChange(59500000, 59500000), {
+    difference: 0,
+    type: 'none',
+    amount: 0,
+  });
 });

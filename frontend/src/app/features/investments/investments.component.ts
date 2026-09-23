@@ -127,8 +127,9 @@ const enDateFormatter = new Intl.DateTimeFormat('en-GB', {
                     <p class="text-xs text-ink-soft">{{ d.description }}</p>
                   }
                 </div>
-                <div class="flex gap-2">
-                  <app-button size="sm" variant="secondary" icon="pencil" (click)="openEditPortfolio(d)">{{ t('Edit') }}</app-button>
+                 <div class="flex gap-2">
+                   <app-button size="sm" icon="refresh-cw" (click)="openSyncValue(d)">{{ t('Update value') }}</app-button>
+                   <app-button size="sm" variant="secondary" icon="pencil" (click)="openEditPortfolio(d)">{{ t('Edit') }}</app-button>
                   <app-button size="sm" variant="danger" icon="trash-2" (click)="deletePortfolio(d)">{{ t('Delete') }}</app-button>
                 </div>
               </div>
@@ -246,6 +247,40 @@ const enDateFormatter = new Intl.DateTimeFormat('en-GB', {
         </div>
       </div>
     </app-modal>
+
+    <!-- Broker value sync modal -->
+    <app-modal [open]="syncModalOpen()" [title]="t('Update value')" (closed)="closeSyncValue()">
+      <div class="space-y-4">
+        <div class="rounded-field border-2 border-line bg-surface-2 p-3">
+          <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">{{ t('Portfolio') }}</p>
+          <p class="mt-1 font-display text-lg text-ink">{{ syncForm.name }}</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="rounded-field border-2 border-line bg-surface-2 p-3">
+            <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">{{ t('Previous value') }}</p>
+            <p class="mt-1 text-lg font-bold text-ink">{{ money(syncForm.previousValue) }}</p>
+          </div>
+          <div class="rounded-field border-2 border-line bg-surface-2 p-3">
+            <p class="text-xs font-bold uppercase tracking-wide text-ink-soft">{{ t('Change') }}</p>
+            <p class="mt-1 text-lg font-bold" [ngClass]="syncDifference() >= 0 ? 'text-success' : 'text-danger'">{{ signed(syncDifference()) }}</p>
+          </div>
+        </div>
+        <app-field
+          label="Latest value (Rp)"
+          [(ngModel)]="syncForm.latestValue"
+          [required]="true"
+          inputmode="numeric"
+          placeholder="e.g. 59.500.000"
+          hint="Paste a Rupiah amount. Thousand separators are accepted."
+        />
+        <app-field label="Date" type="date" [(ngModel)]="syncForm.date" [required]="true" />
+        <app-field label="Note" [(ngModel)]="syncForm.note" placeholder="Optional note" />
+        <div class="flex justify-end gap-2 pt-2">
+          <app-button variant="secondary" (click)="closeSyncValue()">{{ t('Cancel') }}</app-button>
+          <app-button [loading]="savingSync()" (click)="saveSyncValue()">{{ t('Save') }}</app-button>
+        </div>
+      </div>
+    </app-modal>
   `,
 })
 export class InvestmentsComponent implements OnInit {
@@ -275,6 +310,10 @@ export class InvestmentsComponent implements OnInit {
     note: '',
   };
   protected readonly txnModalTitle = signal('');
+
+  protected readonly syncModalOpen = signal(false);
+  protected readonly savingSync = signal(false);
+  protected syncForm = { id: '', name: '', previousValue: 0, latestValue: '', date: '', note: '' };
 
   protected readonly t = (k: string) => this.i18n.t(k);
   protected readonly money = (n: number) => formatCurrency(n || 0);
@@ -317,6 +356,11 @@ export class InvestmentsComponent implements OnInit {
       date: h.date,
     }));
   });
+
+  protected syncDifference(): number {
+    const normalized = this.parseRupiah(this.syncForm.latestValue);
+    return normalized === null ? 0 : normalized - this.syncForm.previousValue;
+  }
 
   ngOnInit(): void {
     this.loadAll();
@@ -452,6 +496,60 @@ export class InvestmentsComponent implements OnInit {
     this.txnModalTitle.set(this.t('Add change'));
     this.txnModalOpen.set(true);
   };
+
+  protected openSyncValue = (d: InvestmentDetail): void => {
+    this.syncForm = {
+      id: d._id,
+      name: d.name,
+      previousValue: d.currentValue ?? 0,
+      latestValue: this.formatInputValue(d.currentValue ?? 0),
+      date: getTodayLocalDate(),
+      note: '',
+    };
+    this.syncModalOpen.set(true);
+  };
+
+  protected closeSyncValue = (): void => this.syncModalOpen.set(false);
+
+  protected saveSyncValue(): void {
+    const value = this.parseRupiah(this.syncForm.latestValue);
+    if (value === null || value < 0) {
+      this.toast.error('Enter a valid non-negative value');
+      return;
+    }
+    if (!this.syncForm.date) {
+      this.toast.error('Date is required');
+      return;
+    }
+    const key = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    this.savingSync.set(true);
+    this.investments.syncValue(this.syncForm.id, { currentValue: value, date: this.syncForm.date, note: this.syncForm.note }, key).subscribe({
+      next: () => {
+        this.savingSync.set(false);
+        this.syncModalOpen.set(false);
+        this.loadDetail(this.syncForm.id, true);
+        this.reloadOverview();
+        this.toast.success('Investment value updated');
+      },
+      error: () => {
+        this.savingSync.set(false);
+        this.toast.error('Failed to update investment value');
+      },
+    });
+  }
+
+  protected parseRupiah(value: string): number | null {
+    const raw = String(value ?? '').replace(/[^0-9]/g, '');
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isSafeInteger(n) ? n : null;
+  }
+
+  private formatInputValue(value: number): string {
+    return new Intl.NumberFormat('id-ID').format(value || 0);
+  }
 
   protected openEditTxn = (d: InvestmentDetail, tx: InvestmentTransaction): void => {
     this.txnForm = {

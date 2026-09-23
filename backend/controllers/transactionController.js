@@ -1,4 +1,5 @@
 const Transaction = require('../models/Transaction');
+const Category = require('../models/Category');
 const { getInvestmentCategoryIds } = require('../services/investmentCategoryService');
 const {
   createTransactionForUser,
@@ -22,12 +23,14 @@ function invalidateCache(userId) {
 
 const getTransactions = async (req, res, next) => {
   try {
-    const { type, account, category, startDate, endDate, search } = req.query;
+    const { type, account, category, financeScope, businessProject, startDate, endDate, search } = req.query;
     const filter = { user: req.user._id };
 
     if (type) filter.type = type;
     if (account) filter.account = account;
     if (category) filter.category = category;
+    if (financeScope === 'personal' || financeScope === 'business') filter.financeScope = financeScope;
+    if (businessProject) filter.businessProject = businessProject;
 
     if (startDate || endDate) {
       filter.date = {};
@@ -74,6 +77,20 @@ const getTransactionById = async (req, res, next) => {
   }
 };
 
+const migrateCategoryToBusiness = async (req, res, next) => {
+  try {
+    const categoryId = String(req.body.categoryId || '').trim();
+    const category = await Category.findOne({ _id: categoryId, user: req.user._id, type: 'transaction' }).lean();
+    if (!category) { const error = new Error('Transaction category not found'); error.statusCode = 400; throw error; }
+    const result = await Transaction.updateMany(
+      { user: req.user._id, category: category._id, financeScope: { $ne: 'business' } },
+      { $set: { financeScope: 'business' } }
+    );
+    invalidateCache(req.user._id);
+    res.json({ categoryId: String(category._id), categoryName: category.name, modifiedCount: result.modifiedCount ?? result.nModified ?? 0 });
+  } catch (err) { next(err); }
+};
+
 const createTransaction = async (req, res, next) => {
   try {
     const transaction = await createTransactionForUser(req.user._id, req.body);
@@ -96,7 +113,7 @@ const updateTransaction = async (req, res, next) => {
     }
 
     const cleanBody = sanitizeTransactionBody(req.body);
-    const { account, category, fromAccount, toAccount, recurring, date, type } = cleanBody;
+    const { account, category, fromAccount, toAccount, businessProject, financeScope, recurring, date, type } = cleanBody;
 
     const newType = type ?? transaction.type;
     const newAmount = req.body.amount !== undefined ? assertPositiveAmount(req.body.amount) : transaction.amount;
@@ -111,7 +128,14 @@ const updateTransaction = async (req, res, next) => {
         throw err;
       }
     }
-    await validateOwnership(req.user._id, { account, category, fromAccount, toAccount });
+    const newScope = financeScope ?? transaction.financeScope ?? 'personal';
+    if (!['personal', 'business'].includes(newScope)) {
+      const err = new Error('Invalid finance scope'); err.statusCode = 400; throw err;
+    }
+    if (newType === 'transfer' && financeScope !== undefined && financeScope !== 'personal') {
+      const err = new Error('Transfers do not have a business or personal expense scope'); err.statusCode = 400; throw err;
+    }
+    await validateOwnership(req.user._id, { account, category, fromAccount, toAccount, businessProject, financeScope: newScope });
 
     // Reverse the old effect, then apply the new one.
     if (transaction.type === 'transfer') await applyTransfer(transaction, -1);
@@ -120,6 +144,8 @@ const updateTransaction = async (req, res, next) => {
     Object.assign(transaction, cleanBody);
     transaction.type = newType;
     transaction.amount = newAmount;
+    transaction.financeScope = newScope;
+    if (newType === 'transfer' || newScope === 'personal') transaction.businessProject = null;
     // A type switch must not leave stale refs behind: a transfer keeps no
     // income/expense account, and an income/expense keeps no transfer legs.
     if (newType === 'transfer') {
@@ -173,8 +199,9 @@ const deleteTransaction = async (req, res, next) => {
 
 const getSummary = async (req, res, next) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, financeScope } = req.query;
     const filter = { user: req.user._id };
+    if (financeScope === 'personal' || financeScope === 'business') filter.financeScope = financeScope;
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = normalizeTransactionDate(startDate);
@@ -211,6 +238,7 @@ const getSummary = async (req, res, next) => {
 module.exports = {
   getTransactions,
   getTransactionById,
+  migrateCategoryToBusiness,
   createTransaction,
   updateTransaction,
   deleteTransaction,

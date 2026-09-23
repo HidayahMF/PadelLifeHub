@@ -17,9 +17,9 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err)));
   }
 
-  post<T>(path: string, body?: unknown): Observable<T> {
+  post<T>(path: string, body?: unknown, headers?: Record<string, string>): Observable<T> {
     return this.http
-      .post<T>(`${this.base}${path}`, body ?? {})
+      .post<T>(`${this.base}${path}`, body ?? {}, { headers })
       .pipe(catchError((err) => this.handleError(err)));
   }
 

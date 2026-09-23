@@ -41,6 +41,7 @@ import { IconComponent } from './icon.component';
           [placeholder]="placeholder()"
           [disabled]="disabled()"
           [autocomplete]="autocomplete()"
+          [attr.inputmode]="inputmode()"
           [attr.aria-label]="label() || placeholder()"
           (input)="onInput($any($event.target).value)"
           (blur)="onBlur()"
@@ -72,6 +73,7 @@ export class FieldComponent implements ControlValueAccessor {
   readonly required = input(false);
   readonly disabled = input(false);
   readonly autocomplete = input('off');
+  readonly inputmode = input<string>();
   readonly leadingIcon = input<string>();
   readonly trailingIcon = input<string>();
   readonly hint = input('');

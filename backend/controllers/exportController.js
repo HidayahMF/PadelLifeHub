@@ -46,6 +46,7 @@ async function loadTransactions(userId) {
   return Transaction.find({ user: userId })
     .sort({ date: -1 })
     .populate('category', 'name')
+    .populate('businessProject', 'name')
     .populate('account', 'name')
     .populate('fromAccount', 'name')
     .populate('toAccount', 'name');
@@ -75,7 +76,7 @@ const exportTransactionsCsv = async (req, res, next) => {
   try {
     const transactions = await loadTransactions(req.user._id);
 
-    const headers = ['date', 'type', 'amount', 'description', 'category', 'account', 'from', 'to'];
+    const headers = ['date', 'type', 'amount', 'description', 'category', 'account', 'from', 'to', 'financeScope', 'businessProject'];
     const rows = transactions.map((t) => [
       t.date ? new Date(t.date).toISOString() : '',
       t.type,
@@ -85,6 +86,8 @@ const exportTransactionsCsv = async (req, res, next) => {
       t.account?.name ?? '',
       t.fromAccount?.name ?? '',
       t.toAccount?.name ?? '',
+      t.financeScope || 'personal',
+      t.businessProject?.name ?? '',
     ]);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

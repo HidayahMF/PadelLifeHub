@@ -189,6 +189,13 @@ const getInsights = async (req, res, next) => {
         ]),
       ]);
 
+    const businessRows = await Transaction.aggregate([
+      { $match: { user: userId, financeScope: 'business', type: { $in: ['income', 'expense'] }, migratedToInvestment: { $ne: true } } },
+      { $group: { _id: '$type', total: { $sum: '$amount' } } },
+    ]);
+    const businessIncome = businessRows.find((row) => row._id === 'income')?.total || 0;
+    const businessExpense = businessRows.find((row) => row._id === 'expense')?.total || 0;
+
     const sum = (rows, type) => rows.find((r) => r._id === type)?.total ?? 0;
     const thisIncome = sum(thisMonth, 'income');
     const thisExpense = sum(thisMonth, 'expense');
@@ -302,6 +309,7 @@ const getInsights = async (req, res, next) => {
       month: monthKeyOf(now),
       income: { thisMonth: thisIncome, lastMonth: lastIncome },
       expense: { thisMonth: thisExpense, lastMonth: lastExpense },
+      business: { income: businessIncome, expense: businessExpense, profitLoss: businessIncome - businessExpense },
       savingsRate,
       savingsRateLastMonth,
       spendingByCategory,

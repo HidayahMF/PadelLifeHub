@@ -5,6 +5,7 @@ import type {
   InvestmentOverview,
   InvestmentTransaction,
   InvestmentTransactionType,
+  InvestmentSyncResult,
 } from '../models/finance.model';
 import { ApiService } from './api.service';
 
@@ -49,6 +50,12 @@ export class InvestmentService {
     note?: string;
   }) {
     return this.api.post<InvestmentTransaction>('/investments/transactions', payload);
+  }
+
+  syncValue(id: string, payload: { currentValue: number; date: string; note?: string }, idempotencyKey: string) {
+    return this.api.post<InvestmentSyncResult>(`/investments/${id}/sync-value`, payload, {
+      'Idempotency-Key': idempotencyKey,
+    });
   }
 
   updateTransaction(
